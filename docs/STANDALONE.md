@@ -10,9 +10,9 @@ The native Swift/AppKit app can run its conversion engines from inside `UltraCon
 4. On first launch from Applications, the app installs its two owned Finder Quick Actions. Enable them in **System Settings → General → Login Items & Extensions → Finder**. Native format Services come from the app's metadata.
 5. Add files, review detected types and chosen formats, select **Beside source files** or a destination, then click **Convert**.
 
-**Help → Install Finder Quick Actions…** repairs/repoints actions after moving the app. The app refuses to overwrite unrelated actions. Owned previous actions are retained under Application Support/backups. **Help → Check Setup…** checks local engines; **Third-Party Licences** opens the offline provenance folder's guide. Settings and reports remain in your user Library; existing source-installation runtimes are retained for rollback.
+**UltraConvert → Settings…** (⌘,) provides optional Launch at Login, automatic Finder registration, manual action repair, Services refresh and links to macOS enable switches. Launch at Login is off unless requested by the user; its state comes from macOS, including pending approval. Disabling automatic registration leaves existing actions installed. **Help → Install Finder Quick Actions…** also repairs/repoints actions after moving the app. The app refuses to overwrite unrelated actions. Owned previous actions are retained under Application Support/backups. **Help → Check Setup…** checks local engines; **Third-Party Licences** opens the offline provenance folder's guide. Settings and reports remain in your user Library; existing source-installation runtimes are retained for rollback.
 
-This is a **local development preview**, not an Apple-notarized public download. The first engine bundle requires **Apple Silicon and macOS 27** because its installed engine binaries require that OS. Older macOS/Intel and a fresh quarantined Mac are unverified. The complete bundle is substantial because it includes Calibre and its frameworks along with the other engines.
+This is a **local development preview**, not an Apple-notarized public download. The first engine bundle requires **Apple Silicon and macOS 27** because its installed engine binaries require that OS. Older macOS/Intel and a fresh quarantined Mac are unverified. The complete bundle is substantial because it includes Calibre and its frameworks along with the other engines. The public v1.4.0 preview uses the separate-runtime installer; this standalone DMG remains local.
 
 ## Build and verify
 
@@ -30,6 +30,12 @@ Choose a new output directory for each app/DMG build. The bundler copies only th
 Bundled Python starts with `-I -S -B`: it ignores environment/user site configuration and never runs Homebrew's site customisations. The bootstrap adds only the sealed app Source and private packages. A missing or invalid manifest/tool fails with a repair message instead of using an unrelated PATH installation. Existing source builds retain the external-runtime route.
 
 The verification runner exercises the real format/preservation/security/batch corpus with a minimal environment and a system-only PATH. Test code imports the sealed app Source, and CLI child interpreters use the same isolated private packages. This is useful portability evidence, not a clean-Mac/Gatekeeper test.
+
+## Package size
+
+The local Apple Silicon/macOS 27 build was reduced from **2,122,002,774 to 2,028,016,223 bytes** (about **94 MB / 4.4%**) by removing local/debug symbols from non-Calibre Mach-O files and Python C development headers/pkg-config metadata. Exported symbols, all codecs, Calibre plugins and geographic precision data are retained. The complete conversion/preservation/security/batch corpus passed against the reduced app. `ThirdParty/inventory.json` records individual reductions.
+
+The largest components remain PROJ geographic correction grids (about 775 MiB), Calibre (637 MiB), stripped Pandoc (218 MiB) and dependent frameworks. Separating optional regional precision data or ebook engines could reduce downloads substantially, but needs explicit pack management and correctness/accuracy checks. The present builder retains offline precision grids and the complete Calibre runtime rather than silently reducing capabilities. App size and compressed DMG download size are different measurements.
 
 ## Public-release gates
 

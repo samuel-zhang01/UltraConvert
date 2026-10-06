@@ -1,4 +1,6 @@
 import AppKit
+import CoreServices
+import ServiceManagement
 
 struct BackendPaths {
     let python: URL
@@ -47,6 +49,20 @@ struct BackendPaths {
 }
 
 extension ConverterApp {
+    @objc func showSettings() {
+        if settingsController == nil {
+            settingsController = IntegrationSettings(preferences: preferences, login: SystemLoginService(), registerFinder: { [weak self] in
+                guard let self, !self.busy else {
+                    throw NSError(domain: "UltraConvert", code: 6, userInfo: [NSLocalizedDescriptionKey: "Wait for the current batch to finish, then try again."])
+                }
+                try FinderActions.install(app: Bundle.main.bundleURL, home: FileManager.default.homeDirectoryForCurrentUser, force: true)
+                try FormatServices.register(app: Bundle.main.bundleURL)
+            })
+        }
+        settingsController?.showWindow(nil)
+        settingsController?.window?.makeKeyAndOrderFront(nil)
+        settingsController?.refresh()
+    }
     func backendPaths() throws -> BackendPaths {
         try BackendPaths(contents: Bundle.main.bundleURL.appendingPathComponent("Contents"), support: support)
     }
@@ -64,6 +80,7 @@ extension ConverterApp {
         guard !busy else { return }
         do {
             try FinderActions.install(app: Bundle.main.bundleURL, home: FileManager.default.homeDirectoryForCurrentUser, force: true)
+            try FormatServices.register(app: Bundle.main.bundleURL)
             status.stringValue = "Finder actions installed. Enable them in Finder Settings."
             openFinderSettings()
         } catch {
@@ -160,4 +177,156 @@ enum FinderActions {
     static func isSymlink(_ url: URL) -> Bool {
         (try? url.resourceValues(forKeys: [.isSymbolicLinkKey]).isSymbolicLink) == true
     }
+}
+
+enum LoginState {
+    case disabled, enabled, needsApproval, unavailable
+
+    var requested: Bool { self == .enabled || self == .needsApproval }
+    var message: String {
+        switch self {
+        case .disabled: return "Launch at login is off. Finder conversion works without it."
+        case .enabled: return "UltraConvert will open when you log in."
+        case .needsApproval: return "Allow UltraConvert in macOS Login Items to finish enabling this option."
+        case .unavailable: return "macOS could not find this app’s login registration. Try enabling it here."
+        }
+    }
+}
+
+protocol LoginService {
+    var state: LoginState { get }
+    func enable() throws
+    func disable() throws
+}
+
+struct SystemLoginService: LoginService {
+    var state: LoginState {
+        switch SMAppService.mainApp.status {
+        case .notRegistered: return .disabled
+        case .enabled: return .enabled
+        case .requiresApproval: return .needsApproval
+        case .notFound: return .unavailable
+        @unknown default: return .unavailable
+        }
+    }
+    func enable() throws { try SMAppService.mainApp.register() }
+    func disable() throws { try SMAppService.mainApp.unregister() }
+}
+
+enum FormatServices {
+    static func register(app: URL) throws {
+        let result = LSRegisterURL(app as CFURL, true)
+        guard result == noErr else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(result)) }
+        NSUpdateDynamicServices()
+    }
+}
+
+final class IntegrationSettings: NSWindowController, NSWindowDelegate {
+    let preferences: UserDefaults
+    let login: any LoginService
+    let registerFinder: () throws -> Void
+    let loginToggle = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
+    let finderToggle = NSButton(checkboxWithTitle: "Register Finder actions automatically", target: nil, action: nil)
+    let loginStatus = NSTextField(wrappingLabelWithString: "")
+    let integrationStatus = NSTextField(wrappingLabelWithString: "")
+
+    init(preferences: UserDefaults, login: any LoginService, registerFinder: @escaping () throws -> Void) {
+        self.preferences = preferences
+        self.login = login
+        self.registerFinder = registerFinder
+        let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 590, height: 530), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        panel.title = "UltraConvert Settings"
+        panel.isReleasedWhenClosed = false
+        super.init(window: panel)
+        panel.delegate = self
+        let stack = NSStackView()
+        stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 14
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        panel.contentView!.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: panel.contentView!.leadingAnchor, constant: 26),
+            stack.trailingAnchor.constraint(equalTo: panel.contentView!.trailingAnchor, constant: -26),
+            stack.topAnchor.constraint(equalTo: panel.contentView!.topAnchor, constant: 24)
+        ])
+        func add(_ view: NSView) {
+            stack.addArrangedSubview(view)
+            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
+        }
+        func note(_ text: String) -> NSTextField { uiLabel(text, size: 12, color: .secondaryLabelColor) }
+        add(uiLabel("Startup & Finder", size: 23, weight: .semibold))
+        add(note("Choose how UltraConvert starts and appears in Finder."))
+        loginToggle.target = self; loginToggle.action = #selector(changeLogin)
+        add(loginToggle)
+        loginStatus.font = .systemFont(ofSize: 12); loginStatus.textColor = .secondaryLabelColor
+        add(loginStatus)
+        add(button("Open Login Items Settings…", #selector(openLoginSettings), symbol: "person.crop.circle.badge.checkmark"))
+        let divider = NSBox(); divider.boxType = .separator; add(divider)
+        finderToggle.target = self; finderToggle.action = #selector(changeFinderPreference)
+        add(finderToggle)
+        add(note("Registers or repairs the two Quick Actions when this app opens from Applications. Turning this off keeps existing actions installed."))
+        let buttons = NSStackView(views: [button("Register / Repair Actions", #selector(repairFinder), symbol: "arrow.clockwise"), button("Refresh Format Services", #selector(refreshServices), symbol: "arrow.triangle.2.circlepath")])
+        buttons.spacing = 12; add(buttons)
+        add(note("macOS controls whether actions and format shortcuts are enabled. Use the buttons below to manage their switches."))
+        let settings = NSStackView(views: [button("Finder Settings…", #selector(openFinderSettings), symbol: "folder"), button("Keyboard Settings…", #selector(openServicesSettings), symbol: "keyboard")])
+        settings.spacing = 12; add(settings)
+        integrationStatus.font = .systemFont(ofSize: 12); integrationStatus.textColor = .secondaryLabelColor
+        add(integrationStatus)
+        panel.center()
+        refresh()
+        panel.contentView!.layoutSubtreeIfNeeded()
+        panel.setContentSize(NSSize(width: 590, height: max(530, stack.fittingSize.height + 48)))
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func button(_ title: String, _ action: Selector, symbol: String) -> NSButton {
+        let button = NSButton(title: title, target: self, action: action)
+        button.bezelStyle = .rounded
+        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        button.imagePosition = .imageLeading
+        return button
+    }
+
+    func refresh() {
+        let state = login.state
+        loginToggle.state = state.requested ? .on : .off
+        loginStatus.stringValue = state.message
+        finderToggle.state = preferences.object(forKey: "autoRegisterFinderActions") as? Bool != false ? .on : .off
+    }
+
+    func windowDidBecomeKey(_ notification: Notification) { refresh() }
+
+    @objc func changeLogin() {
+        do {
+            if loginToggle.state == .on { try login.enable() }
+            else { try login.disable() }
+            refresh()
+        } catch {
+            refresh()
+            loginStatus.stringValue = "Could not change launch at login: " + error.localizedDescription
+        }
+    }
+
+    @objc func changeFinderPreference() {
+        preferences.set(finderToggle.state == .on, forKey: "autoRegisterFinderActions")
+        integrationStatus.stringValue = finderToggle.state == .on ? "Finder actions will be checked the next time this app opens from Applications." : "Automatic registration is off. You can still repair actions manually."
+    }
+
+    @objc func repairFinder() {
+        do {
+            try registerFinder()
+            integrationStatus.stringValue = "Actions registered. Enable them in Finder Settings if needed."
+        } catch { integrationStatus.stringValue = "Could not register actions: " + error.localizedDescription }
+    }
+
+    @objc func refreshServices() {
+        do {
+            try FormatServices.register(app: Bundle.main.bundleURL)
+            integrationStatus.stringValue = "Format services refreshed. Enable missing shortcuts in Keyboard Shortcuts → Services."
+        } catch { integrationStatus.stringValue = "Could not refresh services: " + error.localizedDescription }
+    }
+
+    @objc func openLoginSettings() { SMAppService.openSystemSettingsLoginItems() }
+    @objc func openFinderSettings() { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension")!) }
+    @objc func openServicesSettings() { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension")!) }
 }

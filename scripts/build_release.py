@@ -50,6 +50,22 @@ with tempfile.TemporaryDirectory(prefix="ultraconvert-release-") as temp:
     folder.mkdir()
     with tarfile.open(fileobj=io.BytesIO(source)) as archive:
         archive.extractall(folder, filter="data")
+    installation_note = (
+        f"UltraConvert {version} — native app with runtime installer\n\n"
+        "This package installs conversion engines separately. Keep this complete folder together.\n"
+        "1. Install Homebrew from https://brew.sh if needed.\n"
+        "2. In Terminal, type cd followed by a space, drag this UltraConvert folder into Terminal, and press Return.\n"
+        "3. Run: python3 install.py\n"
+        "4. Open the installed app in ~/Applications. Enable its Quick Actions in macOS Finder Settings.\n\n"
+        "The prebuilt app alone does not install its runtime. The DMG is an installer folder, not a drag-only installer.\n"
+        + (
+            "This build is not Apple notarized. If macOS blocks the prebuilt app, install Apple's Command Line Tools and run python3 install.py --build-from-source. Do not disable Gatekeeper.\n"
+            if not args.notary_profile
+            else "Apple accepted notarization and the app/DMG tickets are stapled.\n"
+        )
+        + "\nRead README.md for complete instructions, usage and tested system limits.\n"
+    )
+    (folder / "INSTALL-FIRST.txt").write_text(installation_note)
     app = build_app(base / "native", sign_identity=args.sign_identity)
     if args.notary_profile:
         submission = base / "notary-app.zip"
@@ -73,6 +89,7 @@ with tempfile.TemporaryDirectory(prefix="ultraconvert-release-") as temp:
         # The app requires its engine/runtime installer. Keep the release folder together.
         container = base / "disk-image"
         container.mkdir()
+        (container / "INSTALL-FIRST.txt").write_text(installation_note)
         subprocess.run(["/usr/bin/ditto", folder, container / "UltraConvert"], check=True)
         subprocess.run(
             [
@@ -139,6 +156,10 @@ metadata.write_text(
             "hardened_runtime": True,
             "apple_notarization_accepted_and_stapled": bool(args.notary_profile),
             "engine_runtime_installer_required": True,
+            "artifact_kind": "native_app_and_source_installer",
+            "standalone_runtime": False,
+            "conversion_engines_bundled": False,
+            "minimum_macos_native_app": "13.0",
         },
         indent=2,
     )

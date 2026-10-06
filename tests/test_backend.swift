@@ -1,5 +1,18 @@
 import AppKit
 
+final class TestLoginService: LoginService {
+    var state = LoginState.disabled
+    var fail = false
+    var enableCount = 0
+    var disableCount = 0
+    func enable() throws {
+        enableCount += 1
+        if fail { throw CocoaError(.fileWriteNoPermission) }
+        state = .needsApproval
+    }
+    func disable() throws { disableCount += 1; state = .disabled }
+}
+
 @main
 struct BackendSmoke {
     static func main() throws {
@@ -60,6 +73,31 @@ struct BackendSmoke {
         catch { }
         let retained = try Data(contentsOf: document)
         precondition(retained == saved)
+        // Settings must reflect macOS's real state, including approval and
+        // failures, without registering a login item as a side effect of opening.
+        let suite = "UltraConvert-settings-test-" + UUID().uuidString
+        let preferences = UserDefaults(suiteName: suite)!
+        defer { preferences.removePersistentDomain(forName: suite) }
+        let login = TestLoginService()
+        var repairs = 0
+        let settings = IntegrationSettings(preferences: preferences, login: login, registerFinder: { repairs += 1 })
+        precondition(settings.loginToggle.state == .off && login.enableCount == 0)
+        precondition(settings.finderToggle.state == .on)
+        settings.finderToggle.state = .off; settings.changeFinderPreference(); settings.refresh()
+        precondition(!preferences.bool(forKey: "autoRegisterFinderActions") && settings.finderToggle.state == .off)
+        settings.repairFinder()
+        precondition(repairs == 1 && settings.integrationStatus.stringValue.contains("registered"))
+        settings.loginToggle.state = .on; settings.changeLogin()
+        precondition(login.enableCount == 1 && settings.loginToggle.state == .on && settings.loginStatus.stringValue.contains("Allow"))
+        settings.loginToggle.state = .off; settings.changeLogin()
+        precondition(login.disableCount == 1 && settings.loginToggle.state == .off)
+        login.fail = true; settings.loginToggle.state = .on; settings.changeLogin()
+        precondition(settings.loginToggle.state == .off && settings.loginStatus.stringValue.contains("Could not"))
+        login.state = .enabled; settings.refresh()
+        precondition(settings.loginToggle.state == .on)
+        settings.window!.contentView!.layoutSubtreeIfNeeded()
+        let statusBounds = settings.integrationStatus.convert(settings.integrationStatus.bounds, to: settings.window!.contentView)
+        precondition(statusBounds.minY >= 0 && statusBounds.maxX <= settings.window!.contentView!.bounds.width)
         print("Native backend checks passed: legacy/bundled selection, missing/escaping paths, loader environment, safe Finder dispatch, idempotence and foreign-action preservation.")
     }
 }

@@ -64,14 +64,20 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     var here = true
     var lastSummary = ""
     let preferences = UserDefaults.standard
+    var settingsController: IntegrationSettings?
     let support = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/UltraConvert")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        preferences.register(defaults: ["autoRegisterFinderActions": true])
         NSApp.setActivationPolicy(.regular)
         let menu = NSMenu()
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "About UltraConvert", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
+        let settingsItem = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        appMenu.addItem(settingsItem)
         appMenu.addItem(.separator())
         let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
         servicesItem.submenu = NSMenu(title: "Services")
@@ -135,7 +141,8 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         if args.first == "--" { args.removeFirst() }
         outputURL = defaultFolder()
         refreshDestination()
-        if (try? backendPaths().bundled) == true,
+        if preferences.bool(forKey: "autoRegisterFinderActions"),
+           FileManager.default.fileExists(atPath: Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/FinderActions").path),
            Bundle.main.bundleURL.deletingLastPathComponent().lastPathComponent == "Applications" {
             do { try FinderActions.install(app: Bundle.main.bundleURL, home: FileManager.default.homeDirectoryForCurrentUser) }
             catch { status.stringValue = "The app is ready. Finder actions need attention; use Help → Install Finder Quick Actions." }

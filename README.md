@@ -11,7 +11,9 @@ Conversion runs on your Mac. Originals stay in place. No account, upload service
 
 ## Install
 
-The published **v1.3.0** release uses the installer below. A self-contained **v1.4.0 development app** is being tested: its DMG contains `UltraConvert.app` and an Applications shortcut, and conversion engines are packaged inside the app. That preview is currently Apple Silicon/macOS 27 only and has not been published as a signed/notarized public release. See the [standalone build guide](docs/STANDALONE.md) for its status and developer commands.
+The latest stable release is **v1.3.0**. The **[v1.4.0 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.4.0)** adds startup and Finder integration settings; use its installer ZIP and the steps below. Both public versions install conversion engines separately and are **not Apple notarized**.
+
+A self-contained v1.4.0 development app also runs locally, with all engines packaged inside `UltraConvert.app`. Its drag-to-Applications DMG is currently Apple Silicon/macOS 27 only and remains unpublished while dependency-source/licence review and Apple distribution signing are completed. See the [standalone build guide](docs/STANDALONE.md) for developer commands and measured size reductions.
 
 ### 1. Check your Mac and prerequisites
 
@@ -21,7 +23,7 @@ The published **v1.3.0** release uses the installer below. A self-contained **v1
 
 ### 2. Install on Apple Silicon
 
-1. Download **UltraConvert-…-macos-arm64.zip** from [the latest release](https://github.com/samuel-zhang01/UltraConvert/releases/latest). Do not choose GitHub's automatic “Source code” download for this route.
+1. Download **UltraConvert-…-macos-arm64.zip** from [the stable release](https://github.com/samuel-zhang01/UltraConvert/releases/latest) or the [v1.4.0 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.4.0). Do not choose GitHub's automatic “Source code” download for this route.
 2. Double-click the ZIP in Finder to extract it. It contains a folder named **UltraConvert**, with `install.py` inside.
 3. Open **Terminal** (Applications → Utilities). Type `cd ` with a space, drag the extracted **UltraConvert folder** from Finder into Terminal, then press Return. This handles folders with spaces or a suffix such as “UltraConvert 2”.
 4. Run:
@@ -110,6 +112,18 @@ If a format shortcut is missing, check **System Settings → Keyboard → Keyboa
 To change the default: click **Choose…**, select a folder, then click **Set as Default**. The path displayed below the controls confirms where outputs will go. **File → Open Default Destination** opens the saved folder in Finder.
 
 For **Convert Here**, an existing output name gets a numbered suffix, such as `Recording (2).mp3`. Formats requiring multiple companion files or linked media use one adjacent folder, such as `Note-html`, to preserve their references. Destination conversions create a fresh batch folder. Existing outputs and originals are never overwritten. UltraConvert remembers your output formats and options for the next run; the Finder action sets the initial destination mode for that window.
+
+## Startup and Finder settings (v1.4.0 preview)
+
+Open **UltraConvert → Settings…** or press **⌘,**.
+
+- **Launch at login:** off by default. Turning it on asks macOS to open the app at your next login. The status reflects macOS's current state, including any approval needed in **Login Items**. Turning it off unregisters the login item. Finder conversion works with this option off.
+- **Register Finder actions automatically:** on by default. Opening an installed app from Applications checks/repairs its two owned Quick Actions. Turning it off leaves existing actions available and stops automatic registration.
+- **Register / Repair Actions:** restores the two owned workflows and points them at this app's actual location. It preserves earlier owned workflows in backups and refuses unrelated actions. Wait for any conversion to finish first.
+- **Refresh Format Services:** registers this app and refreshes its PNG, JPEG, WebP, MP3, Opus and MP4 Services shortcuts.
+- **Finder Settings… / Services Settings…:** open the relevant macOS settings pane. For Services, open **Keyboard Shortcuts → Services** and enable the named shortcuts. Registration does not change macOS's enable switches.
+
+The same registration/repair controls work in installer and standalone builds. The source/installer build still needs its separately provisioned runtime; moving the app does not move that runtime.
 
 ## Useful controls
 

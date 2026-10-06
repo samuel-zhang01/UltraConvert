@@ -1,10 +1,13 @@
 # Changelog
 
-## 1.4.0 — in development
+## 1.4.0 preview — 2026-10-06
 
+- Native Settings (⌘,): optional Launch at Login with macOS approval/error status, automatic Finder registration preference, manual Quick Action repair, Services refresh and system settings shortcuts. Repair templates are included in every native app.
+- Public preview includes the native app with the established runtime installer; engines are downloaded separately. It is ad-hoc signed and unnotarized.
 - Self-contained local-development app builder: private Python/packages, all conversion engines, dependent libraries, decoder modules and GIS data live inside the app.
 - Native runtime selection with isolated Python startup; bundled tools never silently fall back to Homebrew or PATH.
 - Native first-launch Finder Quick Action installation uses the actual app location, preserves owned earlier actions and refuses unrelated installations.
+- Smaller development bundles preserve all exported symbols, geographic precision grids and Calibre plugins while removing debug/local symbols and Python development headers.
 - Drag-to-Applications development DMG tooling, dependency provenance and standalone conversion verification.
 - Public standalone binary distribution remains gated on corresponding-source/licence completion, Developer ID signing, notarization and quarantined clean-Mac checks. The current local engine bundle requires Apple Silicon/macOS 27.
 

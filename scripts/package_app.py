@@ -5,6 +5,7 @@ import platform
 import plistlib
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -83,6 +84,16 @@ def build_app(destination, sign_identity=None):
     (contents / "Resources/ultraconvert-managed.json").write_text(
         json.dumps({"owner": "UltraConvert", "version": version}) + "\n"
     )
+    # Keep repair templates in every native app, including installer releases.
+    # The native installer fills in the actual app path without running Python.
+    sys.path.insert(0, str(ROOT))
+    from install import workflow
+
+    for mode, name in (
+        ("here", "Convert Here with UltraConvert"),
+        ("destination", "Convert to Destination with UltraConvert"),
+    ):
+        workflow(contents / "Resources/FinderActions" / (name + ".workflow"), mode)
     identity = developer_id_identity(sign_identity) if sign_identity else "-"
     run(
         [

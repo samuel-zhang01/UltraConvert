@@ -80,6 +80,7 @@ class RuntimeBundler:
         self.mapping = {}
         self.scanned = {}
         self.formula_roots = set()
+        self.size_optimizations = []
         self.helpers.mkdir()
         self.frameworks.mkdir()
 
@@ -194,16 +195,6 @@ class RuntimeBundler:
         }
         manifest["tools"]["ebook-convert"] = "Helpers/Calibre.app/Contents/MacOS/ebook-convert"
         (self.resources / "runtime-manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
-        # Reuse the established Automator metadata; native code substitutes the
-        # actual app path before atomically installing an owned workflow.
-        sys.path.insert(0, str(ROOT))
-        from install import workflow
-
-        for mode, name in (
-            ("here", "Convert Here with UltraConvert"),
-            ("destination", "Convert to Destination with UltraConvert"),
-        ):
-            workflow(self.resources / "FinderActions" / (name + ".workflow"), mode)
 
     def dependency_origin(self, origin, dependency, rpaths):
         if dependency.startswith(SYSTEM):
@@ -288,6 +279,36 @@ class RuntimeBundler:
                     changes.extend(["-change", dependency, "@loader_path/" + relative])
             if changes:
                 run(["/usr/bin/install_name_tool", *changes, target])
+            # Preserve all exported symbols, resources and engine capabilities.
+            # Local/debug symbols have no role in the conversion runtime. Keep
+            # Calibre's prebuilt internals intact rather than pruning Qt plugins.
+            if not target.is_relative_to(self.helpers / "Calibre.app"):
+                before = target.stat().st_size
+                target.chmod(target.stat().st_mode | 0o200)
+                run(["/usr/bin/strip", "-S", "-x", target])
+                removed = before - target.stat().st_size
+                if removed > 0:
+                    self.size_optimizations.append(
+                        {"path": str(target.relative_to(self.contents)), "removed_bytes": removed}
+                    )
+        # C headers and pkg-config metadata are used to build extensions, not
+        # run them. Preserve licences, the complete stdlib and GIS precision data.
+        python = self.frameworks / "Python.framework"
+        for relative in (
+            "Headers",
+            "Versions/3.14/Headers",
+            "Versions/3.14/include",
+            "Versions/3.14/lib/pkgconfig",
+        ):
+            path = python / relative
+            if path.is_symlink():
+                path.unlink()
+            elif path.is_dir():
+                removed = sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
+                shutil.rmtree(path)
+                self.size_optimizations.append(
+                    {"path": str(path.relative_to(self.contents)), "removed_bytes": removed}
+                )
         self.check_containment()
         minimum = max(
             (
@@ -347,6 +368,10 @@ class RuntimeBundler:
             "formulae": formulas,
             "calibre_version": calibre_info.get("CFBundleShortVersionString"),
             "mach_o_files": len(self.mapping),
+            "size_optimizations": self.size_optimizations,
+            "removed_development_bytes": sum(
+                item["removed_bytes"] for item in self.size_optimizations
+            ),
             "public_distribution_ready": False,
             "remaining_gates": [
                 "Corresponding-source archive and licence inventory verification",

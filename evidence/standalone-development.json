@@ -16,7 +16,8 @@
     "installed_gui_conversions_without_legacy_python": 6,
     "installed_setup_checks_without_legacy_python": "passed",
     "strict_nested_signature_verification": "passed",
-    "native_layout_and_backend_checks": "passed"
+    "native_layout_and_backend_checks": "passed",
+    "settings_login_approval_error_and_preference_checks": "passed without changing real login items"
   },
   "method": "Real format/security/batch fixtures imported the sealed app Source and isolated bundled Python (-I -S) with system-only PATH. The installed GUI converted six public fixtures with its prior external Python runtime temporarily unavailable. All originals retained; runtime and preferences restored afterward.",
   "source_collection": {
@@ -33,5 +34,12 @@
     "Developer ID signing with appropriate nested-code hardening and entitlements",
     "Apple accepted notarization, stapling and quarantined clean-Mac checks",
     "Older macOS and Intel portability if those targets are offered"
-  ]
+  ],
+  "size": {
+    "before_bytes": 2122002774,
+    "after_bytes": 2028016223,
+    "reduction_bytes": 93986551,
+    "reduction_percent": 4.43,
+    "method": "Strip local/debug symbols from non-Calibre code and remove Python C development headers/pkg-config metadata; preserve exported symbols, Calibre plugins, all format engines and geographic precision grids."
+  }
 }

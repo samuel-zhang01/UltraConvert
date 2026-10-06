@@ -4,9 +4,9 @@ The app interface, menus, file pickers, progress and Finder integration are Swif
 
 ## Current release status
 
-Version 1.3.0 is Apple Silicon, ad-hoc signed with Hardened Runtime, and **not notarized**. Installation still provisions a separate Homebrew/Python runtime. It is not a self-contained drag-to-Applications app. The Developer ID/notarization branch of the release tooling has tests for its credential and acceptance gates, but requires a real distribution certificate and successful Apple submission to verify end to end.
+The stable v1.3.0 release and v1.4.0 installer preview are Apple Silicon, ad-hoc signed with Hardened Runtime, and **not notarized**. Installation still provisions a separate Homebrew/Python runtime. It is not a self-contained drag-to-Applications app. The Developer ID/notarization branch of the release tooling has tests for its credential and acceptance gates, but requires a real distribution certificate and successful Apple submission to verify end to end.
 
-The v1.4.0 working tree adds a separate [standalone development builder](STANDALONE.md). It packages the runtime and engines into the app and produces a drag-to-Applications DMG. Its binaries are for local development until their corresponding-source/notices inventory, distribution signing, notarization and clean-Mac checks are complete. `build_release.py` continues to produce the established installer-source release; it does not publish the new bundled preview.
+The v1.4.0 source adds startup/Finder settings and a separate [standalone development builder](STANDALONE.md). It packages the runtime and engines into the app and produces a drag-to-Applications DMG. Its binaries are for local development until their corresponding-source/notices inventory, distribution signing, notarization and clean-Mac checks are complete. `build_release.py` continues to produce the established installer-source release; it does not publish the new bundled preview.
 
 ## Prepare the signing credentials
 
