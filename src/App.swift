@@ -45,6 +45,9 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     var outputURL: URL?
     var resultURL: URL?
     var resultURLs: [URL] = []
+    var reportURLs: [URL] = []
+    var publishedURLs: [URL] = []
+    var resultsHere = false
     var process: Process?
     var busy = false
     var eventBuffer = Data()
@@ -169,8 +172,8 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         if here { location.selectItem(at: 0) }
         else if outputURL == defaultFolder() { location.selectItem(at: 1) }
         destination.title = "Choose…"
-        destinationPath.stringValue = here ? "A new Converted folder beside each source folder." : "Destination: \((outputURL ?? defaultFolder()).path)"
-        destination.toolTip = here ? "A separate output folder is created beside files in each source folder." : outputURL?.path
+        destinationPath.stringValue = here ? "Converted files beside the originals. Existing names get a numbered suffix." : "Destination: \((outputURL ?? defaultFolder()).path)"
+        destination.toolTip = here ? "Single-file outputs go directly beside their sources. Companion files stay together in one folder." : outputURL?.path
         saveDefault.isEnabled = !busy && !here
     }
 
@@ -246,8 +249,8 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     }
 
     @objc func showReport() {
-        let reports = (resultURLs.isEmpty ? [resultURL].compactMap { $0 } : resultURLs)
-            .map { $0.appendingPathComponent("conversion-report.json") }
+        let reports = (reportURLs.isEmpty ? (resultURLs.isEmpty ? [resultURL].compactMap { $0 } : resultURLs)
+            .map { $0.appendingPathComponent("conversion-report.json") } : reportURLs)
             .filter { FileManager.default.fileExists(atPath: $0.path) }
         if reports.isEmpty { status.stringValue = "The report was moved or removed. Use Show Results to find the output folder." }
         else { NSWorkspace.shared.activateFileViewerSelecting(Array(reports.prefix(8))) }
@@ -386,6 +389,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         infos = []; selectors.removeAll()
         formats.arrangedSubviews.forEach { formats.removeArrangedSubview($0); $0.removeFromSuperview() }
         resultURL = nil; resultURLs = []; lastSummary = ""
+        reportURLs = []; publishedURLs = []; resultsHere = false
         reportButton.isHidden = true
         crs.stringValue = ""; crs.isHidden = true
         if let first = selected.first { preferences.set(URL(fileURLWithPath: first).deletingLastPathComponent().path, forKey: "lastSourceFolder") }
@@ -450,7 +454,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         crs.isHidden = groups["geo"] == nil
         let failed = infos.filter { $0["error"] is String }.count
         status.stringValue = failed == 0 ? "Ready to convert \(infos.count) \(infos.count == 1 ? "file" : "files")." : "\(infos.count - failed) ready · \(failed) unsupported. Review the file queue."
-        summary.stringValue = "New output folder; no overwrites. Documents may reflow. Media uses first tracks; lossy formats re-encode. GIS limitations appear in the report."
+        summary.stringValue = "Originals kept; existing outputs never overwritten. Documents may reflow. Media uses first tracks; lossy formats re-encode. GIS limitations appear in the report."
         start.isEnabled = !selectors.isEmpty
         refreshDestination()
         phase = selectors.isEmpty ? .attention : .ready
@@ -460,6 +464,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     @objc func convertFiles() {
         guard !busy && !selectors.isEmpty else { return }
         resultURL = nil; resultURLs = []; lastSummary = ""
+        reportURLs = []; publishedURLs = []; resultsHere = false
         reveal.isHidden = true; reportButton.isHidden = true
         syncLocationSelection()
         var plan: [String: String] = [:]
@@ -497,6 +502,9 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             if let report = final {
                 self.resultURL = URL(fileURLWithPath: report["output"] as? String ?? "")
                 self.resultURLs = (report["outputs"] as? [String] ?? []).map { URL(fileURLWithPath: $0) }
+                self.reportURLs = (report["reports"] as? [String] ?? []).map { URL(fileURLWithPath: $0) }
+                self.publishedURLs = (report["result_files"] as? [String] ?? []).map { URL(fileURLWithPath: $0) }
+                self.resultsHere = report["placement"] as? String == "here"
                 self.status.stringValue = "\(report["success"] ?? 0) converted, \(report["skipped"] ?? 0) skipped, \(report["failed"] ?? 0) failed. \(code == 130 ? "Cancelled." : "")"
                 let results = report["results"] as? [[String: Any]] ?? []
                 for item in results { self.updateOutcome(item) }
@@ -506,7 +514,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
                     guard let error = item["error"] as? String else { return nil }
                     return "\(item["name"] ?? "file"): \(error)"
                 }
-                self.summary.stringValue = errors.isEmpty ? "Saved in \(self.resultURLs.count) output folder(s). Originals retained. Each folder has conversion-report.json with format notes." : String(errors.joined(separator: "\n").prefix(850))
+                self.summary.stringValue = errors.isEmpty ? (self.resultsHere ? "Saved beside the originals. Companion files use one folder. Reports are kept separately; click Report for details." : "Saved in \(self.resultURLs.count) output folder(s). Originals retained. Click Report for format notes.") : String(errors.joined(separator: "\n").prefix(850))
                 self.reveal.isHidden = false
                 self.reportButton.isHidden = false
                 self.lastSummary = "UltraConvert: \(report["success"] ?? 0) converted, \(report["skipped"] ?? 0) skipped, \(report["failed"] ?? 0) failed.\(code == 130 ? " Cancelled." : "")"
@@ -547,7 +555,8 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
 
     @objc func cancelConversion() { process?.terminate(); status.stringValue = "Cancelling…"; cancel.isEnabled = false }
     @objc func showResults() {
-        if resultURLs.count > 1 { NSWorkspace.shared.activateFileViewerSelecting(Array(resultURLs.prefix(8))) }
+        if resultsHere && !publishedURLs.isEmpty { NSWorkspace.shared.activateFileViewerSelecting(Array(publishedURLs.prefix(8))) }
+        else if resultURLs.count > 1 { NSWorkspace.shared.activateFileViewerSelecting(Array(resultURLs.prefix(8))) }
         else if let url = resultURL { NSWorkspace.shared.open(url) }
     }
     func windowShouldClose(_ sender: NSWindow) -> Bool { if busy { cancelConversion(); return false }; NSApp.terminate(nil); return true }

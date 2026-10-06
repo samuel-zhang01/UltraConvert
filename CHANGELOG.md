@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1 — 2026-10-06
+
+- Convert Here places ordinary outputs directly beside their originals, with no batch or per-file folder. Existing names get numbered suffixes; originals and existing outputs are retained.
+- Formats with linked media or multiple companion files use one adjacent folder, preserving relative references and GIS sidecars.
+- Convert Here reports live separately in Application Support; Report still reveals them, and Show Results selects the actual converted files.
+- Added real OPUS→MP3, repeat/concurrent/case-insensitive collision, symlink, unsupported-hard-link, cancellation, GPKG and document/sidecar placement regressions.
+
 ## 1.2.0 — 2026-10-06
 
 - Modern native layout with rounded content cards, clearer typography, system colours and a fixed conversion bar. Liquid Glass on macOS 26+, with a native material fallback on older systems.

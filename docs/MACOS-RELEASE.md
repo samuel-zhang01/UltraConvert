@@ -4,7 +4,7 @@ The app interface, menus, file pickers, progress and Finder integration are Swif
 
 ## Current release status
 
-Version 1.2.0 is Apple Silicon, ad-hoc signed with Hardened Runtime, and **not notarized**. Installation still provisions a separate Homebrew/Python runtime. It is not a self-contained drag-to-Applications app. The Developer ID/notarization branch of the release tooling has tests for its credential and acceptance gates, but requires a real distribution certificate and successful Apple submission to verify end to end.
+Version 1.2.1 is Apple Silicon, ad-hoc signed with Hardened Runtime, and **not notarized**. Installation still provisions a separate Homebrew/Python runtime. It is not a self-contained drag-to-Applications app. The Developer ID/notarization branch of the release tooling has tests for its credential and acceptance gates, but requires a real distribution certificate and successful Apple submission to verify end to end.
 
 ## Prepare the signing credentials
 

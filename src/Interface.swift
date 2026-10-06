@@ -403,6 +403,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         selectors.removeAll()
         formats.arrangedSubviews.forEach { formats.removeArrangedSubview($0); $0.removeFromSuperview() }
         resultURL = nil; resultURLs = []; lastSummary = ""
+        reportURLs = []; publishedURLs = []; resultsHere = false
         reveal.isHidden = true; reportButton.isHidden = true
         crs.stringValue = ""; crs.isHidden = true
         status.stringValue = "Drop files or add them to get started."

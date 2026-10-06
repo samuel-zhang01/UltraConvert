@@ -5,6 +5,7 @@ import argparse
 import base64
 import concurrent.futures
 import datetime
+import errno
 import json
 import os
 import shutil
@@ -694,7 +695,63 @@ def document_convert(source, fmt, dest, target, stage, execute):
     return notes
 
 
-def convert_one(info, target, batch, index, source_crs=None, skip_same=False):
+def publish_here(stage, parent, label, target):
+    """Publish beside sources with exclusive names; bundle only linked/multipart outputs."""
+    entries = list(stage.iterdir())
+    if not entries or any(p.is_symlink() for p in stage.rglob("*")):
+        raise ValueError("Output is empty or contains unexpected symbolic links")
+    single = len(entries) == 1 and entries[0].is_file() and not entries[0].is_symlink()
+    for number in range(1, 10001):
+        suffix = "" if number == 1 else f" ({number})"
+        name = (
+            f"{entries[0].stem}{suffix}{entries[0].suffix}"
+            if single
+            else f"{label}-{target}{suffix}"
+        )
+        final = parent / name
+        try:
+            if single:
+                # Atomic, exclusive publication on APFS and other hard-link filesystems.
+                # EEXIST includes directories and dangling symlinks: none are overwritten.
+                try:
+                    os.link(entries[0], final, follow_symlinks=False)
+                except OSError as exc:
+                    if exc.errno not in (
+                        errno.EPERM,
+                        errno.ENOTSUP,
+                        errno.EOPNOTSUPP,
+                        errno.EXDEV,
+                        errno.ENOSYS,
+                    ):
+                        raise
+                    # Some external/File Provider volumes cannot hard-link. Exclusive
+                    # creation still prevents overwrites; remove our copy if it fails.
+                    output = final.open("xb")
+                    try:
+                        with output, entries[0].open("rb") as source:
+                            while chunk := source.read(1024 * 1024):
+                                if CANCEL.is_set():
+                                    raise InterruptedError("Conversion cancelled")
+                                output.write(chunk)
+                    except BaseException:
+                        final.unlink()
+                        raise
+            else:
+                # One exclusive directory preserves document media/sidecar references.
+                final.mkdir(mode=0o700)
+                try:
+                    for entry in entries:
+                        entry.rename(final / entry.name)
+                except BaseException:
+                    shutil.rmtree(final)
+                    raise
+            return final
+        except FileExistsError:
+            continue
+    raise ValueError("Too many existing output names; choose another destination")
+
+
+def convert_one(info, target, batch, index, source_crs=None, skip_same=False, here=False):
     source = Path(info["path"])
     label = guards.output_name(source.stem)
     final = batch / f"{index + 1:03d}-{label}-{target}"
@@ -768,8 +825,16 @@ def convert_one(info, target, batch, index, source_crs=None, skip_same=False):
                 raise ValueError("Conversion produced no readable output")
             if CANCEL.is_set():
                 raise InterruptedError("Conversion cancelled")
-            # Each job gets a fresh UUID directory; destinations never replace existing files.
-            stage.rename(final)
+            if here:
+                # Layer audit metadata belongs in the report, not beside a standalone GPKG.
+                layers = stage / "layers.json"
+                if cat == "geo" and layers.is_file():
+                    result["layers"] = json.loads(guards.bounded_read(layers, 1024 * 1024))
+                    layers.unlink()
+                final = publish_here(stage, batch, label, target)
+            else:
+                # Destination batches retain their per-job bundles and resource references.
+                stage.rename(final)
             result.update(success=True, output=str(final), error=None)
     except Exception as exc:
         result["error"] = str(exc)
@@ -797,7 +862,12 @@ def main():
     parser.add_argument("--plan", type=Path, help="JSON mapping category names to output formats")
     parser.add_argument("--output", type=Path)
     parser.add_argument(
-        "--here", action="store_true", help="Create an output batch beside each source folder"
+        "--here", action="store_true", help="Save converted files directly beside their sources"
+    )
+    parser.add_argument(
+        "--reports-dir",
+        type=Path,
+        help="Convert Here report storage; defaults to app support/Reports",
     )
     parser.add_argument(
         "--skip-same", action="store_true", help="Skip files already in their selected format"
@@ -853,20 +923,45 @@ def main():
     destination = (args.output or Path(files[0]).parent).expanduser().absolute()
     stamp = datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S")
     batches = {}
+    report_paths = {}
+    created = []
     parents = list(
         dict.fromkeys(Path(info["path"]).parent if args.here else destination for info in infos)
     )
     if args.here and any(not p.is_dir() for p in parents):
         raise ValueError("A source folder is unavailable; choose a destination folder instead")
     try:
+        if args.here:
+            report_root = (
+                (
+                    args.reports_dir
+                    or Path.home() / "Library/Application Support/UltraConvert/Reports"
+                )
+                .expanduser()
+                .absolute()
+            )
+            report_root.mkdir(parents=True, exist_ok=True)
+            report_folder = report_root / f"Converted {stamp} {uuid.uuid4().hex[:8]}"
+            report_folder.mkdir(exist_ok=False)
+            created.append(report_folder)
         for parent in parents:
-            if not args.here:
+            if args.here:
+                batches[parent] = parent
+                name = (
+                    "conversion-report.json"
+                    if len(parents) == 1
+                    else f"conversion-report-{len(report_paths) + 1:03d}.json"
+                )
+                report_paths[parent] = report_folder / name
+            else:
                 parent.mkdir(parents=True, exist_ok=True)
-            batch = parent / f"Converted {stamp} {uuid.uuid4().hex[:8]}"
-            batch.mkdir(exist_ok=False)
-            batches[parent] = batch
+                batch = parent / f"Converted {stamp} {uuid.uuid4().hex[:8]}"
+                batch.mkdir(exist_ok=False)
+                created.append(batch)
+                batches[parent] = batch
+                report_paths[parent] = batch / "conversion-report.json"
     except OSError:
-        for batch in batches.values():
+        for batch in created:
             batch.rmdir()
         raise
     first_batch = next(iter(batches.values()))
@@ -889,6 +984,7 @@ def main():
                 i,
                 args.source_crs,
                 args.skip_same,
+                args.here,
             ): i
             for i, info in enumerate(infos)
         }
@@ -907,24 +1003,23 @@ def main():
         "date": datetime.datetime.now().astimezone().isoformat(),
         "output": str(first_batch),
         "outputs": list(map(str, batches.values())),
+        "reports": list(map(str, report_paths.values())),
+        "result_files": [r["output"] for r in results if r["output"]],
+        "placement": "here" if args.here else "destination",
         "success": sum(r["success"] and not r.get("skipped") for r in results),
         "skipped": sum(bool(r.get("skipped")) for r in results),
         "failed": sum(not r["success"] for r in results),
         "cancelled": CANCEL.is_set(),
         "results": sorted(results, key=lambda r: r["path"]),
     }
-    for batch in batches.values():
+    for parent, batch in batches.items():
         saved = dict(
             report,
             output=str(batch),
             results=[
                 r
                 for r in report["results"]
-                if (r["output"] and Path(r["output"]).parent == batch)
-                or (
-                    not r["output"]
-                    and (Path(r["path"]).parent if args.here else destination) == batch.parent
-                )
+                if (Path(r["path"]).parent if args.here else destination) == parent
             ],
         )
         saved["overall"] = {
@@ -933,9 +1028,8 @@ def main():
         saved["success"] = sum(r["success"] and not r.get("skipped") for r in saved["results"])
         saved["skipped"] = sum(bool(r.get("skipped")) for r in saved["results"])
         saved["failed"] = sum(not r["success"] for r in saved["results"])
-        (batch / "conversion-report.json").write_text(
-            json.dumps(saved, indent=2, ensure_ascii=False) + "\n"
-        )
+        with report_paths[parent].open("x", encoding="utf-8") as stream:
+            stream.write(json.dumps(saved, indent=2, ensure_ascii=False) + "\n")
     report["results"] = [
         {k: v for k, v in r.items() if k not in ("commands", "targets")} for r in report["results"]
     ]

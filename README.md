@@ -85,7 +85,7 @@ Try a few photos first:
 2. Right-click → **Quick Actions → Convert Here with UltraConvert**.
 3. UltraConvert opens and recognises the files. In the **Images** row, choose an output such as **WEBP**.
 4. Leave **Beside source files** selected and click **Convert**.
-5. When progress finishes, click **Show Results**. A fresh **Converted …** folder contains the outputs and `conversion-report.json`. Your selected source files remain in their original folder.
+5. When progress finishes, click **Show Results**. The converted files appear directly beside the originals: `Photo.png` → `Photo.webp`, with no extra folders. Your original files stay in place. Click **Report** for conversion details.
 
 For a mixed selection, one format selector appears for each detected category. For example, photos → WEBP, audio → OPUS, documents → DOCX and GIS → GPKG can share one batch. Video can also be converted to audio, such as MP4 → MP3 or OPUS. Unsupported files are identified; valid files can still be converted.
 
@@ -99,22 +99,22 @@ Finder's menu contains the two actions. Choose the destination format in the nat
 
 | Choice | What happens |
 | --- | --- |
-| **Convert Here with UltraConvert** / **Beside source files** | Creates a new batch folder beside each source folder. Files selected from different folders get results beside their respective sources. |
+| **Convert Here with UltraConvert** / **Beside source files** | Places ordinary converted files directly beside their originals, without a batch folder. Files from different folders stay beside their respective sources. |
 | **Convert to Destination with UltraConvert** / **Saved destination** | Starts with your saved default folder, initially `~/Downloads/UltraConvert`. All results go into one fresh batch folder there. |
 | **Choose destination…** or **Choose…** | Opens a folder picker. Select or create a folder, click **Open**, then click **Convert**. Cancelling the picker starts no conversion. |
 
 To change the default: click **Choose…**, select a folder, then click **Set as Default**. The path displayed below the controls confirms where outputs will go. **File → Open Default Destination** opens the saved folder in Finder.
 
-Every run creates a fresh batch folder. Existing outputs and originals are never overwritten. UltraConvert remembers your output formats and options for the next run; the Finder action sets the initial destination mode for that window.
+For **Convert Here**, an existing output name gets a numbered suffix, such as `Recording (2).mp3`. Formats requiring multiple companion files or linked media use one adjacent folder, such as `Note-html`, to preserve their references. Destination conversions create a fresh batch folder. Existing outputs and originals are never overwritten. UltraConvert remembers your output formats and options for the next run; the Finder action sets the initial destination mode for that window.
 
 ## Useful controls
 
 - **Skip files already in target format:** matching files stay at their original location and are recorded as skipped. They are not copied to the output folder.
 - **Batch options:** expand this row to show skip-matching, concurrency and automatic result opening.
 - **1–4 files at a time:** converts that many files at once. Two is the default. Use one for large media or GIS inputs to reduce memory pressure; four can help batches of small files.
-- **Open results when finished:** automatically opens the result folder after the batch completes.
+- **Open results when finished:** reveals converted files for Convert Here, or opens the destination batch folder, after completion.
 - **Cancel:** stops the current batch. Completed outputs and the partial batch report are retained.
-- **Report:** selects `conversion-report.json` in Finder. Open it in a text editor to see per-file outcomes, preservation notes and engine diagnostics. For multiple source folders, reports are created in each output folder.
+- **Report:** selects the conversion report in Finder. Open it in a text editor to see per-file outcomes, preservation notes and engine diagnostics. Convert Here keeps reports under `~/Library/Application Support/UltraConvert/Reports/` to avoid cluttering your source folders. Destination batches keep `conversion-report.json` in their batch folder.
 - **File → Copy Result Summary:** copies counts for the last completed batch, without source paths.
 - **Help → Check Setup…:** checks installed engine versions, Python/GDAL imports, native icon tools and workflow files locally. It does not inspect your selected files, upload a report or confirm Finder's enable switches. **Copy Setup Report** is optional.
 - **Keyboard:** ⌘O adds files; ⌘Return converts here; ⇧⌘Return chooses a folder and converts. Ordinary Return activates Convert.
