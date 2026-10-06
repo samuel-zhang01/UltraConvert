@@ -25,7 +25,7 @@
   "regression_tests": {
     "adversarial_security": 18,
     "batch_workflows": 4,
-    "installer_rollback_and_ownership": 2,
+    "installer_rollback_and_ownership": 4,
     "failed": 0
   },
   "static_checks": {
@@ -74,12 +74,12 @@
     "scripts/package_app.py": "6ad12e7ec1ea2ae4c28be5bbf69c7e67cdbab62f5960c733a422328ff9a7792f",
     "scripts/build_brand.py": "f929f13b0a1720988b137effcad8140665492a5158fab348c5a669693c6bed71",
     "tests/test_security.py": "31f9f75927a1a237391fae85c56bbab96f4c888edefcfd2562c0a4961c7fe65e",
-    "tests/test_installer.py": "03f15ecdad132e375443191c984b3eb6be12a9633a33fecbbf85771169dfc3ef",
+    "tests/test_installer.py": "723fa4f9268f9a494e0a7be48ea1597aff2b37362c5e0cd6ad88a9ff48c9cf26",
     "tests/test_conversion.py": "5465405dc20e93f03e95b52330819367884d4719b33a3c57c3413c6918e24147",
     "tests/test_batch.py": "b31622e5ab979ccde651f0113cdb650c147c9c3c3d9bc2c68d96314245e70ed8",
     "tests/test_edges.py": "52659e4562c34af6435c711b75c92ecd75f3e4bac2dca1cb53b71b5c793f27c6",
-    "install.py": "80532639cc95cb8fae290caf883801aec0669f41c128177e22770eefe01fc299",
-    "uninstall.py": "49a102ac581541e672863d54a0c612b92834ea02108230718abbd0f91c884b2e",
+    "install.py": "f93ad31204b9fd8d2eab46a8b4a42ec04f5397eaeceeb7ac5c90764a9ccf2b0b",
+    "uninstall.py": "1be94d7c4c0b50d5070d4940b69a112ca7f5af6a58a53c920351eb9ea973a46a",
     "requirements.txt": "9b115381ee817cc6e4d660eb4e75c65a255ed7732b3b774bf031627660be5527"
   },
   "limits": [
@@ -87,5 +87,11 @@
     "Apple Silicon/macOS 27 verified; older macOS and Intel unverified",
     "Not OS sandboxed or Apple notarized",
     "Reports contain local paths and diagnostics"
-  ]
+  ],
+  "release_archive_checks": {
+    "apple_silicon_zip_integrity": "passed",
+    "extracted_prebuilt_installer": "passed",
+    "source_reinstallation": "passed",
+    "engines_bundled": false
+  }
 }

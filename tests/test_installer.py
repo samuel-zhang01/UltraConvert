@@ -1,5 +1,6 @@
 """A failed multi-component update must leave the old installation runnable."""
 
+import ast
 import importlib.util
 import tempfile
 import unittest
@@ -13,6 +14,24 @@ spec.loader.exec_module(installer)
 
 
 class InstallerTests(unittest.TestCase):
+    def test_bootstrap_and_uninstall_parse_on_system_python(self):
+        for path in (ROOT / "install.py", ROOT / "uninstall.py", ROOT / "scripts/package_app.py"):
+            ast.parse(path.read_text(), filename=str(path), feature_version=(3, 9))
+
+    def test_uninstall_leaves_unowned_runtime_untouched(self):
+        spec = importlib.util.spec_from_file_location("uninstaller", ROOT / "uninstall.py")
+        uninstaller = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(uninstaller)
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            runtime = base / "Library/Application Support/UltraConvert"
+            runtime.mkdir(parents=True)
+            (runtime / "installation.json").write_text('{"owner":"Other App"}')
+            with self.assertRaisesRegex(RuntimeError, "Unmanaged"):
+                uninstaller.main(base)
+            self.assertEqual([p.name for p in runtime.iterdir()], ["installation.json"])
+            self.assertFalse((base / ".Trash").exists())
+
     def test_failed_second_swap_restores_every_component(self):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)

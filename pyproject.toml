@@ -3,6 +3,12 @@ line-length = 100
 target-version = "py314"
 exclude = ["research", "Archive", "build"]
 
+[tool.ruff.per-file-target-version]
+"install.py" = "py39"
+"uninstall.py" = "py39"
+"scripts/package_app.py" = "py39"
+"scripts/build_brand.py" = "py39"
+
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "B", "UP", "RUF"]
 ignore = ["E402"] # Entry points add the local source directory before imports.

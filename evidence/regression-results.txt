@@ -34,10 +34,12 @@ Ran 4 tests in 0.341s
 OK
 
 
+test_bootstrap_and_uninstall_parse_on_system_python (test_installer.InstallerTests.test_bootstrap_and_uninstall_parse_on_system_python) ... ok
 test_failed_second_swap_restores_every_component (test_installer.InstallerTests.test_failed_second_swap_restores_every_component) ... ok
+test_uninstall_leaves_unowned_runtime_untouched (test_installer.InstallerTests.test_uninstall_leaves_unowned_runtime_untouched) ... ok
 test_wrong_owner_and_symlink_are_not_managed (test_installer.InstallerTests.test_wrong_owner_and_symlink_are_not_managed) ... ok
 
 ----------------------------------------------------------------------
-Ran 2 tests in 0.004s
+Ran 4 tests in 0.007s
 
 OK

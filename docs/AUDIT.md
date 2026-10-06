@@ -14,7 +14,7 @@ Verified 2026-10-06 on Apple Silicon/macOS 27 with installed Homebrew engines. T
 | Unbounded subprocess diagnostics, engine thread multiplication and stuck cancellation | File-backed bounded diagnostics, bounded native capture, two engine threads, one to four jobs, process-group TERM followed by KILL. TERM-ignoring and oversized-stderr cases are tested. |
 | Inputs changed after inspection and overwriting files | Fingerprints checked before conversion, unique batch folders, temporary staging and original hashes. Repeated runs and identical basenames are tested. |
 | GML reader creating caches beside the original | GML is copied to staging before GDAL reads it, including an optional local bounded XSD. XML entities and arbitrary XSD includes/imports are refused; standard OGR/GML references are retained with schema fetching disabled. |
-| Failed installation replacing working components | Full payload staging, atomic renames, cross-component rollback, ownership checks, verified archived app backups. An injected failure during the second component swap restores all originals. |
+| Failed installation replacing working components | Full payload staging, atomic renames, cross-component rollback, ownership checks, verified archived app backups. An injected failure during the second component swap restores all originals; uninstall refuses unowned runtimes without creating files. Bootstrap code is checked against Python 3.9 syntax. |
 | Native UI deadlock or surprising conversion | Concurrent stderr drain, bounded output capture, busy guards, remembered controls, queued incoming files, and folder-picker cancellation that starts no batch. |
 | Public machine details and repository supply chain | Local installation/migration reports excluded from the public tree; source research licences retained; GitHub Actions pinned to commit hashes with read-only permissions. |
 
@@ -22,7 +22,7 @@ Verified 2026-10-06 on Apple Silicon/macOS 27 with installed Homebrew engines. T
 
 - All **62 format entries** passed representative write, content detection and reverse-conversion checks, with **14 additional correctness checks**.
 - **10 edge cases** passed: document image bytes/relative exports/missing and remote resources, sidecar selection, multipage TIFF, misleading media extension and cancellation preservation.
-- **18 adversarial security**, **4 batch workflow**, and **2 installer ownership/rollback** tests passed.
+- **18 adversarial security**, **4 batch workflow**, and **4 installer bootstrap/ownership/rollback** tests passed.
 - Ruff lint/format checks and Bandit passed. B404/B603 are documented exclusions for intentional argument-array subprocess calls; SafeLoader subclass use has a narrowly justified B506 annotation and executable-tag regression test.
 - pip-audit reported no known vulnerabilities for the three pinned runtime packages on the audit date. This result does not audit every native engine or dev-tool dependency.
 - Native Swift compilation and ad-hoc signature verification passed. Installed Finder actions and six-category native conversion were checked interactively. Individual evidence and source hashes are in [release-verification.json](../evidence/release-verification.json).

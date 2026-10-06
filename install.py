@@ -127,7 +127,7 @@ def managed(path, marker, legacy_runtime=False):
         return data.get("owner") == "UltraConvert" or (
             legacy_runtime and data.get("app") == str(APP)
         )
-    except OSError, ValueError:
+    except (OSError, ValueError):
         return False
 
 
