@@ -1,4 +1,4 @@
-# Release audit — 1.0.0
+# Release audit — 1.1.0
 
 Verified 2026-10-06 on Apple Silicon/macOS 27 with installed Homebrew engines. This is an adversarial code review and regression suite, not an independent penetration test or a guarantee about arbitrary files.
 
@@ -17,15 +17,19 @@ Verified 2026-10-06 on Apple Silicon/macOS 27 with installed Homebrew engines. T
 | Failed installation replacing working components | Full payload staging, atomic renames, cross-component rollback, ownership checks, verified archived app backups. An injected failure during the second component swap restores all originals; uninstall refuses unowned runtimes without creating files. Bootstrap code is checked against Python 3.9 syntax. |
 | Native UI deadlock or surprising conversion | Concurrent stderr drain, bounded output capture, busy guards, remembered controls, queued incoming files, and folder-picker cancellation that starts no batch. |
 | Public machine details and repository supply chain | Local installation/migration reports excluded from the public tree; the historical Moonvert dependency manifest retains exact bytes under `.snapshot` so it is not mistaken for an app dependency; source research licences retained; GitHub Actions pinned to commit hashes with read-only permissions. |
+| Lost Finder icons during an update | Automator custom-image metadata and a native Finder document icon are installed together. `ditto` preserves FinderInfo and resource forks; the installer regression compares both before and after staging. |
+| Setup checks hanging or claiming partial success | Fixed argument-array version probes have timeouts and bounded diagnostics. Missing tools, broken imports and malformed workflows report attention rather than aborting all checks. |
+| Stale results or formats after a new batch | Incoming selection clears previous results, reports, summaries and category controls before inspection. Setup checks share the converter's engine resolver. |
+| Development signing mistaken for public Apple approval | Exact valid Developer ID Application identity required; notarization must return Accepted before stapling and Gatekeeper checks. Tests reject development certificates and rejected submissions. Real Apple submission remains unverified until distribution credentials are provisioned. |
 
 ## Verification
 
 - All **62 format entries** passed representative write, content detection and reverse-conversion checks, with **14 additional correctness checks**.
 - **10 edge cases** passed: document image bytes/relative exports/missing and remote resources, sidecar selection, multipage TIFF, misleading media extension and cancellation preservation.
-- **18 adversarial security**, **4 batch workflow**, and **4 installer bootstrap/ownership/rollback** tests passed.
+- **18 adversarial security**, **4 batch workflow**, **6 installer bootstrap/icon/ownership/rollback**, **5 diagnostics**, and **4 signing/notarization gate** tests passed. Together with format and edge checks, this is 123 representative checks.
 - Ruff lint/format checks and Bandit passed. B404/B603 are documented exclusions for intentional argument-array subprocess calls; SafeLoader subclass use has a narrowly justified B506 annotation and executable-tag regression test.
 - pip-audit reported no known vulnerabilities for the three pinned runtime packages on the audit date. This result does not audit every native engine or dev-tool dependency.
-- Native Swift compilation and ad-hoc signature verification passed. Installed Finder actions and six-category native conversion were checked interactively. Individual evidence and source hashes are in [release-verification.json](../evidence/release-verification.json).
+- Native Swift compilation, Hardened Runtime and ad-hoc signature verification passed. Offline Quick Start, Finder Settings navigation, branded Settings rows, setup diagnostics and setup-report copying were checked interactively. The two actions appear for mixed Finder selections. Menu dispatch could not be confirmed with the current UI automation session; prior 1.0.0 interactive batch evidence is retained separately and is not treated as a 1.1.0 check. Individual evidence and source hashes are in [release-verification.json](../evidence/release-verification.json).
 - Reproducible small-file benchmark: 40 fixtures at one/two/four jobs. Timings are in [benchmark.json](../evidence/benchmark.json); these do not predict long video, huge TIFF or GIS workloads.
 
 ## Limits retained explicitly
@@ -34,7 +38,7 @@ The app and engines run with the current user's permissions; there is no OS-leve
 
 Reports contain local source paths, engine arguments and diagnostics. No conversion uploads or analytics are implemented. Install-time dependency downloads and user-selected result opening are expected.
 
-The binary release is Apple Silicon, ad-hoc signed and not notarized. Native deployment target is macOS 13; actual verification is macOS 27. Intel and older macOS are source-build paths and unverified. Formats use representative fixtures, not exhaustive codec/layout/schema coverage. See the README preservation limits.
+The binary release is Apple Silicon, ad-hoc signed with Hardened Runtime and not notarized. The optional Developer ID/notarization/DMG pipeline is implemented; actual Apple acceptance and stapled-ticket checks require a real distribution certificate and Keychain profile. The app still needs a separately provisioned conversion runtime. Native deployment target is macOS 13; actual verification is macOS 27. Intel and older macOS are source-build paths and unverified. Formats use representative fixtures, not exhaustive codec/layout/schema coverage. See the README preservation limits and [macOS release guide](MACOS-RELEASE.md).
 
 ## Primary technical references
 

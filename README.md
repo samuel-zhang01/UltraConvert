@@ -3,19 +3,47 @@
 <p align="center">Convert files locally. One selection. A clear destination.</p>
 <p align="center"><a href="https://github.com/samuel-zhang01/UltraConvert/actions/workflows/ci.yml"><img src="https://github.com/samuel-zhang01/UltraConvert/actions/workflows/ci.yml/badge.svg" alt="CI"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT licence"></a> <a href="https://github.com/samuel-zhang01/UltraConvert/releases/latest"><img src="https://img.shields.io/github/v/release/samuel-zhang01/UltraConvert" alt="Latest release"></a></p>
 
-A native macOS app and two Finder Quick Actions for batches of images, documents, ebooks, video, audio, geospatial data, and configuration files. Conversion runs on your Mac through established open source engines. No account, upload service, telemetry, or background daemon.
+UltraConvert is a native macOS app with two Finder Quick Actions. Convert one file or a mixed batch of images, documents, ebooks, video, audio, geospatial data and configuration files. Files are recognised from their contents where possible, and compatible output formats appear in the app.
+
+Conversion runs on your Mac. Originals stay in place. No account, upload service, telemetry or background daemon. **Both Finder actions support bulk conversion.**
+
+[Install](#install) · [Enable Finder actions](#enable-the-finder-actions) · [First conversion](#your-first-conversion) · [Destinations](#choose-where-results-go) · [Useful controls](#useful-controls) · [Troubleshooting](#troubleshooting) · [Formats](#formats) · [Update / remove](#update-or-remove)
 
 ## Install
 
-Install [Homebrew](https://brew.sh) first. Download the **macos-arm64 ZIP** from [Releases](https://github.com/samuel-zhang01/UltraConvert/releases/latest), extract it, and run this inside the extracted `UltraConvert` folder:
+### 1. Check your Mac and prerequisites
+
+- Open **Apple menu → About This Mac**. A **Chip** named Apple M1/M2/M3/etc. means Apple Silicon: use the release ZIP. An **Intel processor** means use the source installation below.
+- Install [Homebrew from its official site](https://brew.sh), following its instructions, including the printed **Next steps** for your shell. Open a new Terminal window and run `brew --version` to confirm it is available.
+- The native app targets macOS 13+. Interactive checks run on Apple Silicon/macOS 27 and engine/build CI runs on macOS 26. Intel and earlier macOS versions are unverified; Homebrew and engine support may require a newer system.
+
+### 2. Install on Apple Silicon
+
+1. Download **UltraConvert-…-macos-arm64.zip** from [the latest release](https://github.com/samuel-zhang01/UltraConvert/releases/latest). Do not choose GitHub's automatic “Source code” download for this route.
+2. Double-click the ZIP in Finder to extract it. It contains a folder named **UltraConvert**, with `install.py` inside.
+3. Open **Terminal** (Applications → Utilities). Type `cd ` with a space, drag the extracted **UltraConvert folder** from Finder into Terminal, then press Return. This handles folders with spaces or a suffix such as “UltraConvert 2”.
+4. Run:
+
+   ```sh
+   python3 install.py
+   ```
+
+5. Wait until you see **Installed app** and **Next steps**. The first installation downloads substantial dependencies and can take several minutes. Homebrew may request your Mac login password; Terminal does not show characters while you type it.
+6. [Enable the two Finder actions](#enable-the-finder-actions).
+
+The installer uses the ZIP's prebuilt app, installs shared open source engines with Homebrew, and creates a local Python runtime. Keep the extracted folder if you want easy access to the uninstaller. Dragging the `.app` alone into Applications does not set up the runtime.
+
+The binary is ad-hoc signed and **not Apple notarized**. If Gatekeeper blocks it, use a source build below. Do not disable Gatekeeper.
+
+### Alternative: build from source
+
+This route also applies to Intel Macs, subject to Homebrew engine availability. Install Homebrew first. Install Apple's Command Line Tools if they are missing:
 
 ```sh
-python3 install.py
+xcode-select --install
 ```
 
-The release includes a prebuilt Apple Silicon app. The installer installs shared conversion engines using Homebrew and creates your local Python runtime. Initial setup downloads several substantial dependencies; conversion itself is local.
-
-For installation from source (including Intel Macs):
+Complete Apple's installer, then run these commands in Terminal:
 
 ```sh
 git clone https://github.com/samuel-zhang01/UltraConvert.git
@@ -23,26 +51,92 @@ cd UltraConvert
 python3 install.py --build-from-source
 ```
 
-Source builds require Apple's Xcode Command Line Tools (`xcode-select --install`). Native app deployment target is macOS 13+, but release verification is on Apple Silicon/macOS 27; older systems and Intel have not been verified. Homebrew support and engine availability may set a newer practical minimum. The download is ad-hoc signed and **not Apple notarized**. Use a source build if macOS prevents opening it; do not disable Gatekeeper.
+If you already extracted a release ZIP, navigate into that folder as described above and run `python3 install.py --build-from-source` instead. The installer accepts macOS's Python 3.9 bootstrap and uses Homebrew Python 3.14 for the conversion runtime.
 
-Enable **Convert Here with UltraConvert** and **Convert to Destination with UltraConvert** under **System Settings → General → Login Items & Extensions → Finder**. On older macOS versions, look in Extensions → Finder. The app installs to `~/Applications/UltraConvert.app`, its runtime to `~/Library/Application Support/UltraConvert`, and workflows to `~/Library/Services`.
+### What gets installed
 
-## Use it
+| Component | Location |
+| --- | --- |
+| Native app | `~/Applications/UltraConvert.app` |
+| Two Finder workflows | `~/Library/Services/` |
+| Python runtime, engine source and update backups | `~/Library/Application Support/UltraConvert/` |
+| Initial default destination | `~/Downloads/UltraConvert/` |
 
-1. Select one or many files in Finder and right-click → **Quick Actions**.
-2. Choose **Convert Here** or **Convert to Destination**.
-3. Choose an output format for each detected category and click **Convert**.
+`~` means your home folder. Homebrew conversion engines are shared installations; they are downloaded separately rather than bundled in the app.
 
-Both actions support mixed batches of up to 1,000 files. Compatible output choices appear in the native window. Content probing recognises many misleading extensions; ambiguous plain-text formats still need an extension hint. Selecting Shapefile sidecars together produces one dataset conversion.
+## Enable the Finder actions
 
-- **Convert Here:** a new `Converted …` folder beside each source folder, even when selected files come from different locations.
-- **Default destination:** starts at `~/Downloads/UltraConvert`. Choose another folder and click **Set as Default** to remember it.
-- **Choose destination:** a native folder picker. Every run gets a fresh batch folder; originals and previous results stay in place.
-- **Remembered choices:** output formats, location mode, one to four jobs, optional skipping of files already in the target format, and optional opening of results.
-- **Progress and recovery:** per-file results, cancel, failure isolation, **Show Results**, and a JSON report in every output folder.
-- **Keyboard:** ⌘O selects files, ⌘Return converts here, and ⇧⌘Return chooses a destination and converts. Cancelling the folder picker does not start conversion.
+1. Open **System Settings → General → Login Items & Extensions**.
+2. Scroll to **Extensions**. Find **Finder** and click its **ⓘ** information button.
+3. Turn on **Convert Here with UltraConvert** and **Convert to Destination with UltraConvert**.
+4. Click **Done**. Select a supported file in Finder, right-click and open **Quick Actions**.
 
-The app confirms the format before a batch begins. Finder's menu contains the two actions; format choices live in the app, not a nested Finder format submenu.
+On older macOS releases, look in **Extensions → Finder**. You can reach Login Items & Extensions from **UltraConvert → Help → Finder Action Settings**; then open the Finder list. [Apple's Quick Action guide](https://support.apple.com/en-gb/guide/automator/aut73234890a/2.10/mac/15.0) explains the system feature.
+
+Both workflows carry UltraConvert's logo as a custom Quick Action image and Finder document icon. The logos have been verified beside both enabled actions in macOS 27's Finder Settings list. Other permission dialogs decide their own layout and may identify the Automator runner rather than the app. UltraConvert's app bundle also includes its branded icon for surfaces that show app identities.
+
+For ordinary use, select files or folders through the native pickers and respond to any macOS access prompt for the location you chose. **Full Disk Access and Accessibility are not setup requirements.** If a folder-access prompt was denied, check **System Settings → Privacy & Security → Files & Folders** for the named requester. Do not enable unrelated permissions to make an icon appear.
+
+## Your first conversion
+
+Try a few photos first:
+
+1. In Finder, select a PNG, JPEG, HEIC or another supported image. Hold **⌘** while clicking to select several files; **⇧-click** selects a range.
+2. Right-click → **Quick Actions → Convert Here with UltraConvert**.
+3. UltraConvert opens and recognises the files. In the **Images** row, choose an output such as **WEBP**.
+4. Leave **Convert beside each source** selected and click **Convert**.
+5. When progress finishes, click **Show Results**. A fresh **Converted …** folder contains the outputs and `conversion-report.json`. Your selected source files remain in their original folder.
+
+For a mixed selection, one format selector appears for each detected category. For example, photos → WEBP, audio → OPUS, documents → DOCX and GIS → GPKG can share one batch. Video can also be converted to audio, such as MP4 → MP3 or OPUS. Unsupported files are identified; valid files can still be converted.
+
+You can also open **UltraConvert** from Spotlight or `~/Applications`, click **Choose Files…**, and use the same controls. **Help → Quick Start** works offline. The full guide opens this README in your browser.
+
+Batches accept up to **1,000 files**. Content probing recognises many misleading extensions; ambiguous plain text still needs an extension hint. Select a Shapefile's `.shp` file with its matching `.dbf`, `.shx` and optional `.prj` nearby. Selecting those sidecars together produces one dataset conversion.
+
+Finder's menu contains the two actions. Choose the destination format in the native app window after the action opens.
+
+## Choose where results go
+
+| Choice | What happens |
+| --- | --- |
+| **Convert Here with UltraConvert** / **Convert beside each source** | Creates a new batch folder beside each source folder. Files selected from different folders get results beside their respective sources. |
+| **Convert to Destination with UltraConvert** / **Use default destination** | Starts with your saved default folder, initially `~/Downloads/UltraConvert`. All results go into one fresh batch folder there. |
+| **Choose destination…** or **Choose Folder…** | Opens a folder picker. Select or create a folder, click **Open**, then click **Convert**. Cancelling the picker starts no conversion. |
+
+To change the default: click **Choose Folder…**, select a folder, then click **Set as Default**. The path displayed below the controls confirms where outputs will go. **File → Open Default Destination** opens the saved folder in Finder.
+
+Every run creates a fresh batch folder. Existing outputs and originals are never overwritten. UltraConvert remembers your output formats and options for the next run; the Finder action sets the initial destination mode for that window.
+
+## Useful controls
+
+- **Skip files already in target format:** matching files stay at their original location and are recorded as skipped. They are not copied to the output folder.
+- **1–4 jobs:** converts that many files at once. Two is the default. Use one for large media or GIS inputs to reduce memory pressure; four can help batches of small files.
+- **Open results when finished:** automatically opens the result folder after the batch completes.
+- **Cancel:** stops the current batch. Completed outputs and the partial batch report are retained.
+- **Show Report:** selects `conversion-report.json` in Finder. Open it in a text editor to see per-file outcomes, preservation notes and engine diagnostics. For multiple source folders, reports are created in each output folder.
+- **File → Copy Result Summary:** copies counts for the last completed batch, without source paths.
+- **Help → Check Setup…:** checks installed engine versions, Python/GDAL imports, native icon tools and workflow files locally. It does not inspect your selected files, upload a report or confirm Finder's enable switches. **Copy Setup Report** is optional.
+- **Keyboard:** ⌘O chooses files; ⌘Return converts here; ⇧⌘Return chooses a folder and converts. Ordinary Return activates Convert.
+- **Geospatial CRS:** enter the known input coordinate system, for example `EPSG:4326`, when required. Bare WKT needs a known CRS; do not guess one.
+
+The window scrolls when a mixed batch needs more controls than your screen can fit. File and folder pickers remember useful starting locations.
+
+## Troubleshooting
+
+| Problem | What to do |
+| --- | --- |
+| `brew: command not found` or installer asks for Homebrew | Complete Homebrew's printed shell setup, open a new Terminal window, and retry `brew --version`. |
+| `can't open file … install.py` | Terminal is in the wrong folder. Repeat the `cd ` + drag-folder step; the folder must contain `install.py`. |
+| App blocked by macOS, or prebuilt has the wrong architecture | Run `python3 install.py --build-from-source` in the release folder after installing Command Line Tools. Intel users must build from source. |
+| Quick Actions missing | Check both Finder switches above. Select files, not a directory or empty space. Reopen the Finder window; if still absent, quit UltraConvert and rerun its installer. The app's **Choose Files** works independently of the menu. |
+| Missing runtime, engine, or GDAL import error | Run **Help → Check Setup…**. Quit the app and rerun `python3 install.py` from the current release/source folder. The installer provisions the matching Homebrew Python/GDAL environment. |
+| Permission denied for output/source folder | Choose a folder you can access with the native picker. Check the named requester in macOS **Files & Folders** permissions if you denied its prompt. |
+| Some files failed | Open **Show Report** and read each file's error. Other files can succeed. See the preservation limits below for format-specific restrictions. |
+| Valid but very large/unusual file is rejected | Resource and parser limits are deliberate. Try a smaller input or use the underlying engine directly; changing jobs does not bypass an input-size limit. |
+| Unknown CRS / WKT refused | Supply the correct source CRS, or keep a matching `.prj` / SRID with the source dataset. |
+| Show Report cannot find a report | The output folder may have been moved or removed. Use **Show Results**, or locate your batch under the displayed destination. |
+
+For an unresolved issue, [open a GitHub issue](https://github.com/samuel-zhang01/UltraConvert/issues) with your app version, macOS version, format pair and relevant error. Review/redact conversion reports before sharing: they contain local paths and diagnostics. Setup checks are availability checks; they do not prove every codec or file will convert.
 
 ## Formats
 
@@ -71,18 +165,19 @@ Every listed entry passed a representative encode/decode round trip. Conversions
 
 ## Command line
 
-Use the installed runtime so GDAL and the pinned parsers are available:
+Optional: use the installed runtime so GDAL and the pinned parsers are available. These examples assume you are in the folder containing your source files:
 
 ```sh
 UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
 UC_ENGINE="$HOME/Library/Application Support/UltraConvert/src/convert.py"
-"$UC_PY" "$UC_ENGINE" --here --to webp photo.png another.jpg
-"$UC_PY" "$UC_ENGINE" --output "$HOME/Downloads" --to opus clip.mp4 tone.wav
-"$UC_PY" "$UC_ENGINE" --here --jobs 2 --skip-same --to yaml settings.json
-"$UC_PY" "$UC_ENGINE" --inspect examples/Colour.png
+"$UC_PY" "$UC_ENGINE" --here --to webp "photo.png" "another.jpg"
+"$UC_PY" "$UC_ENGINE" --output "$HOME/Downloads" --to opus "clip.mp4" "tone.wav"
+"$UC_PY" "$UC_ENGINE" --here --jobs 2 --skip-same --to yaml "settings.json"
+"$UC_PY" "$UC_ENGINE" --inspect "photo.png"
+"$UC_PY" "$HOME/Library/Application Support/UltraConvert/src/diagnostics.py"
 ```
 
-Mixed-category batches use a JSON `--plan` file such as `{"image":"webp","audio":"opus","video":"mp4","document":"docx","geo":"gpkg","config":"yaml"}`. Pass paths as separate quoted arguments. Exit codes: 0 success, 1 per-file failure, 2 invalid invocation, 130 cancelled. Reports include local paths and engine diagnostics; redact them before sharing.
+Mixed-category batches use a JSON `--plan` file such as `{"image":"webp","audio":"opus","video":"mp4","document":"docx","geo":"gpkg","config":"yaml"}`. Pass each path as a separate quoted argument. Use `--` before file paths that start with `-`. Conversion exit codes: 0 success, 1 per-file failure, 2 invalid invocation, 130 cancelled. Setup-check exit codes: 0 available, 1 needs attention.
 
 ## Engines, research and checks
 
@@ -94,10 +189,18 @@ See the [release audit](docs/AUDIT.md), [verification evidence](evidence/release
 
 ## Update or remove
 
-Quit UltraConvert, obtain the new release, and run its installer. Managed components are staged before replacement; failed component swaps roll back. Old apps are verified in ZIP backups so Finder does not register duplicate app bundles.
+**Update:** quit every UltraConvert window, download/extract the new release, navigate into its folder in Terminal and run `python3 install.py` again. Source installs can use `git pull --ff-only` followed by `python3 install.py --build-from-source`. Saved app preferences remain. Recheck Finder switches after an update.
+
+Managed components are staged before replacement; failed component swaps roll back. Old apps are verified in ZIP backups so Finder does not register duplicate app bundles. Shared Homebrew/Python package setup is separate from the component-swap transaction.
+
+**Remove:** quit UltraConvert. In the extracted release folder or source checkout, run:
 
 ```sh
 python3 uninstall.py
 ```
 
-Removal moves only owned app, workflows and runtime into Trash. Shared Homebrew engines and your converted files remain. Backups live in the runtime and are moved with it.
+Removal moves only owned app, workflows and runtime into Trash. Shared Homebrew engines and converted files remain. Update backups live in the runtime and move with it. Your small macOS app-preference record is retained. Keep the Trash contents if you may want to restore the installation.
+
+## Native macOS release and Swift roadmap
+
+The interface is Swift/AppKit; the conversion coordinator is currently Python. A full Swift engine port can retain the established native conversion tools. The current binary is ad-hoc signed, with Hardened Runtime, and is not notarized. Developer ID signing, Apple notarization/stapling, Gatekeeper checks and optional DMG packaging are implemented in the release tooling. They require the maintainer’s distribution certificate and Keychain notarization profile; availability of the code is not a claim that Apple has accepted a release. See [the macOS release guide](docs/MACOS-RELEASE.md).

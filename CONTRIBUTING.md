@@ -22,11 +22,13 @@ UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
 "$UC_PY" -m unittest discover -s tests -p 'test_security.py' -v
 "$UC_PY" -m unittest discover -s tests -p 'test_batch.py' -v
 "$UC_PY" -m unittest discover -s tests -p 'test_installer.py' -v
+"$UC_PY" -m unittest discover -s tests -p 'test_diagnostics.py' -v
+"$UC_PY" -m unittest discover -s tests -p 'test_release.py' -v
 "$UC_PY" scripts/benchmark.py
 ```
 
 Generated reports go to ignored `evidence/local/`. Keep upstream research snapshots unchanged with their licences. Do not change policy to allow network resources, shell interpolation, arbitrary ImageMagick delegates, or execution of TeX. Add regression checks for actual preservation/security risks.
 
-Brand source: `assets/logo.svg` and `scripts/render_icon.swift`; `python3 scripts/build_brand.py` rebuilds PNG and ICNS assets. After committing the source on macOS, `python3 scripts/build_release.py` packages only the public Git tree and the matching app into `dist/`.
+Brand source: `assets/logo.svg` and `scripts/render_icon.swift`; `python3 scripts/build_brand.py` rebuilds PNG and ICNS assets. After committing the source on macOS, `python3 scripts/build_release.py` packages only the public Git tree and the matching app into `dist/VERSION/`. Existing artifacts are preserved; choose a new `--output-dir` for another build. See [the macOS signing guide](docs/MACOS-RELEASE.md) for Developer ID and notarization.
 
 Be kind, specific, and constructive in discussions. Support reports should identify macOS, architecture, engine version and source/target formats.

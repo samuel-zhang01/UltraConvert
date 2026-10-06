@@ -23,6 +23,7 @@ from defusedxml import ElementTree
 
 import guards
 import structured
+from runtime_tools import tool
 
 FORMATS = {
     "geo": "geojson gpkg shp kml kmz gpx gml wkt".split(),
@@ -85,28 +86,6 @@ for key in (
     "GML_DOWNLOAD_SCHEMA",
 ):
     os.environ[key] = ENGINE_ENV[key]
-
-
-def tool(name):
-    if name in ("ffmpeg", "ffprobe"):
-        for prefix in ("/opt/homebrew/opt/ffmpeg-full/bin", "/usr/local/opt/ffmpeg-full/bin"):
-            full = Path(prefix) / name
-            if full.exists():
-                return str(full)
-    if name == "ebook-convert":
-        p = Path("/Applications/calibre.app/Contents/MacOS/ebook-convert")
-        if p.exists():
-            return str(p)
-    for prefix in ("/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"):
-        path = Path(prefix) / name
-        if path.exists():
-            return str(path)
-    found = shutil.which(name)
-    if found:
-        return found
-    raise FileNotFoundError(
-        f"Missing conversion tool: {name}. Run install.py from the source repository."
-    )
 
 
 def run(args, cwd=None, log=None, timeout=21600):

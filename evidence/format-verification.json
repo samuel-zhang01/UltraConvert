@@ -620,5 +620,6 @@
     }
   ],
   "passed_formats": 62,
-  "failed_count": 0
+  "failed_count": 0,
+  "release_version": "1.1.0"
 }

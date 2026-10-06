@@ -36,6 +36,10 @@ def run(args):
 def workflow(path, mode="destination"):
     contents = path / "Contents"
     contents.mkdir(parents=True)
+    resources = contents / "Resources"
+    resources.mkdir()
+    icon = (ROOT / "assets/logo.png").read_bytes()
+    (resources / "workflowCustomImage.png").write_bytes(icon)
     command = (
         f'/usr/bin/open -n -a "$HOME/Applications/UltraConvert.app" --args --mode {mode} -- "$@"'
     )
@@ -92,7 +96,8 @@ def workflow(path, mode="destination"):
         "processesInput": 0,
         "serviceProcessesInput": 0,
         "useAutomaticInputType": 0,
-        "systemImageName": "NSActionTemplate",
+        "customImageFileData": icon,
+        "customImageFileExtension": "png",
     }
     document = {
         "AMDocumentVersion": "2",
@@ -109,11 +114,11 @@ def workflow(path, mode="destination"):
                 "NSMenuItem": {"default": path.stem},
                 "NSBackgroundColorName": "background",
                 "NSMessage": "runWorkflowAsService",
-                "NSIconName": "NSActionTemplate",
+                "NSIconName": "workflowCustomImage",
                 "NSSendFileTypes": ["public.item"],
                 "NSRequiredContext": {"NSApplicationIdentifier": "com.apple.finder"},
             }
-        ]
+        ],
     }
     (contents / "Info.plist").write_bytes(plistlib.dumps(service_info))
     (contents / "ultraconvert-managed.json").write_text('{"owner":"UltraConvert"}\n')
@@ -146,7 +151,13 @@ def install_payload(payload):
             fresh = dest.parent / (".ultraconvert-new-" + transaction + "-" + dest.name)
             old = dest.parent / (".ultraconvert-old-" + transaction + "-" + dest.name)
             staged.append((fresh, dest, old))
-            shutil.copytree(source, fresh, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+            if source.suffix == ".workflow" and sys.platform == "darwin":
+                # Preserve the custom Finder document icon's resource fork and FinderInfo.
+                run(["/usr/bin/ditto", source, fresh])
+            else:
+                shutil.copytree(
+                    source, fresh, ignore=shutil.ignore_patterns("__pycache__", "*.pyc")
+                )
             if dest.exists() and dest.suffix == ".app":
                 backup.mkdir(parents=True, exist_ok=True)
                 zipped = backup / (dest.name + ".zip")
@@ -276,6 +287,7 @@ def main():
             service = build / path.name
             workflow(service, mode)
             prepared_services[path] = service
+        run([app / "Contents/MacOS/UltraConvert", "--brand-workflows", *prepared_services.values()])
         # Compile/validate and stage everything before replacing a working installation.
         install_payload(
             [
@@ -313,9 +325,22 @@ def main():
     print(
         f"Installed app: {APP}\nFinder Quick Actions: "
         + ", ".join(path.stem for path in SERVICES.values())
-        + f"\nRuntime: {SUPPORT}\nEnable both actions in System Settings → Login Items & Extensions → Finder."
+        + f"\nRuntime: {SUPPORT}\n\nNext steps:\n"
+        + "1. Open System Settings → General → Login Items & Extensions.\n"
+        + "2. Open Finder (the info button), enable both UltraConvert actions, then click Done.\n"
+        + "3. Select files in Finder → right-click → Quick Actions → Convert Here with UltraConvert.\n"
+        + "4. Choose a format and click Convert. Use Help → Quick Start in the app for guidance.\n"
+        + "\nGuide: https://github.com/samuel-zhang01/UltraConvert#readme"
     )
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (OSError, RuntimeError, subprocess.CalledProcessError) as exc:
+        print(f"UltraConvert installation stopped: {exc}", file=sys.stderr)
+        print(
+            "Fix the issue above, then run the installer again. See README → Troubleshooting.",
+            file=sys.stderr,
+        )
+        sys.exit(1)

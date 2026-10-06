@@ -3,6 +3,7 @@
 import json
 import platform
 import plistlib
+import re
 import subprocess
 from pathlib import Path
 
@@ -13,7 +14,20 @@ def run(args):
     subprocess.run(list(map(str, args)), check=True)
 
 
-def build_app(destination):
+def developer_id_identity(identity):
+    """Resolve a valid Developer ID Application identity, never a development cert."""
+    output = subprocess.check_output(
+        ["/usr/bin/security", "find-identity", "-v", "-p", "codesigning"], text=True
+    )
+    for digest, name in re.findall(r'([A-Fa-f0-9]{40}) "([^"]+)"', output):
+        if name.startswith("Developer ID Application:") and identity in (digest, name):
+            return digest
+    raise RuntimeError(
+        "No matching valid Developer ID Application identity. Create/import it in Keychain first; an Apple Development certificate cannot sign a public Developer ID release."
+    )
+
+
+def build_app(destination, sign_identity=None):
     version = (ROOT / "VERSION").read_text().strip()
     icon = ROOT / "assets/UltraConvert.icns"
     if not icon.is_file():
@@ -64,7 +78,19 @@ def build_app(destination):
     (contents / "Resources/ultraconvert-managed.json").write_text(
         json.dumps({"owner": "UltraConvert", "version": version}) + "\n"
     )
-    run(["/usr/bin/codesign", "--force", "--sign", "-", app])
+    identity = developer_id_identity(sign_identity) if sign_identity else "-"
+    run(
+        [
+            "/usr/bin/codesign",
+            "--force",
+            "--sign",
+            identity,
+            "--options",
+            "runtime",
+            "--timestamp" if sign_identity else "--timestamp=none",
+            app,
+        ]
+    )
     run(["/usr/bin/codesign", "--verify", "--deep", "--strict", app])
     return app
 
