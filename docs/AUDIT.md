@@ -1,4 +1,4 @@
-# Release audit — 1.2.1
+# Release audit — 1.3.0
 
 Verified 2026-10-06 on Apple Silicon/macOS 27 with installed Homebrew engines. This is an adversarial code review and regression suite, not an independent penetration test or a guarantee about arbitrary files.
 
@@ -24,13 +24,14 @@ Verified 2026-10-06 on Apple Silicon/macOS 27 with installed Homebrew engines. T
 
 ## Verification
 
-This update places ordinary Convert Here outputs directly beside their sources, retains multipart references in one adjacent folder and stores reports separately in Application Support. Chosen-destination conversions retain their batch placement.
+This update improves native file/context actions, recovery, skipped-only feedback, Finder format presets and queue responsiveness. The conversion engine and direct-output placement remain unchanged.
 
-- All **62 format entries**, **14 additional correctness checks**, **10 preservation edge checks**, **18 security checks**, **13 batch/placement checks**, **7 installer checks**, **5 diagnostic checks** and **4 release-gate checks** passed locally: **133 representative checks**. Main CI repeats the full corpus and the native AppKit layout smoke.
-- Placement checks cover real OPUS→MP3, multiple source folders, repeated/concurrent/case-insensitive names, existing symlinks, exclusive-copy fallback, cancelled-copy cleanup, standalone GPKG, Shapefile companions and relative document media references. Originals and existing outputs remained intact.
-- The installed native app converted OPUS→MP3 with one success and zero failures. Finder showed the MP3 beside the original without an output folder. Show Results selected that file; Report selected its separately stored Application Support report. Test-only preference changes were restored.
-- Native layout smoke, Ruff lint/format and Bandit passed. Runtime package pins are unchanged from the same-day dependency audit. Strict verification passed after local signing with the existing Apple Development certificate; public artifacts remain ad-hoc signed and unnotarized.
-- Current source hashes and individual checks are in [release-verification.json](../evidence/release-verification.json). Historical interface checks are retained in [the 1.2.0 evidence](../evidence/releases/1.2.0.json). Finder menu dispatch, Intel and the older material fallback were not reverified.
+- All **62 format entries**, **14 additional correctness checks**, **10 preservation edge checks**, **18 security checks**, **13 batch/placement checks**, **8 installer checks**, **5 diagnostic checks** and **4 release-gate checks** passed locally: **134 representative checks**, plus expanded native AppKit assertions. Main CI repeats the full corpus and native tests.
+- The installed candidate completed a mixed batch with six successes and one unsupported-file failure, preserved originals, reloaded only the failure for retry, and retained the current batch on destination-picker cancellation. A skipped-only batch kept Report and hid Show Results.
+- Both general Finder Quick Actions cold-launched with correct source/mode. Native WebP and MP3 presets delivered the correct selection/target; WebP conversion and row result reveal were verified. Image/audio menus showed their applicable presets.
+- Native tests cover compact completion controls, compatible/unavailable presets, busy/invalid service requests, input bounds/deduplication, merged incoming selections, and fragmented 1,000-file completion events. Cached rows and coalesced changed-row refreshes avoid full rebuilds on every completion. [Performance evidence](../evidence/performance-1.3.0.json) and [UX scoring/limits](UX-AUDIT.md) separate synthetic UI measurements from conversion throughput.
+- Ruff lint/format, Bandit and runtime dependency audit passed. Existing Apple Development signing verifies locally; public artifacts remain ad-hoc signed and unnotarized. No experimental workflow handoff helper is shipped.
+- Current source hashes and checks are in [release-verification.json](../evidence/release-verification.json); the prior placement audit is retained in [1.2.1 evidence](../evidence/releases/1.2.1.json). The native format presets are allowlisted and use file-URL pasteboard input, the same recognition path and an explicit Convert action. Busy requests fail without changing the running batch.
 
 ## Limits retained explicitly
 

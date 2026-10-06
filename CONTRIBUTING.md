@@ -32,7 +32,7 @@ Run the native AppKit layout check on macOS (uses public fixtures and does not c
 ```sh
 mkdir -p build
 "$UC_PY" src/convert.py --inspect -- examples/* > build/interface-inspection.json
-xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/App.swift src/Interface.swift tests/test_interface.swift -o build/interface-test
+xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/App.swift src/Interface.swift src/Interaction.swift tests/test_interface.swift -o build/interface-test
 build/interface-test build/interface-inspection.json
 ```
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — 2026-10-06
+
+- Six native Finder Services presets: PNG, JPEG, WebP, MP3, Opus and MP4. Shortcuts choose a compatible format and open a reviewable batch; a running batch is never interrupted.
+- File-row context actions for original/result reveal, file-name/error copying and removal; Retry Failed reloads failed files for recognition and review.
+- Source → target previews, concise actionable error labels, separate status/action rows and compact-window checks for completed batches.
+- Skipped-only batches no longer offer empty results or claim files were saved. Cancelled recognition has a specific message, and pending incoming file selections merge without losing earlier selections.
+- Cached queue rows and coalesced updates replace repeated whole-queue rebuilding/redrawing. A five-sample synthetic benchmark reduced recognition-row preparation from 1.62s to 0.12s for 1,000 rows; this does not measure engine speed or real-user latency.
+- Expanded native regression checks and documented a 9.0/10 developer UX assessment with remaining validation limits.
+
 ## 1.2.1 — 2026-10-06
 
 - Convert Here places ordinary outputs directly beside their originals, with no batch or per-file folder. Existing names get numbered suffixes; originals and existing outputs are retained.

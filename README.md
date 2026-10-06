@@ -3,7 +3,7 @@
 <p align="center">Convert files locally. One selection. A clear destination.</p>
 <p align="center"><a href="https://github.com/samuel-zhang01/UltraConvert/actions/workflows/ci.yml"><img src="https://github.com/samuel-zhang01/UltraConvert/actions/workflows/ci.yml/badge.svg" alt="CI"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT licence"></a> <a href="https://github.com/samuel-zhang01/UltraConvert/releases/latest"><img src="https://img.shields.io/github/v/release/samuel-zhang01/UltraConvert" alt="Latest release"></a></p>
 
-UltraConvert is a native macOS app with two Finder Quick Actions. Convert one file or a mixed batch of images, documents, ebooks, video, audio, geospatial data and configuration files. Files are recognised from their contents where possible, and compatible output formats appear in the app.
+UltraConvert is a native macOS app with two Finder Quick Actions and six format shortcuts in Finder’s Services menu. Convert one file or a mixed batch of images, documents, ebooks, video, audio, geospatial data and configuration files. Files are recognised from their contents where possible, and compatible output formats appear in the app.
 
 Conversion runs on your Mac. Originals stay in place. No account, upload service, telemetry or background daemon. **Both Finder actions support bulk conversion.**
 
@@ -93,7 +93,9 @@ You can also open **UltraConvert** from Spotlight or `~/Applications`, drag file
 
 Batches accept up to **1,000 files**. Content probing recognises many misleading extensions; ambiguous plain text still needs an extension hint. Select a Shapefile's `.shp` file with its matching `.dbf`, `.shx` and optional `.prj` nearby. Selecting those sidecars together produces one dataset conversion.
 
-Finder's menu contains the two actions. Choose the destination format in the native app window after the action opens.
+For a common format, right-click → **Services → Convert to … with UltraConvert**. PNG, JPEG and WebP appear for images; MP3 and Opus for audio/video; MP4 for movies. macOS filters these shortcuts by the file type known to Finder. They open the app with that format selected and **Beside source files** chosen. Review the batch, then click **Convert**. They reuse an idle app window; if a batch is busy, wait or cancel before trying again. The two general Quick Actions open a fresh window with their chosen destination mode.
+
+If a format shortcut is missing, check **System Settings → Keyboard → Keyboard Shortcuts → Services** and enable the named UltraConvert shortcut. For a misleading extension or a mixed selection that Finder cannot categorise, use the general Quick Actions or Add Files; content inspection still runs in the app.
 
 ## Choose where results go
 
@@ -113,12 +115,16 @@ For **Convert Here**, an existing output name gets a numbered suffix, such as `R
 - **Batch options:** expand this row to show skip-matching, concurrency and automatic result opening.
 - **1–4 files at a time:** converts that many files at once. Two is the default. Use one for large media or GIS inputs to reduce memory pressure; four can help batches of small files.
 - **Open results when finished:** reveals converted files for Convert Here, or opens the destination batch folder, after completion.
+- **File-row right-click:** reveal the original, reveal its converted result, copy file names or error details, or remove the selected rows from the queue. Removing rows keeps the files on disk.
+- **Retry Failed:** loads only failed files, recognises them again and lets you review formats/destination before another conversion.
 - **Cancel:** stops the current batch. Completed outputs and the partial batch report are retained.
 - **Report:** selects the conversion report in Finder. Open it in a text editor to see per-file outcomes, preservation notes and engine diagnostics. Convert Here keeps reports under `~/Library/Application Support/UltraConvert/Reports/` to avoid cluttering your source folders. Destination batches keep `conversion-report.json` in their batch folder.
 - **File → Copy Result Summary:** copies counts for the last completed batch, without source paths.
 - **Help → Check Setup…:** checks installed engine versions, Python/GDAL imports, native icon tools and workflow files locally. It does not inspect your selected files, upload a report or confirm Finder's enable switches. **Copy Setup Report** is optional.
 - **Keyboard:** ⌘O adds files; ⌘Return converts here; ⇧⌘Return chooses a folder and converts. Ordinary Return activates Convert.
 - **Geospatial CRS:** enter the known input coordinate system, for example `EPSG:4326`, when required. Bare WKT needs a known CRS; do not guess one.
+
+File rows preview the source → target format. Unsupported and failed files have concise labels, with full diagnostics in their tooltip, Copy Error Details and Report. A skipped-only batch keeps Report available and hides Show Results.
 
 The file queue and output-format list scroll independently. The conversion bar keeps progress, Convert, Cancel and completed-batch actions visible. Expand **Batch options** for less frequently used controls; the main area scrolls on smaller screens. File and folder pickers remember useful starting locations. On macOS 26+, the action bar uses native Liquid Glass; older systems use a native material fallback.
 
@@ -186,7 +192,7 @@ FFmpeg/FFprobe (`ffmpeg-full`), ImageMagick, GDAL/OGR, Pandoc, Calibre, Monkey's
 
 The [source review](research/REVIEW.md) examines Moonvert, MenuMate, RClick, VERT, FileConverter, HandBrake, and the conversion engines. Selected upstream source snapshots retain their licences and commit hashes. UltraConvert's original code and vector artwork are MIT licensed; that does not relicense those snapshots.
 
-See the [release audit](docs/AUDIT.md), [verification evidence](evidence/release-verification.json), [contribution guide](CONTRIBUTING.md), and [security policy](SECURITY.md). CI checks style, static security findings, dependencies, native compilation, full format round trips, edge cases, malicious input and installer rollback.
+See the [UX crawl and scoring rubric](docs/UX-AUDIT.md), [release audit](docs/AUDIT.md), [verification evidence](evidence/release-verification.json), [contribution guide](CONTRIBUTING.md), and [security policy](SECURITY.md). CI checks style, static security findings, dependencies, native compilation, full format round trips, edge cases, malicious input and installer rollback.
 
 ## Update or remove
 

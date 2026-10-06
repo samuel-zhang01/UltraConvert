@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("installer", ROOT / "install.py")
 installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
+from package_app import format_services
 
 
 class InstallerTests(unittest.TestCase):
@@ -82,6 +83,20 @@ class InstallerTests(unittest.TestCase):
     def test_bootstrap_and_uninstall_parse_on_system_python(self):
         for path in (ROOT / "install.py", ROOT / "uninstall.py", ROOT / "scripts/package_app.py"):
             ast.parse(path.read_text(), filename=str(path), feature_version=(3, 9))
+
+    def test_finder_format_services_are_bounded_and_reviewable(self):
+        services = format_services()
+        self.assertEqual(
+            {item["NSUserData"] for item in services}, {"png", "jpg", "webp", "mp3", "opus", "mp4"}
+        )
+        self.assertEqual(len(services), 6)
+        for item in services:
+            self.assertEqual(item["NSMessage"], "prepareConversion")
+            self.assertEqual(
+                item["NSRequiredContext"], {"NSApplicationIdentifier": "com.apple.finder"}
+            )
+            self.assertIn("review", item["NSServiceDescription"])
+            self.assertTrue(item["NSSendFileTypes"])
 
     def test_uninstall_leaves_unowned_runtime_untouched(self):
         spec = importlib.util.spec_from_file_location("uninstaller", ROOT / "uninstall.py")

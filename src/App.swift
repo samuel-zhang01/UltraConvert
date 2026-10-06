@@ -32,12 +32,21 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     let formatHint = NSTextField(wrappingLabelWithString: "Choose files first")
     let removeFilesButton = NSButton(title: "Remove Selected", target: nil, action: nil)
     let clearFilesButton = NSButton(title: "Clear", target: nil, action: nil)
+    let retryButton = NSButton(title: "Retry Failed", target: nil, action: nil)
     let optionsDisclosure = NSButton()
     let optionsBody = NSStackView()
     let statusIcon = NSImageView()
     var draftTargets: [String: String] = [:]
     var fileIcons: [String: NSImage] = [:]
     var outcomes: [String: (text: String, failed: Bool)] = [:]
+    var outputBySource: [String: URL] = [:]
+    var failedPaths: [String] = []
+    var queueRows: [[String: Any]] = []
+    var rowByPath: [String: Int] = [:]
+    var changedRows = IndexSet()
+    var outcomeRefresh: DispatchWorkItem?
+    var queueReloadCount = 0
+    var presetFormat: String?
     var phase = BatchPhase.empty { didSet { refreshPresentation() } }
     var selectors: [String: NSPopUpButton] = [:]
     var files: [String] = []
@@ -64,6 +73,11 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "About UltraConvert", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
+        let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
+        servicesItem.submenu = NSMenu(title: "Services")
+        appMenu.addItem(servicesItem)
+        NSApp.servicesMenu = servicesItem.submenu
+        NSApp.servicesProvider = self
         appMenu.addItem(withTitle: "Quit UltraConvert", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appMenuItem.submenu = appMenu
         menu.addItem(appMenuItem)
@@ -73,6 +87,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         openItem.target = self
         fileMenu.addItem(openItem)
         addMenuItem(fileMenu, "Clear File Queue", #selector(clearFiles), symbol: "trash")
+        addMenuItem(fileMenu, "Retry Failed Files", #selector(retryFailed), symbol: "arrow.clockwise")
         let hereItem = NSMenuItem(title: "Convert Here", action: #selector(convertHere), keyEquivalent: "\r")
         hereItem.keyEquivalentModifierMask = [.command]
         hereItem.target = self; fileMenu.addItem(hereItem)
@@ -123,7 +138,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     }
 
     func application(_ sender: NSApplication, openFiles filenames: [String]) {
-        if busy { pendingFiles = filenames }
+        if busy { queuePendingFiles(filenames) }
         else {
             files = filenames
             if window != nil { loadFiles(filenames) }
@@ -206,10 +221,13 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     @objc func convertToFolder() { guard !busy else { return }; if chooseFolder() { convertFiles() } }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if let enabled = contextActionEnabled(menuItem.action) { return enabled }
         if menuItem.action == #selector(pickFiles) || menuItem.action == #selector(checkSetup) { return !busy }
         if menuItem.action == #selector(clearFiles) { return !busy && !files.isEmpty }
         if menuItem.action == #selector(convertHere) || menuItem.action == #selector(convertToFolder) { return !busy && !selectors.isEmpty }
-        if menuItem.action == #selector(showResults) || menuItem.action == #selector(showReport) { return resultURL != nil }
+        if menuItem.action == #selector(showResults) { return !publishedURLs.isEmpty }
+        if menuItem.action == #selector(showReport) { return !reportURLs.isEmpty }
+        if menuItem.action == #selector(retryFailed) { return !busy && !failedPaths.isEmpty }
         if menuItem.action == #selector(copySummary) { return !lastSummary.isEmpty }
         return true
     }
@@ -378,12 +396,15 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     }
 
     func loadFiles(_ selected: [String]) {
-        guard !busy else { pendingFiles = selected; return }
+        guard !busy else { queuePendingFiles(selected); return }
+        let selected = uniquePaths(selected)
+        guard selected.count <= 1000 else { status.stringValue = "Select at most 1,000 files per batch."; return }
+        guard !selected.isEmpty else { clearFiles(); return }
         for (key, popup) in selectors {
             if let value = popup.selectedItem?.representedObject as? String { draftTargets[key] = value }
         }
         files = selected
-        outcomes = [:]
+        resetOutcomes()
         let selectedPaths = Set(selected)
         fileIcons = fileIcons.filter { selectedPaths.contains($0.key) }
         infos = []; selectors.removeAll()
@@ -408,7 +429,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
                   let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let infos = parsed["files"] as? [[String: Any]] else {
                 self.phase = .attention
-                self.status.stringValue = "Could not inspect files: \(error.suffix(1200))"
+                self.status.stringValue = code == 130 ? "Recognition cancelled. Add files to try again." : "Could not inspect files: \(error.suffix(1200))"
                 self.start.isEnabled = false
                 self.refreshQueue()
                 return
@@ -440,7 +461,8 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             popup.addItems(withTitles: common.map { $0 == "alac" ? "ALAC (lossless .m4a)" : $0.uppercased() })
             for (index, format) in common.enumerated() { popup.item(at: index)?.representedObject = format }
             let remembered = preferences.dictionary(forKey: "formats") as? [String: String] ?? [:]
-            if let preferred = draftTargets[key] ?? remembered[key] ?? defaults[key], let index = common.firstIndex(of: preferred) { popup.selectItem(at: index) }
+            let preferred = presetFormat.flatMap { common.contains($0) ? $0 : nil } ?? draftTargets[key] ?? remembered[key] ?? defaults[key]
+            if let preferred, let index = common.firstIndex(of: preferred) { popup.selectItem(at: index) }
             popup.target = self; popup.action = #selector(formatChanged(_:))
             popup.setAccessibilityLabel("\(names[key]!) output format")
             let heading = NSStackView(views: [image, label]); heading.spacing = 8
@@ -454,10 +476,15 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         crs.isHidden = groups["geo"] == nil
         let failed = infos.filter { $0["error"] is String }.count
         status.stringValue = failed == 0 ? "Ready to convert \(infos.count) \(infos.count == 1 ? "file" : "files")." : "\(infos.count - failed) ready · \(failed) unsupported. Review the file queue."
-        summary.stringValue = "Originals kept; existing outputs never overwritten. Documents may reflow. Media uses first tracks; lossy formats re-encode. GIS limitations appear in the report."
+        if let presetFormat {
+            let matched = selectors.values.contains { $0.selectedItem?.representedObject as? String == presetFormat }
+            status.stringValue += matched ? " \(presetFormat.uppercased()) selected; review before converting." : " \(presetFormat.uppercased()) is unavailable for this selection. Choose a compatible format."
+            self.presetFormat = nil
+        }
+        summary.stringValue = "Right-click a file to reveal its original, copy its name or remove it from the queue. Originals and existing outputs are kept."
         start.isEnabled = !selectors.isEmpty
         refreshDestination()
-        phase = selectors.isEmpty ? .attention : .ready
+        phase = selectors.isEmpty || failed > 0 ? .attention : .ready
         refreshQueue()
     }
 
@@ -480,7 +507,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         do { try JSONSerialization.data(withJSONObject: plan).write(to: planURL) }
         catch { status.stringValue = error.localizedDescription; return }
         setBusy(true)
-        outcomes = [:]
+        resetOutcomes()
         phase = .converting
         fileTable.reloadData()
         progress.doubleValue = 0
@@ -509,17 +536,24 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
                 let results = report["results"] as? [[String: Any]] ?? []
                 for item in results { self.updateOutcome(item) }
                 self.phase = ((report["failed"] as? Int ?? 0) > 0 || code == 130) ? .attention : .complete
-                self.fileTable.reloadData()
+                self.failedPaths = results.filter { $0["success"] as? Bool != true }.compactMap { $0["path"] as? String }
+                self.flushOutcomeChanges()
                 let errors = results.compactMap { item -> String? in
                     guard let error = item["error"] as? String else { return nil }
                     return "\(item["name"] ?? "file"): \(error)"
                 }
-                self.summary.stringValue = errors.isEmpty ? (self.resultsHere ? "Saved beside the originals. Companion files use one folder. Reports are kept separately; click Report for details." : "Saved in \(self.resultURLs.count) output folder(s). Originals retained. Click Report for format notes.") : String(errors.joined(separator: "\n").prefix(850))
-                self.reveal.isHidden = false
+                if !errors.isEmpty {
+                    self.summary.stringValue = "\(errors.count) \(errors.count == 1 ? "file needs" : "files need") attention. Right-click a failed file to copy its error details, or open Report. Retry Failed loads only those files for review."
+                } else if self.publishedURLs.isEmpty {
+                    self.summary.stringValue = "No new files were created. Matching files stayed at their original locations; see Report for details."
+                } else {
+                    self.summary.stringValue = self.resultsHere ? "Saved beside the originals. Companion files use one folder. Reports are kept separately; click Report for details." : "Saved in \(self.resultURLs.count) output folder(s). Originals retained. Click Report for format notes."
+                }
+                self.reveal.isHidden = self.publishedURLs.isEmpty
                 self.reportButton.isHidden = false
                 self.lastSummary = "UltraConvert: \(report["success"] ?? 0) converted, \(report["skipped"] ?? 0) skipped, \(report["failed"] ?? 0) failed.\(code == 130 ? " Cancelled." : "")"
                 self.progress.doubleValue = 1
-                if self.openAfter.state == .on { self.showResults() }
+                if self.openAfter.state == .on && !self.publishedURLs.isEmpty { self.showResults() }
             } else {
                 self.phase = .attention
                 self.status.stringValue = "Conversion stopped (exit \(code))."
@@ -540,8 +574,8 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
                 progress.doubleValue = completed / max(total, 1)
                 let result = event["result"] as? [String: Any] ?? [:]
                 updateOutcome(result)
-                fileTable.reloadData()
-                status.stringValue = "\(Int(completed))/\(Int(total)): \(result["name"] ?? "file")"
+                scheduleOutcomeRefresh()
+                status.stringValue = "\(Int(completed)) of \(Int(total)) processed · \(result["name"] ?? "file")"
             }
         }
     }
@@ -551,10 +585,13 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         if let error = item["error"] as? String { outcomes[path] = (error, true) }
         else if item["skipped"] as? Bool == true { outcomes[path] = ("Skipped · already in target format", false) }
         else if item["success"] as? Bool == true { outcomes[path] = ("Converted to \((item["target"] as? String ?? "").uppercased())", false) }
+        if let output = item["output"] as? String, !output.isEmpty { outputBySource[path] = URL(fileURLWithPath: output) }
+        if let row = rowByPath[path] { changedRows.insert(row) }
     }
 
     @objc func cancelConversion() { process?.terminate(); status.stringValue = "Cancelling…"; cancel.isEnabled = false }
     @objc func showResults() {
+        guard !publishedURLs.isEmpty else { status.stringValue = "No new outputs in this batch. See Report for skipped or failed files."; return }
         if resultsHere && !publishedURLs.isEmpty { NSWorkspace.shared.activateFileViewerSelecting(Array(publishedURLs.prefix(8))) }
         else if resultURLs.count > 1 { NSWorkspace.shared.activateFileViewerSelecting(Array(resultURLs.prefix(8))) }
         else if let url = resultURL { NSWorkspace.shared.open(url) }

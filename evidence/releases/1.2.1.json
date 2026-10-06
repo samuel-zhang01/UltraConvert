@@ -1,11 +1,11 @@
 {
-  "version": "1.3.0",
+  "version": "1.2.1",
   "date": "2026-10-06",
   "environment": {
     "system": "macOS 27.0.1",
     "architecture": "arm64"
   },
-  "scope": "Native UX, file context actions, six Finder format presets, recovery/input handling and queue responsiveness. Conversion engines and output placement retained.",
+  "scope": "Convert Here output placement and native result/report routing. Destination batch placement retained.",
   "format_round_trips": {
     "passed": 62,
     "failed": 0,
@@ -18,23 +18,30 @@
   "regression_tests": {
     "adversarial_security": 18,
     "batch_workflows_and_direct_placement": 13,
-    "installer_bootstrap_icons_rollback_ownership": 8,
+    "installer_bootstrap_icons_rollback_ownership": 7,
     "diagnostics": 5,
     "release_gates": 4,
     "failed": 0
   },
-  "representative_checks_total": 134,
+  "representative_checks_total": 133,
   "native_checks": [
-    "Native mixed-format batch: six converted, one unsupported failure; original files retained",
-    "Retry Failed loaded only the failed file for recognition/review",
-    "Destination picker cancellation left selection and placement unchanged and started no batch",
-    "Finder WebP preset selected the source/target; conversion succeeded and row result reveal selected the actual sibling WebP",
-    "Finder MP3 preset cold launch selected WAV source and MP3 target without converting automatically",
-    "Both original Finder Quick Actions cold-launched with the correct WAV source and Here/saved-destination mode",
-    "Skipped-only WAV batch showed zero outputs, one skip and Report; Show Results was absent",
-    "Native AppKit tests covered compatible/unavailable presets, service busy/invalid-data guards, pending selection merge, fragmented 1000-file events, unsupported context actions, compact completion controls and clear",
-    "Visual completion layout inspected on macOS 27; existing Apple Development signature verified locally"
+    "Native AppKit layout smoke passed",
+    "Installed 1.2.1 strictly verified with existing Apple Development signature",
+    "Native OPUS to MP3 conversion completed: one success, no skips or failures",
+    "MP3 appeared directly beside its OPUS source with no output directories or report in the source folder",
+    "Show Results selected the actual MP3 in Finder beside the original",
+    "Report selected conversion-report.json under Application Support/UltraConvert/Reports",
+    "Test-only preference changes restored after the app quit"
   ],
+  "native_smoke": {
+    "input": "opus",
+    "output": "mp3",
+    "success": 1,
+    "failed": 0,
+    "source_and_output_are_siblings": true,
+    "no_output_directories": true,
+    "report_stored_separately": true
+  },
   "batch_checks": [
     "Direct placement in multiple source folders",
     "Actual OPUS to MP3 conversion",
@@ -54,7 +61,7 @@
     "ruff_lint": "passed",
     "ruff_format": "passed",
     "bandit": "passed with existing documented exclusions",
-    "runtime_dependencies": "No known vulnerabilities in the current pip-audit of requirements.txt"
+    "runtime_dependencies": "unchanged pins; no known vulnerabilities in prior same-day audit"
   },
   "ci": {
     "workflow": "https://github.com/samuel-zhang01/UltraConvert/actions/workflows/ci.yml",
@@ -69,28 +76,20 @@
   "limits": [
     "Representative fixtures, not exhaustive codec/schema/layout coverage",
     "Apple Silicon/macOS 27 checked; Intel and older native-material fallback unverified",
-    "Native Finder preset visibility uses macOS file type hints; misleading extensions can require a general Quick Action",
-    "General Quick Actions open a fresh instance; native format services reuse an idle instance and reject busy requests",
-    "Manual VoiceOver/light/reduced-transparency matrix and large-media Instruments profiling remain unverified",
+    "Finder menu dispatch was not reverified in this update",
     "No OS parser sandbox; reports contain local paths and diagnostics",
-    "Public builds remain ad-hoc signed and unnotarized; engines/runtime installed separately",
     "Hard-link publication is atomic where supported; exclusive copy fallback or multipart folder publication can leave partial output after abrupt process/power loss"
   ],
   "source_sha256": {
-    ".github/workflows/ci.yml": "fd41eeedc5eb2e6236d45a6ec7e501c8a218e64a2ce257f94601b448bb7c17ac",
-    "VERSION": "64d23f858ef51b0f996e4966d4e27c0371b437e2d2787890b1f7ad22d4ec5663",
     "install.py": "4254faffdb8152da92ccbf4f2b2f1ddd49fcbae436317e1c9bb434ec504b034f",
     "requirements.txt": "9b115381ee817cc6e4d660eb4e75c65a255ed7732b3b774bf031627660be5527",
     "scripts/benchmark.py": "3a6dea95b6c4b9a881b9e492ff41e031d0a2eafa06f4c752ee9c8b7c8f287bd4",
-    "scripts/benchmark_interface.swift": "f024e7194e9b95710cdf839c5d26e366dd36971e1e059346d8ff94944f832e72",
     "scripts/build_brand.py": "f929f13b0a1720988b137effcad8140665492a5158fab348c5a669693c6bed71",
     "scripts/build_release.py": "f177330e7130ca19d7052485c91cae9fc69a267077708b1510c02dbbeb1d2e58",
     "scripts/notarize.py": "a2c37ff0af4fad141bfa37e29e50a2d508bf98746c404cde82ae018b9caf0fde",
-    "scripts/package_app.py": "1af2ff575b7c66c77ba404b695391b7c025079245ca8fef251431e3059c44ab2",
+    "scripts/package_app.py": "5386d9dc0e477e8b89d450d9b18270414da7c28cf4f497ab6302929f170e5c94",
     "scripts/render_icon.swift": "12c7ec33ad5827a9ab4c2fc905668feb6e2956a36795177b552d0ba879230fad",
-    "src/App.swift": "7746adc296089099fe939da0e62a525b7f675e4dfda50bea7c2380b95419b9b6",
-    "src/Interaction.swift": "25ed8d5e499a7af1c2b7a045e175166816707165dd87cb0b2b781d5d6ef4b7e0",
-    "src/Interface.swift": "5547944a03d1eba667c12f87f66e3c63239a29bbf3766f12e880cb8a1c81f796",
+    "src/App.swift": "b8328a191c254e7b28dea55cbe4208947190866f92e1349880317b00c87f5818",
     "src/convert.py": "e6a840964b70157dc8962a15504abd94189768d14c4bf586d1b1faf122041990",
     "src/diagnostics.py": "8b46fdf5f7b892b7a6e316c25a4d4c5efa58ecee1e2d528ace31b1d5eafa8e9e",
     "src/geospatial.py": "a5a2e37b1a5699ff0719ab2c2ecf0ab9a3801747376b91d9a0deac6f439d4a72",
@@ -102,18 +101,13 @@
     "tests/test_conversion.py": "5465405dc20e93f03e95b52330819367884d4719b33a3c57c3413c6918e24147",
     "tests/test_diagnostics.py": "c0fe273b2f47f9058444841bf14906f7160fac7938ada30104cdca53d8e25c79",
     "tests/test_edges.py": "52659e4562c34af6435c711b75c92ecd75f3e4bac2dca1cb53b71b5c793f27c6",
-    "tests/test_installer.py": "d91ffbfa83ec13240cab88bdb45dff81dcbcc5184c7242776825ec21ae90478b",
-    "tests/test_interface.swift": "8adb116bbe4981065622be13596c85b71a41be396371860de52d7d53d2c31c34",
+    "tests/test_installer.py": "399611a93c8678175b397595e126d50c7e450fed10a547d7e2aeb9786bc8329b",
     "tests/test_release.py": "1966874262fa3265e2f1ba6fd192967ae3cddbe2038b58aabcc4bba4d1eab0ef",
     "tests/test_security.py": "31f9f75927a1a237391fae85c56bbab96f4c888edefcfd2562c0a4961c7fe65e",
-    "uninstall.py": "1be94d7c4c0b50d5070d4940b69a112ca7f5af6a58a53c920351eb9ea973a46a"
-  },
-  "ux_assessment": {
-    "score": 9.0,
-    "scale": 10,
-    "kind": "developer self-assessment of scoped native UX flows",
-    "rubric": "docs/UX-AUDIT.md",
-    "limits": "Not an independent usability study, security rating, Instruments profile or manual VoiceOver audit."
-  },
-  "performance_evidence": "evidence/performance-1.3.0.json"
+    "uninstall.py": "1be94d7c4c0b50d5070d4940b69a112ca7f5af6a58a53c920351eb9ea973a46a",
+    "src/Interface.swift": "1494a8cc020d0ea023332b725891fa14b53ca45b0bd4d4ff88202fb7078f5037",
+    "tests/test_interface.swift": "270b30e1ece7c48e0c2aa79d00d6d9a6f4b0bd4ffd667a8e663e11dbdabb3567",
+    ".github/workflows/ci.yml": "37b4e0326a5a750af8f0a636eec9c30ed0f0dac98cdcf8f039feb53c4205b018",
+    "VERSION": "6cf4e084b47f33c9b02ef79279d157833868f8f70514169a768be353ee328fea"
+  }
 }

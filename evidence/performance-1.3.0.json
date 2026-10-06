@@ -1,0 +1,124 @@
+{
+  "samples": {
+    "before": [
+      {
+        "files": 1000,
+        "limitations": "Synthetic native event ingestion and preparation of 1,000 queue rows during recognition; excludes engines, drawing and real-user latency. Icons are pre-cached in both versions.",
+        "outcomes": 1000,
+        "row_preparation_seconds": 1.6236086249991786,
+        "seconds": 0.019804666662821546
+      },
+      {
+        "files": 1000,
+        "limitations": "Synthetic native event ingestion and preparation of 1,000 queue rows during recognition; excludes engines, drawing and real-user latency. Icons are pre-cached in both versions.",
+        "outcomes": 1000,
+        "row_preparation_seconds": 1.6508067083195783,
+        "seconds": 0.01923741665086709
+      },
+      {
+        "files": 1000,
+        "limitations": "Synthetic native event ingestion and preparation of 1,000 queue rows during recognition; excludes engines, drawing and real-user latency. Icons are pre-cached in both versions.",
+        "outcomes": 1000,
+        "row_preparation_seconds": 1.619326333340723,
+        "seconds": 0.019270791643066332
+      },
+      {
+        "files": 1000,
+        "limitations": "Synthetic native event ingestion and preparation of 1,000 queue rows during recognition; excludes engines, drawing and real-user latency. Icons are pre-cached in both versions.",
+        "outcomes": 1000,
+        "row_preparation_seconds": 1.611276291689137,
+        "seconds": 0.019367125001735985
+      },
+      {
+        "files": 1000,
+        "limitations": "Synthetic native event ingestion and preparation of 1,000 queue rows during recognition; excludes engines, drawing and real-user latency. Icons are pre-cached in both versions.",
+        "outcomes": 1000,
+        "row_preparation_seconds": 1.6107246666797437,
+        "seconds": 0.01951375001226552
+      }
+    ],
+    "after": [
+      {
+        "files": 1000,
+        "limitations": "Synthetic native event ingestion and preparation of 1,000 queue rows during recognition; excludes engines, drawing and real-user latency. Icons are pre-cached in both versions.",
+        "outcomes": 1000,
+        "row_preparation_seconds": 0.12280491666751914,
+        "seconds": 0.018747416674159467
+      },
+      {
+        "files": 1000,
+        "limitations": "Synthetic native event ingestion and preparation of 1,000 queue rows during recognition; excludes engines, drawing and real-user latency. Icons are pre-cached in both versions.",
+        "outcomes": 1000,
+        "row_preparation_seconds": 0.1227260000014212,
+        "seconds": 0.018957791675347835
+      },
+      {
+        "files": 1000,
+        "limitations": "Synthetic native event ingestion and preparation of 1,000 queue rows during recognition; excludes engines, drawing and real-user latency. Icons are pre-cached in both versions.",
+        "outcomes": 1000,
+        "row_preparation_seconds": 0.12393649999285117,
+        "seconds": 0.01860545831732452
+      },
+      {
+        "files": 1000,
+        "limitations": "Synthetic native event ingestion and preparation of 1,000 queue rows during recognition; excludes engines, drawing and real-user latency. Icons are pre-cached in both versions.",
+        "outcomes": 1000,
+        "row_preparation_seconds": 0.1257041249773465,
+        "seconds": 0.01841458331909962
+      },
+      {
+        "files": 1000,
+        "limitations": "Synthetic native event ingestion and preparation of 1,000 queue rows during recognition; excludes engines, drawing and real-user latency. Icons are pre-cached in both versions.",
+        "outcomes": 1000,
+        "row_preparation_seconds": 0.12434729168307967,
+        "seconds": 0.018878250004490837
+      }
+    ]
+  },
+  "median": {
+    "before": {
+      "seconds": 0.019367125001735985,
+      "row_preparation_seconds": 1.619326333340723
+    },
+    "after": {
+      "seconds": 0.018747416674159467,
+      "row_preparation_seconds": 0.12393649999285117
+    }
+  },
+  "method": "Five alternating samples of optimized builds on the same Apple Silicon Mac. Baseline is v1.2.1 source. Engine work and drawing excluded; icons pre-cached.",
+  "version": "1.3.0",
+  "environment": {
+    "system": "macOS 27.0.1",
+    "architecture": "arm64"
+  },
+  "engine_throughput": {
+    "platform": "Darwin",
+    "architecture": "arm64",
+    "fixture": "20 x 64px PNG to WebP, 20 x JSON to YAML",
+    "limitations": "Small-file throughput only; results depend on machine and format. Each engine is limited to two threads; up to four jobs.",
+    "results": [
+      {
+        "jobs": 1,
+        "files": 40,
+        "seconds": 0.931,
+        "converted": 40
+      },
+      {
+        "jobs": 2,
+        "files": 40,
+        "seconds": 0.49,
+        "converted": 40
+      },
+      {
+        "jobs": 4,
+        "files": 40,
+        "seconds": 0.304,
+        "converted": 40
+      }
+    ]
+  },
+  "row_refreshes": {
+    "before": "1,000 full reload calls by code for 1,000 events",
+    "after": "one changed-row reload in the native fragmented-event test"
+  }
+}

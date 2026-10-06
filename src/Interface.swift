@@ -133,6 +133,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         fileTable.dataSource = self; fileTable.delegate = self
         fileTable.setAccessibilityLabel("Conversion file queue")
         fileTable.onRemove = { [weak self] in self?.removeSelectedFiles() }
+        buildQueueMenu()
         queueScroll.documentView = fileTable
         NSLayoutConstraint.activate([
             empty.centerXAnchor.constraint(equalTo: queueSurface.centerXAnchor),
@@ -266,16 +267,23 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         styleButton(cancel, symbol: "xmark", action: #selector(cancelConversion))
         styleButton(reveal, symbol: "folder.badge.checkmark", action: #selector(showResults))
         styleButton(reportButton, symbol: "doc.text", action: #selector(showReport))
+        styleButton(retryButton, symbol: "arrow.clockwise", action: #selector(retryFailed))
         start.controlSize = .large
         start.font = .systemFont(ofSize: 13, weight: .semibold)
         start.keyEquivalent = "\r"
         start.widthAnchor.constraint(greaterThanOrEqualToConstant: 155).isActive = true
         start.heightAnchor.constraint(greaterThanOrEqualToConstant: 34).isActive = true
         reportButton.title = "Report"
-        let row = NSStackView(views: [statusIcon, status, NSView(), reportButton, reveal, cancel, start])
+        let row = NSStackView(views: [statusIcon, status])
         row.spacing = 10
         contents.addArrangedSubview(row)
         row.widthAnchor.constraint(equalTo: contents.widthAnchor).isActive = true
+        status.widthAnchor.constraint(equalTo: row.widthAnchor, constant: -28).isActive = true
+        let actions = NSStackView(views: [NSView(), reportButton, reveal, retryButton, cancel, start])
+        actions.spacing = 8
+        contents.addArrangedSubview(actions)
+        actions.widthAnchor.constraint(equalTo: contents.widthAnchor).isActive = true
+        retryButton.isHidden = true
         progress.minValue = 0; progress.maxValue = 1
         progress.isIndeterminate = false; progress.style = .bar
         progress.controlSize = .small
@@ -330,10 +338,15 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         summary.isHidden = summary.stringValue.isEmpty
         removeFilesButton.isEnabled = !busy && !fileTable.selectedRowIndexes.isEmpty
         clearFilesButton.isEnabled = !busy && !files.isEmpty
+        retryButton.isHidden = busy || failedPaths.isEmpty
         queueSurface.needsDisplay = true
     }
 
     func refreshQueue() {
+        outcomeRefresh?.cancel(); outcomeRefresh = nil; changedRows = []
+        queueRows = !infos.isEmpty ? infos : files.map { ["path": $0, "name": URL(fileURLWithPath: $0).lastPathComponent] }
+        rowByPath = [:]
+        for (row, item) in queueRows.enumerated() { if let path = item["path"] as? String { rowByPath[path] = row } }
         queueCount.stringValue = "\(queueItems.count)"
         queueEmpty.isHidden = !queueItems.isEmpty
         queueScroll.isHidden = queueItems.isEmpty
@@ -345,8 +358,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
     }
 
     var queueItems: [[String: Any]] {
-        if !infos.isEmpty { return infos }
-        return files.map { ["path": $0, "name": URL(fileURLWithPath: $0).lastPathComponent] }
+        queueRows
     }
 
     func numberOfRows(in tableView: NSTableView) -> Int { queueItems.count }
@@ -363,15 +375,22 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         let detail: String
         let color: NSColor
         if let outcome = outcomes[path] {
-            detail = outcome.text; color = outcome.failed ? .systemRed : .secondaryLabelColor
-        } else if let error = item["error"] as? String {
-            detail = error; color = .systemRed
+            detail = outcome.failed ? "Failed · right-click for error details" : outcome.text
+            color = outcome.failed ? .systemRed : .secondaryLabelColor
+        } else if item["error"] is String {
+            detail = "Unsupported · right-click for error details"; color = .systemRed
         } else {
-            detail = format.isEmpty ? (phase == .attention ? "Not inspected · see status below" : "Detecting file type…") : "\(format) · \(URL(fileURLWithPath: path).deletingLastPathComponent().lastPathComponent)"
+            let category = item["category"] as? String ?? ""
+            let target = (selectors[category]?.selectedItem?.representedObject as? String)?.uppercased()
+            let conversion = target.map { format + " → " + $0 } ?? format
+            detail = format.isEmpty ? (phase == .attention ? "Not inspected · see status below" : "Detecting file type…") : "\(conversion) · \(URL(fileURLWithPath: path).deletingLastPathComponent().lastPathComponent)"
             color = .secondaryLabelColor
         }
         if fileIcons[path] == nil { fileIcons[path] = NSWorkspace.shared.icon(forFile: path) }
         cell.configure(name: name, detail: detail, icon: fileIcons[path], color: color, path: path)
+        if let error = outcomes[path].flatMap({ $0.failed ? $0.text : nil }) ?? item["error"] as? String {
+            cell.toolTip = path + "\n" + error
+        }
         return cell
     }
 
@@ -379,8 +398,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
 
     func appendFiles(_ added: [String]) {
         guard !busy else { return }
-        var seen = Set<String>()
-        let combined = (files + added).filter { seen.insert($0).inserted }
+        let combined = uniquePaths(files + added)
         guard combined.count <= 1000 else {
             status.stringValue = "Select at most 1,000 files per batch."
             phase = .attention; refreshPresentation(); return
@@ -399,7 +417,9 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
 
     @objc func clearFiles() {
         guard !busy else { return }
-        files = []; infos = []; outcomes = [:]; fileIcons = [:]
+        files = []; infos = []; fileIcons = [:]
+        resetOutcomes()
+        presetFormat = nil
         selectors.removeAll()
         formats.arrangedSubviews.forEach { formats.removeArrangedSubview($0); $0.removeFromSuperview() }
         resultURL = nil; resultURLs = []; lastSummary = ""
@@ -423,6 +443,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         if let entry = selectors.first(where: { $0.value === sender }), let value = sender.selectedItem?.representedObject as? String {
             draftTargets[entry.key] = value
         }
+        fileTable.reloadData()
     }
 }
 

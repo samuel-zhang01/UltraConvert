@@ -49,6 +49,7 @@ def build_app(destination, sign_identity=None):
             "AppKit",
             ROOT / "src/App.swift",
             ROOT / "src/Interface.swift",
+            ROOT / "src/Interaction.swift",
             "-o",
             contents / "MacOS/UltraConvert",
         ]
@@ -65,6 +66,7 @@ def build_app(destination, sign_identity=None):
         "NSHighResolutionCapable": True,
         "LSMinimumSystemVersion": "13.0",
         "NSHumanReadableCopyright": "© 2026 UltraConvert contributors. MIT licence.",
+        "NSServices": format_services(),
         "CFBundleDocumentTypes": [
             {
                 "CFBundleTypeName": "Convertible files",
@@ -95,6 +97,30 @@ def build_app(destination, sign_identity=None):
     )
     run(["/usr/bin/codesign", "--verify", "--deep", "--strict", app])
     return app
+
+
+def format_services():
+    """A small set of Finder presets. Every service opens a batch for review."""
+    services = [
+        {
+            "NSMenuItem": {"default": f"Convert to {label} with UltraConvert"},
+            "NSMessage": "prepareConversion",
+            "NSPortName": "UltraConvert",
+            "NSUserData": target,
+            "NSSendFileTypes": types,
+            "NSRequiredContext": {"NSApplicationIdentifier": "com.apple.finder"},
+            "NSServiceDescription": "Choose this format, review the batch in UltraConvert, then click Convert.",
+        }
+        for label, target, types in [
+            ("PNG", "png", ["public.image"]),
+            ("JPEG", "jpg", ["public.image"]),
+            ("WebP", "webp", ["public.image"]),
+            ("MP3", "mp3", ["public.audiovisual-content"]),
+            ("Opus", "opus", ["public.audiovisual-content"]),
+            ("MP4", "mp4", ["public.movie"]),
+        ]
+    ]
+    return services
 
 
 def validate_prebuilt(app):
