@@ -4,7 +4,7 @@ Observed 2026-10-06. The result is **UltraConvert**, a native macOS app launched
 
 ## Moonvert source findings
 
-Reviewed [kavostudio/moonvert](https://github.com/kavostudio/moonvert) at `90c3740ef84fcdbb12df128844a42fa6bdd78ad6`. Selected source files, licences, commit and SHA-256 hashes are retained in [source-snapshot.json](source-snapshot.json) and `moonvert-source`. This is a source audit, not a comprehensive audit of the downloaded binary.
+Reviewed [kavostudio/moonvert](https://github.com/kavostudio/moonvert) at `90c3740ef84fcdbb12df128844a42fa6bdd78ad6`. Selected source files, licences, commit and SHA-256 hashes are retained in [source-snapshot.json](source-snapshot.json) and `moonvert-source`. The historical dependency manifest is retained as `package.json.snapshot` with its original path and unchanged SHA-256 recorded; it is research evidence and is never installed. GitHub initially attributed four Electron advisories to that archival manifest. UltraConvert uses AppKit and has no Electron/npm runtime. This is a source audit, not a comprehensive audit of the downloaded binary.
 
 Moonvert's Electron front end dispatches work through process/worker bridges. Its batch handler bounds concurrency relative to CPU count, streams progress and provides cancellation. This is a useful pattern; UltraConvert uses two jobs by default because each media/document/GIS worker can consume significant resources. [Batch handler](https://github.com/kavostudio/moonvert/blob/90c3740ef84fcdbb12df128844a42fa6bdd78ad6/src/main/ipc/conversion-handler.ts).
 

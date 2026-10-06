@@ -15,7 +15,8 @@
     },
     {
       "path": "package.json",
-      "sha256": "4795be22461c955683f591a2c4fb8c7c1701d44a2503b0cee036168a728adcc1"
+      "sha256": "4795be22461c955683f591a2c4fb8c7c1701d44a2503b0cee036168a728adcc1",
+      "stored_path": "package.json.snapshot"
     },
     {
       "path": "src/shared/config/converter-config.ts",

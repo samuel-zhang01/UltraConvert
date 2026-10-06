@@ -16,7 +16,7 @@ Verified 2026-10-06 on Apple Silicon/macOS 27 with installed Homebrew engines. T
 | GML reader creating caches beside the original | GML is copied to staging before GDAL reads it, including an optional local bounded XSD. XML entities and arbitrary XSD includes/imports are refused; standard OGR/GML references are retained with schema fetching disabled. |
 | Failed installation replacing working components | Full payload staging, atomic renames, cross-component rollback, ownership checks, verified archived app backups. An injected failure during the second component swap restores all originals; uninstall refuses unowned runtimes without creating files. Bootstrap code is checked against Python 3.9 syntax. |
 | Native UI deadlock or surprising conversion | Concurrent stderr drain, bounded output capture, busy guards, remembered controls, queued incoming files, and folder-picker cancellation that starts no batch. |
-| Public machine details and repository supply chain | Local installation/migration reports excluded from the public tree; source research licences retained; GitHub Actions pinned to commit hashes with read-only permissions. |
+| Public machine details and repository supply chain | Local installation/migration reports excluded from the public tree; the historical Moonvert dependency manifest retains exact bytes under `.snapshot` so it is not mistaken for an app dependency; source research licences retained; GitHub Actions pinned to commit hashes with read-only permissions. |
 
 ## Verification
 
