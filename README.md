@@ -11,6 +11,8 @@ Conversion runs on your Mac. Originals stay in place. No account, upload service
 
 ## Install
 
+The published **v1.3.0** release uses the installer below. A self-contained **v1.4.0 development app** is being tested: its DMG contains `UltraConvert.app` and an Applications shortcut, and conversion engines are packaged inside the app. That preview is currently Apple Silicon/macOS 27 only and has not been published as a signed/notarized public release. See the [standalone build guide](docs/STANDALONE.md) for its status and developer commands.
+
 ### 1. Check your Mac and prerequisites
 
 - Open **Apple menu → About This Mac**. A **Chip** named Apple M1/M2/M3/etc. means Apple Silicon: use the release ZIP. An **Intel processor** means use the source installation below.

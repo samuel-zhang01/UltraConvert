@@ -27,6 +27,8 @@ jobs:
       - run: pip-audit -r requirements.txt
       - run: python -m unittest discover -s tests -p 'test_installer.py' -v
       - run: python -m unittest discover -s tests -p 'test_release.py' -v
+      - run: python -m unittest discover -s tests -p 'test_runtime.py' -v
+      - run: python -m unittest discover -s tests -p 'test_source_collection.py' -v
   macos:
     runs-on: macos-26
     timeout-minutes: 60
@@ -45,8 +47,11 @@ jobs:
         run: |
           UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
           "$UC_PY" src/convert.py --inspect -- examples/* > /tmp/ultraconvert-interface.json
-          xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/App.swift src/Interface.swift src/Interaction.swift tests/test_interface.swift -o /tmp/ultraconvert-interface-test
+          xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/App.swift src/Interface.swift src/Interaction.swift src/Backend.swift tests/test_interface.swift -o /tmp/ultraconvert-interface-test
           /tmp/ultraconvert-interface-test /tmp/ultraconvert-interface.json
+          python3 -c 'import install; from pathlib import Path; [install.workflow(Path("build/FinderActions") / (name + ".workflow"), mode) for mode, name in (("here", "Convert Here with UltraConvert"), ("destination", "Convert to Destination with UltraConvert"))]'
+          xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/App.swift src/Interface.swift src/Interaction.swift src/Backend.swift tests/test_backend.swift -o /tmp/ultraconvert-backend-test
+          /tmp/ultraconvert-backend-test build/FinderActions
       - name: Security, batch workflow and rollback checks
         run: |
           UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
@@ -55,6 +60,7 @@ jobs:
           "$UC_PY" -m unittest discover -s tests -p 'test_installer.py' -v
           "$UC_PY" -m unittest discover -s tests -p 'test_diagnostics.py' -v
           "$UC_PY" -m unittest discover -s tests -p 'test_release.py' -v
+          "$UC_PY" -m unittest discover -s tests -p 'test_runtime.py' -v
           "$UC_PY" "$HOME/Library/Application Support/UltraConvert/src/diagnostics.py"
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()

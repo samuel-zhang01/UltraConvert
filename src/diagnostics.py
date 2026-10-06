@@ -10,7 +10,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from runtime_tools import tool
+from runtime_tools import bundled_runtime, runtime_environment, tool
 
 PROBES = {
     "FFmpeg": ("ffmpeg", "-version"),
@@ -20,6 +20,14 @@ PROBES = {
     "Calibre": ("ebook-convert", "--version"),
     "Monkey's Audio": ("mac",),
 }
+
+
+def repair_message():
+    return (
+        "Replace the app with a complete download."
+        if bundled_runtime() is not None
+        else "Re-run install.py."
+    )
 
 
 def probe(name, args):
@@ -33,7 +41,7 @@ def probe(name, args):
                 stderr=subprocess.STDOUT,
                 timeout=8,
                 check=False,
-                env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+                env={**os.environ, **runtime_environment(), "PYTHONDONTWRITEBYTECODE": "1"},
             )
             log.seek(0)
             text = log.read(4096).decode("utf-8", errors="replace").strip()
@@ -45,28 +53,38 @@ def probe(name, args):
         return {
             "name": name,
             "ok": ok,
-            "detail": banner[:180] if ok else "Engine did not start correctly. Re-run install.py.",
+            "detail": banner[:180] if ok else "Engine did not start correctly. " + repair_message(),
         }
     except FileNotFoundError:
-        return {"name": name, "ok": False, "detail": "Missing. Re-run install.py."}
+        return {"name": name, "ok": False, "detail": "Missing. " + repair_message()}
     except OSError, subprocess.TimeoutExpired:
         return {
             "name": name,
             "ok": False,
-            "detail": "Could not start within 8 seconds. Re-run install.py.",
+            "detail": "Could not start within 8 seconds. " + repair_message(),
         }
 
 
 def check_packages():
     try:
+        isolated = ["-I", "-B"]
+        setup = ""
+        if bundled_runtime() is not None:
+            isolated.append("-S")
+            packages = (
+                Path(sys.base_prefix)
+                / "lib"
+                / f"python{sys.version_info.major}.{sys.version_info.minor}"
+                / "site-packages"
+            )
+            setup = f"import sys; sys.path.insert(0, {str(packages)!r}); "
         # Isolated import in the installed interpreter checks the actual GDAL ABI and parsers.
         result = subprocess.run(
             [
                 sys.executable,
-                "-I",
-                "-B",
+                *isolated,
                 "-c",
-                "from osgeo import gdal; import yaml, tomli_w, defusedxml; "
+                setup + "from osgeo import gdal; import yaml, tomli_w, defusedxml; "
                 "print('GDAL ' + gdal.VersionInfo('RELEASE_NAME') + '; safe parsers available')",
             ],
             stdin=subprocess.DEVNULL,
@@ -81,7 +99,7 @@ def check_packages():
             "ok": ok,
             "detail": result.stdout.decode(errors="replace").strip()[:180]
             if ok
-            else "Imports failed. Re-run install.py to repair the runtime.",
+            else "Imports failed. " + repair_message(),
         }
     except OSError, subprocess.TimeoutExpired:
         return {

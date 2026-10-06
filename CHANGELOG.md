@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0 — in development
+
+- Self-contained local-development app builder: private Python/packages, all conversion engines, dependent libraries, decoder modules and GIS data live inside the app.
+- Native runtime selection with isolated Python startup; bundled tools never silently fall back to Homebrew or PATH.
+- Native first-launch Finder Quick Action installation uses the actual app location, preserves owned earlier actions and refuses unrelated installations.
+- Drag-to-Applications development DMG tooling, dependency provenance and standalone conversion verification.
+- Public standalone binary distribution remains gated on corresponding-source/licence completion, Developer ID signing, notarization and quarantined clean-Mac checks. The current local engine bundle requires Apple Silicon/macOS 27.
+
 ## 1.3.0 — 2026-10-06
 
 - Six native Finder Services presets: PNG, JPEG, WebP, MP3, Opus and MP4. Shortcuts choose a compatible format and open a reviewable batch; a running batch is never interrupted.

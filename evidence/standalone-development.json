@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-06",
+  "version": "1.4.0 development",
+  "architecture": "arm64",
+  "minimum_macos": "27.0",
+  "tested_macos": "27.0.1",
+  "standalone_runtime": true,
+  "checks": {
+    "format_round_trips": 62,
+    "additional_format_correctness": 14,
+    "edge_preservation": 10,
+    "security_regressions": 18,
+    "batch_regressions": 13,
+    "runtime_manifest_regressions": 6,
+    "source_collection_regressions": 4,
+    "installed_gui_conversions_without_legacy_python": 6,
+    "installed_setup_checks_without_legacy_python": "passed",
+    "strict_nested_signature_verification": "passed",
+    "native_layout_and_backend_checks": "passed"
+  },
+  "method": "Real format/security/batch fixtures imported the sealed app Source and isolated bundled Python (-I -S) with system-only PATH. The installed GUI converted six public fixtures with its prior external Python runtime temporarily unavailable. All originals retained; runtime and preferences restored afterward.",
+  "source_collection": {
+    "checksum_verified_archives": 166,
+    "planned_archives": 185,
+    "formulas_without_pinned_archive": 2,
+    "corresponding_source_complete": false
+  },
+  "public_distribution_ready": false,
+  "apple_notarized": false,
+  "clean_mac_verified": false,
+  "remaining_gates": [
+    "Complete corresponding-source and notices review, including Calibre's bundled components",
+    "Developer ID signing with appropriate nested-code hardening and entitlements",
+    "Apple accepted notarization, stapling and quarantined clean-Mac checks",
+    "Older macOS and Intel portability if those targets are offered"
+  ]
+}

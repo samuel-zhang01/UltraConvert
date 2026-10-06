@@ -24,7 +24,7 @@ from defusedxml import ElementTree
 
 import guards
 import structured
-from runtime_tools import tool
+from runtime_tools import runtime_environment, tool
 
 FORMATS = {
     "geo": "geojson gpkg shp kml kmz gpx gml wkt".split(),
@@ -79,6 +79,10 @@ ENGINE_ENV = {
     "GML_DOWNLOAD_SCHEMA": "NO",
     "GDAL_HTTP_TIMEOUT": "10",
 }
+ENGINE_ENV.update(runtime_environment())
+for key in ("GDAL_DATA", "PROJ_DATA", "GDAL_DRIVER_PATH"):
+    if key in ENGINE_ENV:
+        os.environ[key] = ENGINE_ENV[key]
 for key in (
     "PROJ_NETWORK",
     "LIBKML_EXTERNAL_STYLE",

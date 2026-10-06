@@ -50,6 +50,7 @@ def build_app(destination, sign_identity=None):
             ROOT / "src/App.swift",
             ROOT / "src/Interface.swift",
             ROOT / "src/Interaction.swift",
+            ROOT / "src/Backend.swift",
             "-o",
             contents / "MacOS/UltraConvert",
         ]

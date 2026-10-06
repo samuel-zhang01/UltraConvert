@@ -6,6 +6,8 @@ The app interface, menus, file pickers, progress and Finder integration are Swif
 
 Version 1.3.0 is Apple Silicon, ad-hoc signed with Hardened Runtime, and **not notarized**. Installation still provisions a separate Homebrew/Python runtime. It is not a self-contained drag-to-Applications app. The Developer ID/notarization branch of the release tooling has tests for its credential and acceptance gates, but requires a real distribution certificate and successful Apple submission to verify end to end.
 
+The v1.4.0 working tree adds a separate [standalone development builder](STANDALONE.md). It packages the runtime and engines into the app and produces a drag-to-Applications DMG. Its binaries are for local development until their corresponding-source/notices inventory, distribution signing, notarization and clean-Mac checks are complete. `build_release.py` continues to produce the established installer-source release; it does not publish the new bundled preview.
+
 ## Prepare the signing credentials
 
 1. Use an enrolled Apple Developer Program account. Create or import a **Developer ID Application** certificate with its private key into the Mac's Keychain. In Xcode, open **Settings → Accounts**, select the account/team, then **Manage Certificates → + → Developer ID Application**. Apple's [certificate guide](https://developer.apple.com/help/account/certificates/create-developer-id-certificates/) lists the Account Holder requirement and the alternative developer-account route. An **Apple Development** certificate is for development, and **Developer ID Installer** is for signed `.pkg` installers.

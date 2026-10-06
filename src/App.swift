@@ -113,6 +113,8 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         addMenuItem(helpMenu, "Quick Start", #selector(showQuickStart), symbol: "questionmark.circle")
         addMenuItem(helpMenu, "Installation and User Guide", #selector(openGuide), symbol: "book")
         addMenuItem(helpMenu, "Check Setup…", #selector(checkSetup), symbol: "checkmark.shield")
+        addMenuItem(helpMenu, "Install Finder Quick Actions…", #selector(installFinderActions), symbol: "cursorarrow.click")
+        addMenuItem(helpMenu, "Third-Party Licences", #selector(showLicences), symbol: "doc.text")
         addMenuItem(helpMenu, "Finder Action Settings…", #selector(openFinderSettings), symbol: "gearshape")
         helpMenuItem.submenu = helpMenu; menu.addItem(helpMenuItem)
         NSApp.helpMenu = helpMenu
@@ -133,6 +135,11 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         if args.first == "--" { args.removeFirst() }
         outputURL = defaultFolder()
         refreshDestination()
+        if (try? backendPaths().bundled) == true,
+           Bundle.main.bundleURL.deletingLastPathComponent().lastPathComponent == "Applications" {
+            do { try FinderActions.install(app: Bundle.main.bundleURL, home: FileManager.default.homeDirectoryForCurrentUser) }
+            catch { status.stringValue = "The app is ready. Finder actions need attention; use Help → Install Finder Quick Actions." }
+        }
         if !args.isEmpty { loadFiles(args) }
         else if !files.isEmpty { loadFiles(files) }
     }
@@ -351,13 +358,22 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
 
     func launch(_ args: [String], script: String = "convert.py", completion: @escaping (Int32, String, String) -> Void) {
         let task = Process()
-        task.executableURL = support.appendingPathComponent(".venv/bin/python")
-        task.arguments = [support.appendingPathComponent("src/\(script)").path] + args
+        let backend: BackendPaths
+        do { backend = try backendPaths() }
+        catch { completion(1, "", error.localizedDescription); return }
+        task.executableURL = backend.python
+        task.arguments = backend.bundled
+            ? ["-I", "-S", "-B", backend.source.appendingPathComponent("bootstrap.py").path, script] + args
+            : ["-E", "-s", "-B", backend.source.appendingPathComponent(script).path] + args
         var env = ProcessInfo.processInfo.environment
+        if backend.bundled {
+            env = env.filter { !$0.key.hasPrefix("PYTHON") && !$0.key.hasPrefix("DYLD_") && $0.key != "LD_PRELOAD" && $0.key != "__PYVENV_LAUNCHER__" }
+        }
+        env.merge(backend.environment) { _, value in value }
         env["PYTHONDONTWRITEBYTECODE"] = "1"
         task.environment = env
         guard FileManager.default.isExecutableFile(atPath: task.executableURL!.path) else {
-            completion(1, "", "The conversion runtime is missing. Run python3 install.py from the UltraConvert repository.")
+            completion(1, "", backend.bundled ? "The app's conversion runtime is incomplete. Download a complete replacement app." : "The conversion runtime is missing. Run python3 install.py from the UltraConvert repository.")
             return
         }
         let stdout = Pipe(), stderr = Pipe()
