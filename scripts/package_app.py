@@ -42,11 +42,13 @@ def build_app(destination, sign_identity=None):
             "/usr/bin/xcrun",
             "swiftc",
             "-O",
+            "-parse-as-library",
             "-target",
             f"{arch}-apple-macosx13.0",
             "-framework",
             "AppKit",
             ROOT / "src/App.swift",
+            ROOT / "src/Interface.swift",
             "-o",
             contents / "MacOS/UltraConvert",
         ]

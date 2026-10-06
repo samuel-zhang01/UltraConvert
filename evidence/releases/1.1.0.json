@@ -1,0 +1,129 @@
+{
+  "version": "1.1.0",
+  "date": "2026-10-06",
+  "environment": {
+    "system": "macOS 27.0.1",
+    "architecture": "arm64",
+    "engines": {
+      "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
+      "magick": "Version: ImageMagick 7.1.2-32 Q16-HDRI aarch64 68f8d115a:20260926 https://imagemagick.org",
+      "pandoc": "pandoc 3.12",
+      "ebook-convert": "ebook-convert (calibre 9.15.0)",
+      "gdal": "GDAL 3.13.3 \"Iowa City\", released 2026/08/13",
+      "python": "3.14.8"
+    }
+  },
+  "format_round_trips": {
+    "passed": 62,
+    "failed": 0,
+    "extra_checks": 14
+  },
+  "edge_checks": {
+    "passed": 10,
+    "failed": 0
+  },
+  "regression_tests": {
+    "adversarial_security": 18,
+    "batch_workflows": 4,
+    "installer_bootstrap_icons_rollback_and_ownership": 7,
+    "diagnostics": 5,
+    "signing_and_notarization_gates": 4,
+    "failed": 0
+  },
+  "static_checks": {
+    "ruff_lint": "passed",
+    "ruff_format": "passed",
+    "bandit": "passed with documented B404/B603 exclusions and SafeLoader annotation",
+    "runtime_dependency_audit": {
+      "dependencies": [
+        {
+          "name": "pyyaml",
+          "version": "6.0.3",
+          "vulns": []
+        },
+        {
+          "name": "tomli-w",
+          "version": "1.2.0",
+          "vulns": []
+        },
+        {
+          "name": "defusedxml",
+          "version": "0.7.1",
+          "vulns": []
+        }
+      ],
+      "fixes": []
+    }
+  },
+  "native_checks": [
+    "Swift compilation and ad-hoc signature with Hardened Runtime verified",
+    "Offline Quick Start and Help menu verified interactively",
+    "Finder Settings shortcut opens Login Items & Extensions",
+    "Both enabled Finder Settings rows displayed branded document icons",
+    "Native setup alert displayed all ten passing local availability checks",
+    "Copy Setup Report changed status to confirm local copying",
+    "Both Finder actions appear for six mixed selected fixture files",
+    "Native file picker and MP4 content inspection succeeded",
+    "Native MP4 to WEBM conversion completed: one converted, zero skipped or failed",
+    "Copy Result Summary confirmed copying in native status",
+    "Show Report revealed and selected the completed conversion-report.json in Finder"
+  ],
+  "source_sha256": {
+    "install.py": "4254faffdb8152da92ccbf4f2b2f1ddd49fcbae436317e1c9bb434ec504b034f",
+    "requirements.txt": "9b115381ee817cc6e4d660eb4e75c65a255ed7732b3b774bf031627660be5527",
+    "scripts/benchmark.py": "3a6dea95b6c4b9a881b9e492ff41e031d0a2eafa06f4c752ee9c8b7c8f287bd4",
+    "scripts/build_brand.py": "f929f13b0a1720988b137effcad8140665492a5158fab348c5a669693c6bed71",
+    "scripts/build_release.py": "f177330e7130ca19d7052485c91cae9fc69a267077708b1510c02dbbeb1d2e58",
+    "scripts/notarize.py": "a2c37ff0af4fad141bfa37e29e50a2d508bf98746c404cde82ae018b9caf0fde",
+    "scripts/package_app.py": "ad1205d15631796d3dbdb379625ea108bd7453f4c42aab57f984528a0e73403f",
+    "scripts/render_icon.swift": "12c7ec33ad5827a9ab4c2fc905668feb6e2956a36795177b552d0ba879230fad",
+    "src/App.swift": "d64e1e8ca5acd556d4a9ec29cc33a10b2b5182cffeb68e67163c9cda0054fcd8",
+    "src/convert.py": "6ac3cac252cf5c3608731299cb5246d9cd5e4cd5a22246281edc5a155b2b3f43",
+    "src/diagnostics.py": "8b46fdf5f7b892b7a6e316c25a4d4c5efa58ecee1e2d528ace31b1d5eafa8e9e",
+    "src/geospatial.py": "a5a2e37b1a5699ff0719ab2c2ecf0ab9a3801747376b91d9a0deac6f439d4a72",
+    "src/guards.py": "f131bf009261637e1f65ce6a0b9a97041d59b90e865bbbb870d0fa0876916e99",
+    "src/policy.xml": "af480e72662cbfd92a4298cb26fa9711c76751b672c9cc5e3207e5153e8f09c1",
+    "src/runtime_tools.py": "3fbe2f264f9777f0b90458c159aafe2c2253785679b9f35e4641e78aa646465d",
+    "src/structured.py": "fd8a6f83bdf3727c6cbbf0c8e85d77d7740ae990d6a4a03cd045e35593a21493",
+    "tests/test_batch.py": "b31622e5ab979ccde651f0113cdb650c147c9c3c3d9bc2c68d96314245e70ed8",
+    "tests/test_conversion.py": "5465405dc20e93f03e95b52330819367884d4719b33a3c57c3413c6918e24147",
+    "tests/test_diagnostics.py": "c0fe273b2f47f9058444841bf14906f7160fac7938ada30104cdca53d8e25c79",
+    "tests/test_edges.py": "52659e4562c34af6435c711b75c92ecd75f3e4bac2dca1cb53b71b5c793f27c6",
+    "tests/test_installer.py": "399611a93c8678175b397595e126d50c7e450fed10a547d7e2aeb9786bc8329b",
+    "tests/test_release.py": "1966874262fa3265e2f1ba6fd192967ae3cddbe2038b58aabcc4bba4d1eab0ef",
+    "tests/test_security.py": "31f9f75927a1a237391fae85c56bbab96f4c888edefcfd2562c0a4961c7fe65e",
+    "uninstall.py": "1be94d7c4c0b50d5070d4940b69a112ca7f5af6a58a53c920351eb9ea973a46a"
+  },
+  "limits": [
+    "Representative fixtures, not exhaustive codec/schema/layout coverage",
+    "Apple Silicon/macOS 27 verified; older macOS and Intel unverified",
+    "Not OS sandboxed or Apple notarized",
+    "Reports contain local paths and diagnostics"
+  ],
+  "representative_checks_total": 124,
+  "native_checks_limits": [
+    "Finder menu dispatch was not confirmed with the current UI automation session",
+    "Open Default Destination compiled but its Finder navigation was not conclusively observed",
+    "Historical 1.0.0 six-category UI batch checks are in evidence/releases/1.0.0.json"
+  ],
+  "setup_checks": {
+    "passed": 10,
+    "failed": 0,
+    "scope": "Availability only; does not prove Finder enablement, codec coverage or folder access"
+  },
+  "distribution_checks": {
+    "local_signature": "ad-hoc",
+    "hardened_runtime": true,
+    "developer_id_identity_available": false,
+    "apple_notarization_accepted_and_stapled": false,
+    "credential_gate_and_rejection_tests": "passed; mocked external responses",
+    "optional_dmg_packaging": "Unsigned DMG created and hdiutil integrity verification passed",
+    "engine_runtime_installer_required": true
+  },
+  "release_archive_checks": {
+    "apple_silicon_zip_integrity": "passed",
+    "extracted_prebuilt_installer_system_python_3_9": "passed before app-copy metadata refinement; final release installer retested separately",
+    "unsigned_dmg_integrity": "passed",
+    "engines_bundled": false
+  }
+}

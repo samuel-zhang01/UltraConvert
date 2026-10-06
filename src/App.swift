@@ -3,7 +3,7 @@ import AppKit
 final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSMenuItemValidation {
     var window: NSWindow!
     let stack = NSStackView()
-    let status = NSTextField(wrappingLabelWithString: "Choose files to convert locally.")
+    let status = NSTextField(wrappingLabelWithString: "Drop files or add them to get started.")
     let summary = NSTextField(wrappingLabelWithString: "")
     let progress = NSProgressIndicator()
     let choose = NSButton(title: "Choose Files…", target: nil, action: nil)
@@ -21,6 +21,24 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     let openAfter = NSButton(checkboxWithTitle: "Open results when finished", target: nil, action: nil)
     let jobs = NSPopUpButton()
     let crs = NSTextField(string: "")
+    let queueCount = NSTextField(labelWithString: "0")
+    let fileTable = QueueTable()
+    let queueScroll = NSScrollView()
+    let queueSurface = FileDropView()
+    var queueEmpty: NSView = NSView()
+    var formatEmpty = NSStackView()
+    var formatPlaceholder: NSView = NSView()
+    let formatsScroll = NSScrollView()
+    let formatHint = NSTextField(wrappingLabelWithString: "Choose files first")
+    let removeFilesButton = NSButton(title: "Remove Selected", target: nil, action: nil)
+    let clearFilesButton = NSButton(title: "Clear", target: nil, action: nil)
+    let optionsDisclosure = NSButton()
+    let optionsBody = NSStackView()
+    let statusIcon = NSImageView()
+    var draftTargets: [String: String] = [:]
+    var fileIcons: [String: NSImage] = [:]
+    var outcomes: [String: (text: String, failed: Bool)] = [:]
+    var phase = BatchPhase.empty { didSet { refreshPresentation() } }
     var selectors: [String: NSPopUpButton] = [:]
     var files: [String] = []
     var infos: [[String: Any]] = []
@@ -48,9 +66,10 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         menu.addItem(appMenuItem)
         let fileMenuItem = NSMenuItem()
         let fileMenu = NSMenu(title: "File")
-        let openItem = NSMenuItem(title: "Choose Files…", action: #selector(pickFiles), keyEquivalent: "o")
+        let openItem = NSMenuItem(title: "Add Files…", action: #selector(pickFiles), keyEquivalent: "o")
         openItem.target = self
         fileMenu.addItem(openItem)
+        addMenuItem(fileMenu, "Clear File Queue", #selector(clearFiles), symbol: "trash")
         let hereItem = NSMenuItem(title: "Convert Here", action: #selector(convertHere), keyEquivalent: "\r")
         hereItem.keyEquivalentModifierMask = [.command]
         hereItem.target = self; fileMenu.addItem(hereItem)
@@ -80,123 +99,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         helpMenuItem.submenu = helpMenu; menu.addItem(helpMenuItem)
         NSApp.helpMenu = helpMenu
         NSApp.mainMenu = menu
-        window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 660, height: 510),
-                          styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = "UltraConvert"
-        window.delegate = self
-        window.center()
-        window.minSize = NSSize(width: 600, height: 480)
-        let content = window.contentView!
-        let body = NSScrollView()
-        body.hasVerticalScroller = true
-        body.autohidesScrollers = true
-        body.drawsBackground = false
-        body.translatesAutoresizingMaskIntoConstraints = false
-        content.addSubview(body)
-        let canvas = FlippedView()
-        canvas.translatesAutoresizingMaskIntoConstraints = false
-        body.documentView = canvas
-        stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.spacing = 14
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        canvas.addSubview(stack)
-        NSLayoutConstraint.activate([
-            body.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            body.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            body.topAnchor.constraint(equalTo: content.topAnchor),
-            body.bottomAnchor.constraint(equalTo: content.bottomAnchor),
-            canvas.widthAnchor.constraint(equalTo: body.contentView.widthAnchor),
-            stack.leadingAnchor.constraint(equalTo: canvas.leadingAnchor, constant: 24),
-            stack.trailingAnchor.constraint(equalTo: canvas.trailingAnchor, constant: -24),
-            stack.topAnchor.constraint(equalTo: canvas.topAnchor, constant: 24),
-            stack.bottomAnchor.constraint(equalTo: canvas.bottomAnchor, constant: -24)
-        ])
-        let title = NSTextField(labelWithString: "UltraConvert")
-        title.font = .systemFont(ofSize: 24, weight: .semibold)
-        let icon = NSImageView(image: NSApp.applicationIconImage)
-        icon.imageScaling = .scaleProportionallyUpOrDown
-        icon.widthAnchor.constraint(equalToConstant: 48).isActive = true
-        icon.heightAnchor.constraint(equalToConstant: 48).isActive = true
-        let spacer = NSView()
-        let heading = NSStackView(views: [icon, title, spacer, helpButton]); heading.spacing = 12
-        helpButton.bezelStyle = .helpButton
-        helpButton.target = self; helpButton.action = #selector(showQuickStart)
-        helpButton.toolTip = "Quick start, installation help and Finder settings"
-        stack.addArrangedSubview(heading)
-        heading.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        let intro = NSTextField(wrappingLabelWithString: "Select one or many files. Formats are detected from their contents where possible. Originals stay in place.")
-        stack.addArrangedSubview(intro)
-        intro.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        let scroll = NSScrollView()
-        scroll.hasVerticalScroller = true
-        scroll.borderType = .bezelBorder
-        let text = NSTextView(frame: NSRect(x: 0, y: 0, width: 610, height: 90))
-        text.isEditable = false
-        text.isSelectable = true
-        text.font = .systemFont(ofSize: 12)
-        text.autoresizingMask = [.width]
-        text.isVerticallyResizable = true
-        text.isHorizontallyResizable = false
-        text.textContainer?.widthTracksTextView = true
-        scroll.documentView = text
-        scroll.heightAnchor.constraint(equalToConstant: 90).isActive = true
-        stack.addArrangedSubview(scroll)
-        scroll.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        formats.orientation = .vertical
-        formats.alignment = .leading
-        formats.spacing = 8
-        stack.addArrangedSubview(formats)
-        location.addItems(withTitles: ["Convert beside each source", "Use default destination", "Choose destination…"])
-        location.target = self; location.action = #selector(locationChanged)
-        saveDefault.target = self; saveDefault.action = #selector(saveDefaultFolder)
-        let outputRow = NSStackView(views: [location, destination, saveDefault]); outputRow.spacing = 10
-        stack.addArrangedSubview(outputRow)
-        destinationPath.font = .systemFont(ofSize: 11)
-        destinationPath.textColor = .secondaryLabelColor
-        destinationPath.isSelectable = true
-        stack.addArrangedSubview(destinationPath)
-        destinationPath.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        jobs.toolTip = "Run up to four files at once. Two jobs suit most batches; use one for large media or GIS files."
-        skipSame.toolTip = "Already-matching files are recorded as skipped and stay in their original folder."
-        skipSame.state = preferences.bool(forKey: "skipSame") ? .on : .off
-        openAfter.state = preferences.bool(forKey: "openAfter") ? .on : .off
-        jobs.addItems(withTitles: ["1 job", "2 jobs", "3 jobs", "4 jobs"])
-        jobs.selectItem(at: max(0, min(3, preferences.integer(forKey: "jobs") == 0 ? 1 : preferences.integer(forKey: "jobs") - 1)))
-        let options = NSStackView(views: [skipSame, jobs]); options.spacing = 12
-        stack.addArrangedSubview(options)
-        stack.addArrangedSubview(openAfter)
-        crs.placeholderString = "Known input CRS, e.g. EPSG:4326 (required for WKT without .prj or SRID)"
-        crs.isHidden = true
-        stack.addArrangedSubview(crs)
-        crs.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        stack.addArrangedSubview(status)
-        status.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        progress.minValue = 0
-        progress.maxValue = 1
-        progress.isIndeterminate = false
-        progress.style = .bar
-        stack.addArrangedSubview(progress)
-        progress.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        stack.addArrangedSubview(summary)
-        summary.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        let buttons = NSStackView(views: [choose, start, cancel, reveal, reportButton])
-        buttons.spacing = 10
-        buttons.orientation = .horizontal
-        stack.addArrangedSubview(buttons)
-        choose.target = self; choose.action = #selector(pickFiles)
-        destination.target = self; destination.action = #selector(pickDestination)
-        start.target = self; start.action = #selector(convertFiles)
-        cancel.target = self; cancel.action = #selector(cancelConversion)
-        reveal.target = self; reveal.action = #selector(showResults)
-        reportButton.target = self; reportButton.action = #selector(showReport)
-        for (button, symbol) in [(choose, "doc.badge.plus"), (destination, "folder"), (start, "arrow.triangle.2.circlepath"), (cancel, "xmark"), (reveal, "folder.badge.checkmark"), (reportButton, "doc.text")] {
-            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
-            button.imagePosition = .imageLeading
-            button.bezelStyle = .rounded
-        }
-        start.bezelStyle = .rounded
-        start.keyEquivalent = "\r"
+        buildInterface()
         cancel.isEnabled = false
         start.isEnabled = false
         reveal.isHidden = true
@@ -230,9 +133,9 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         let panel = NSOpenPanel()
         panel.canChooseDirectories = false
         panel.allowsMultipleSelection = true
-        panel.message = "Choose files for local batch conversion"
+        panel.message = "Add files to your conversion queue"
         if let path = preferences.string(forKey: "lastSourceFolder") { panel.directoryURL = URL(fileURLWithPath: path) }
-        if panel.runModal() == .OK { loadFiles(panel.urls.map(\.path)) }
+        if panel.runModal() == .OK { appendFiles(panel.urls.map(\.path)) }
     }
 
     @objc func pickDestination() {
@@ -265,7 +168,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     func refreshDestination() {
         if here { location.selectItem(at: 0) }
         else if outputURL == defaultFolder() { location.selectItem(at: 1) }
-        destination.title = "Choose Folder…"
+        destination.title = "Choose…"
         destinationPath.stringValue = here ? "A new Converted folder beside each source folder." : "Destination: \((outputURL ?? defaultFolder()).path)"
         destination.toolTip = here ? "A separate output folder is created beside files in each source folder." : outputURL?.path
         saveDefault.isEnabled = !busy && !here
@@ -301,6 +204,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         if menuItem.action == #selector(pickFiles) || menuItem.action == #selector(checkSetup) { return !busy }
+        if menuItem.action == #selector(clearFiles) { return !busy && !files.isEmpty }
         if menuItem.action == #selector(convertHere) || menuItem.action == #selector(convertToFolder) { return !busy && !selectors.isEmpty }
         if menuItem.action == #selector(showResults) || menuItem.action == #selector(showReport) { return resultURL != nil }
         if menuItem.action == #selector(copySummary) { return !lastSummary.isEmpty }
@@ -323,7 +227,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     @objc func showQuickStart() {
         let alert = NSAlert()
         alert.messageText = "Convert your first batch"
-        alert.informativeText = "1. Click Choose Files, or select files in Finder → right-click → Quick Actions → UltraConvert.\n2. Choose an output format for each detected category.\n3. Select beside sources, your default destination, or a chosen folder.\n4. Click Convert, then Show Results or Show Report.\n\nBoth Finder actions accept multiple files. Originals stay in place.\n\nEnable the two actions in System Settings → General → Login Items & Extensions → Finder (ⓘ)."
+        alert.informativeText = "1. Drop files into the queue or click Add Files. You can also use Finder → right-click → Quick Actions → UltraConvert.\n2. Choose an output format for each detected category. Scroll the format list for mixed batches.\n3. Choose Beside source files, Saved destination, or Choose destination.\n4. Click Convert, then Show Results or Report.\n\nAdd more files without replacing the queue. Remove Selected or Clear changes only the queue; originals stay in place. Expand Batch options for skip-matching, concurrency and automatic result opening.\n\nEnable both Finder actions in System Settings → General → Login Items & Extensions → Finder (ⓘ)."
         alert.addButton(withTitle: "Done")
         alert.addButton(withTitle: "Full Guide")
         alert.addButton(withTitle: "Finder Settings")
@@ -359,17 +263,22 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     @objc func checkSetup() {
         guard !busy else { return }
         setBusy(true)
+        phase = .checking
+        progress.isIndeterminate = true; progress.startAnimation(nil)
         status.stringValue = "Checking local engines and Finder action files…"
         launch([], script: "diagnostics.py") { _, output, error in
             self.setBusy(false)
+            self.progress.stopAnimation(nil); self.progress.isIndeterminate = false
             defer { self.loadPendingFiles() }
             guard let data = output.data(using: .utf8),
                   let report = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let checks = report["checks"] as? [[String: Any]] else {
+                self.phase = .attention
                 self.status.stringValue = "Setup check could not run: \(error.suffix(600))"
                 return
             }
             let ready = report["ok"] as? Bool == true
+            self.phase = ready ? (self.files.isEmpty ? .empty : .ready) : .attention
             self.status.stringValue = ready ? "Setup checks passed. Finder switches are managed in System Settings." : "Setup needs attention. See the checks below."
             let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
             let text = "UltraConvert \(version)\n\(report["environment"] ?? "")\n\n" + checks.map {
@@ -416,6 +325,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         skipSame.isEnabled = !value
         openAfter.isEnabled = !value
         saveDefault.isEnabled = !value && !here
+        refreshPresentation()
     }
 
     func launch(_ args: [String], script: String = "convert.py", completion: @escaping (Int32, String, String) -> Void) {
@@ -466,16 +376,24 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
 
     func loadFiles(_ selected: [String]) {
         guard !busy else { pendingFiles = selected; return }
+        for (key, popup) in selectors {
+            if let value = popup.selectedItem?.representedObject as? String { draftTargets[key] = value }
+        }
         files = selected
+        outcomes = [:]
+        let selectedPaths = Set(selected)
+        fileIcons = fileIcons.filter { selectedPaths.contains($0.key) }
         infos = []; selectors.removeAll()
         formats.arrangedSubviews.forEach { formats.removeArrangedSubview($0); $0.removeFromSuperview() }
         resultURL = nil; resultURLs = []; lastSummary = ""
         reportButton.isHidden = true
         crs.stringValue = ""; crs.isHidden = true
         if let first = selected.first { preferences.set(URL(fileURLWithPath: first).deletingLastPathComponent().path, forKey: "lastSourceFolder") }
-        setBusy(true)
-        status.stringValue = "Recognising \(selected.count) file(s)…"
         summary.stringValue = ""
+        setBusy(true)
+        phase = .inspecting
+        refreshQueue()
+        status.stringValue = "Recognising \(selected.count) file(s)…"
         progress.isIndeterminate = true; progress.startAnimation(nil)
         reveal.isHidden = true
         launch(["--inspect", "--jobs", String(jobs.indexOfSelectedItem + 1), "--"] + files) { code, output, error in
@@ -485,11 +403,14 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             guard code == 0, let data = output.data(using: .utf8),
                   let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let infos = parsed["files"] as? [[String: Any]] else {
+                self.phase = .attention
                 self.status.stringValue = "Could not inspect files: \(error.suffix(1200))"
                 self.start.isEnabled = false
+                self.refreshQueue()
                 return
             }
             self.infos = infos
+            self.files = infos.compactMap { $0["path"] as? String }
             self.buildSelectors()
         }
     }
@@ -509,33 +430,31 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             let symbols = ["image": "photo", "document": "doc.text", "video": "film", "audio": "waveform", "geo": "map", "config": "curlybraces"]
             let image = NSImageView(image: NSImage(systemSymbolName: symbols[key]!, accessibilityDescription: nil)!)
             image.widthAnchor.constraint(equalToConstant: 18).isActive = true
-            let label = NSTextField(labelWithString: "\(names[key]!) (\(items.count)) →")
-            label.widthAnchor.constraint(equalToConstant: 180).isActive = true
+            let label = NSTextField(labelWithString: "\(names[key]!) · \(items.count)")
+            label.font = .systemFont(ofSize: 12, weight: .medium)
             let popup = NSPopUpButton()
             popup.addItems(withTitles: common.map { $0 == "alac" ? "ALAC (lossless .m4a)" : $0.uppercased() })
             for (index, format) in common.enumerated() { popup.item(at: index)?.representedObject = format }
             let remembered = preferences.dictionary(forKey: "formats") as? [String: String] ?? [:]
-            if let preferred = remembered[key] ?? defaults[key], let index = common.firstIndex(of: preferred) { popup.selectItem(at: index) }
-            popup.widthAnchor.constraint(equalToConstant: 220).isActive = true
-            let row = NSStackView(views: [image, label, popup]); row.spacing = 10
+            if let preferred = draftTargets[key] ?? remembered[key] ?? defaults[key], let index = common.firstIndex(of: preferred) { popup.selectItem(at: index) }
+            popup.target = self; popup.action = #selector(formatChanged(_:))
+            popup.setAccessibilityLabel("\(names[key]!) output format")
+            let heading = NSStackView(views: [image, label]); heading.spacing = 8
+            let row = NSStackView(views: [heading, popup])
+            row.orientation = .vertical; row.alignment = .leading; row.spacing = 4
             formats.addArrangedSubview(row)
+            popup.widthAnchor.constraint(equalTo: formats.widthAnchor).isActive = true
+            row.widthAnchor.constraint(equalTo: formats.widthAnchor).isActive = true
             selectors[key] = popup
-        }
-        if let scroll = stack.arrangedSubviews.first(where: { $0 is NSScrollView }) as? NSScrollView,
-           let text = scroll.documentView as? NSTextView {
-            text.string = infos.map { info in
-                if let error = info["error"] as? String { return "⚠ \(info["name"] ?? "file"): \(error)" }
-                return "\(info["name"] ?? "file")  ·  \((info["format"] as? String ?? "").uppercased())  ·  \(info["category"] ?? "")"
-            }.joined(separator: "\n")
         }
         crs.isHidden = groups["geo"] == nil
         let failed = infos.filter { $0["error"] is String }.count
-        status.stringValue = "\(infos.count - failed) recognised, \(failed) unsupported. Choose formats, then Convert."
+        status.stringValue = failed == 0 ? "Ready to convert \(infos.count) \(infos.count == 1 ? "file" : "files")." : "\(infos.count - failed) ready · \(failed) unsupported. Review the file queue."
         summary.stringValue = "New output folder; no overwrites. Documents may reflow. Media uses first tracks; lossy formats re-encode. GIS limitations appear in the report."
         start.isEnabled = !selectors.isEmpty
         refreshDestination()
-        let available = (window.screen ?? NSScreen.main)?.visibleFrame.height ?? 900
-        window.setContentSize(NSSize(width: 720, height: min(available - 70, CGFloat(max(650, 580 + 40 * selectors.count)))))
+        phase = selectors.isEmpty ? .attention : .ready
+        refreshQueue()
     }
 
     @objc func convertFiles() {
@@ -556,6 +475,9 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         do { try JSONSerialization.data(withJSONObject: plan).write(to: planURL) }
         catch { status.stringValue = error.localizedDescription; return }
         setBusy(true)
+        outcomes = [:]
+        phase = .converting
+        fileTable.reloadData()
         progress.doubleValue = 0
         status.stringValue = "Converting…"
         summary.stringValue = "You can cancel. Completed outputs will be kept."
@@ -577,6 +499,9 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
                 self.resultURLs = (report["outputs"] as? [String] ?? []).map { URL(fileURLWithPath: $0) }
                 self.status.stringValue = "\(report["success"] ?? 0) converted, \(report["skipped"] ?? 0) skipped, \(report["failed"] ?? 0) failed. \(code == 130 ? "Cancelled." : "")"
                 let results = report["results"] as? [[String: Any]] ?? []
+                for item in results { self.updateOutcome(item) }
+                self.phase = ((report["failed"] as? Int ?? 0) > 0 || code == 130) ? .attention : .complete
+                self.fileTable.reloadData()
                 let errors = results.compactMap { item -> String? in
                     guard let error = item["error"] as? String else { return nil }
                     return "\(item["name"] ?? "file"): \(error)"
@@ -588,9 +513,11 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
                 self.progress.doubleValue = 1
                 if self.openAfter.state == .on { self.showResults() }
             } else {
+                self.phase = .attention
                 self.status.stringValue = "Conversion stopped (exit \(code))."
                 self.summary.stringValue = String(error.suffix(1200))
             }
+            self.refreshPresentation()
         }
     }
 
@@ -604,9 +531,18 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             if event["event"] as? String == "file", let completed = event["completed"] as? Double, let total = event["total"] as? Double {
                 progress.doubleValue = completed / max(total, 1)
                 let result = event["result"] as? [String: Any] ?? [:]
+                updateOutcome(result)
+                fileTable.reloadData()
                 status.stringValue = "\(Int(completed))/\(Int(total)): \(result["name"] ?? "file")"
             }
         }
+    }
+
+    func updateOutcome(_ item: [String: Any]) {
+        guard let path = item["path"] as? String else { return }
+        if let error = item["error"] as? String { outcomes[path] = (error, true) }
+        else if item["skipped"] as? Bool == true { outcomes[path] = ("Skipped · already in target format", false) }
+        else if item["success"] as? Bool == true { outcomes[path] = ("Converted to \((item["target"] as? String ?? "").uppercased())", false) }
     }
 
     @objc func cancelConversion() { process?.terminate(); status.stringValue = "Cancelling…"; cancel.isEnabled = false }
@@ -636,23 +572,30 @@ final class LockedCapture: @unchecked Sendable {
     }
 }
 
-let app = NSApplication.shared
-// Install file icons before the staged workflows are swapped into place. Finder
-// Settings uses their document icons, independently of the Quick Action image.
-if CommandLine.arguments.dropFirst().first == "--brand-workflows" {
-    guard let iconURL = Bundle.main.url(forResource: "UltraConvert", withExtension: "icns"),
-          let icon = NSImage(contentsOf: iconURL), CommandLine.arguments.count > 2 else { exit(1) }
-    for path in CommandLine.arguments.dropFirst(2) {
-        let url = URL(fileURLWithPath: path)
-        let marker = url.appendingPathComponent("Contents/ultraconvert-managed.json")
-        guard url.pathExtension == "workflow",
-              let data = try? Data(contentsOf: marker),
-              let owner = try? JSONSerialization.jsonObject(with: data) as? [String: String],
-              owner["owner"] == "UltraConvert",
-              NSWorkspace.shared.setIcon(icon, forFile: path, options: []) else { exit(1) }
+#if !ULTRACONVERT_INTERFACE_TESTS
+@main
+struct UltraConvertMain {
+    static func main() {
+        let app = NSApplication.shared
+        // Install file icons before the staged workflows are swapped into place. Finder
+        // Settings uses their document icons, independently of the Quick Action image.
+        if CommandLine.arguments.dropFirst().first == "--brand-workflows" {
+            guard let iconURL = Bundle.main.url(forResource: "UltraConvert", withExtension: "icns"),
+                  let icon = NSImage(contentsOf: iconURL), CommandLine.arguments.count > 2 else { exit(1) }
+            for path in CommandLine.arguments.dropFirst(2) {
+                let url = URL(fileURLWithPath: path)
+                let marker = url.appendingPathComponent("Contents/ultraconvert-managed.json")
+                guard url.pathExtension == "workflow",
+                      let data = try? Data(contentsOf: marker),
+                      let owner = try? JSONSerialization.jsonObject(with: data) as? [String: String],
+                      owner["owner"] == "UltraConvert",
+                      NSWorkspace.shared.setIcon(icon, forFile: path, options: []) else { exit(1) }
+            }
+            exit(0)
+        }
+        let delegate = ConverterApp()
+        app.delegate = delegate
+        app.run()
     }
-    exit(0)
 }
-let delegate = ConverterApp()
-app.delegate = delegate
-app.run()
+#endif

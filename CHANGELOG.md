@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 — 2026-10-06
+
+- Modern native layout with rounded content cards, clearer typography, system colours and a fixed conversion bar. Liquid Glass on macOS 26+, with a native material fallback on older systems.
+- File queue with Finder icons, detected types and per-file conversion results; drag and drop, Add Files, Remove Selected, Delete and Clear. Repeated paths are ignored when appending.
+- Independently scrolling queue and grouped format selectors keep mixed batches compact. Chosen formats survive queue edits.
+- Clearer destination choices, collapsible Batch options, file counts on Convert and distinct busy/completed/attention states.
+- Updated offline Quick Start and README for the new controls. Public builds remain ad-hoc signed and unnotarized.
+
 ## 1.1.0 — 2026-10-06
 
 - Matching logo icons in both Finder Quick Actions and macOS 27's Finder Settings list, with resource forks preserved during installation.

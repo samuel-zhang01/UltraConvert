@@ -41,6 +41,12 @@ jobs:
           UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
           "$UC_PY" tests/test_conversion.py
           "$UC_PY" tests/test_edges.py
+      - name: Native interface layout smoke
+        run: |
+          UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
+          "$UC_PY" src/convert.py --inspect -- examples/* > /tmp/ultraconvert-interface.json
+          xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/App.swift src/Interface.swift tests/test_interface.swift -o /tmp/ultraconvert-interface-test
+          /tmp/ultraconvert-interface-test /tmp/ultraconvert-interface.json
       - name: Security, batch workflow and rollback checks
         run: |
           UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"

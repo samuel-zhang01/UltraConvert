@@ -1,4 +1,4 @@
-# Release audit — 1.1.0
+# Release audit — 1.2.0
 
 Verified 2026-10-06 on Apple Silicon/macOS 27 with installed Homebrew engines. This is an adversarial code review and regression suite, not an independent penetration test or a guarantee about arbitrary files.
 
@@ -24,13 +24,16 @@ Verified 2026-10-06 on Apple Silicon/macOS 27 with installed Homebrew engines. T
 
 ## Verification
 
-- All **62 format entries** passed representative write, content detection and reverse-conversion checks, with **14 additional correctness checks**.
-- **10 edge cases** passed: document image bytes/relative exports/missing and remote resources, sidecar selection, multipage TIFF, misleading media extension and cancellation preservation.
-- **18 adversarial security**, **4 batch workflow**, **7 installer bootstrap/bundle metadata/icon/ownership/rollback**, **5 diagnostics**, and **4 signing/notarization gate** tests passed. Together with format and edge checks, this is 124 representative checks.
-- Ruff lint/format checks and Bandit passed. B404/B603 are documented exclusions for intentional argument-array subprocess calls; SafeLoader subclass use has a narrowly justified B506 annotation and executable-tag regression test.
-- pip-audit reported no known vulnerabilities for the three pinned runtime packages on the audit date. This result does not audit every native engine or dev-tool dependency.
-- Native Swift compilation, Hardened Runtime and ad-hoc signature verification passed. Offline Quick Start, Finder Settings navigation, branded Settings rows, setup diagnostics, setup-report copying, a native MP4-to-WEBM conversion, result-count copying and report reveal were checked interactively. The two actions appear for mixed Finder selections. Menu dispatch could not be confirmed with the current UI automation session; prior 1.0.0 interactive batch evidence is retained separately and is not treated as a 1.1.0 check. Individual evidence and source hashes are in [release-verification.json](../evidence/release-verification.json).
-- Reproducible small-file benchmark: 40 fixtures at one/two/four jobs. Timings are in [benchmark.json](../evidence/benchmark.json); these do not predict long video, huge TIFF or GIS workloads.
+This update changes the native interface and its build entry point. The conversion core, parser guards, engine policies and pinned runtime dependencies match 1.1.0 byte for byte. Its **124 representative checks**, including all **62 format entries**, are retained in [the 1.1.0 evidence](../evidence/releases/1.1.0.json). Every main-branch CI run repeats the full suite and now also exercises the real AppKit layout with the public mixed fixtures.
+
+- A native six-category batch converted MD→DOCX, GeoJSON→GPKG, PNG→WEBP, WAV→FLAC, MP4→WEBM and JSON→JSON: six successes, zero skips/failures. Original fixture bytes still matched Git. Each queue row showed its resulting format; Report selected the report in Finder.
+- Queue removal, append/deduplication, chosen-format retention, Clear, collapsible options and destination cancellation were checked interactively. The new interface and offline guide opened in the installed 1.2.0 app. The fixed action bar remained visible with six categories.
+- The native smoke check creates the actual AppKit hierarchy and rebuilds category controls for one/six/two/six-category selections, then exercises a compact window, expanded options and Clear. This catches the constraint-activation error found and fixed during development. It passed locally and is included in CI.
+- All seven installer/metadata/icon/rollback checks and four signing/notarization gate tests passed again. Ruff lint/format checks, Bandit and the pinned runtime dependency audit passed. All ten installed availability checks passed.
+- Swift compilation and strict signature verification passed. Local deployment uses the existing Apple Development identity; public artifacts use ad-hoc signing. No Developer ID or Apple notarization is claimed.
+- Drag-and-drop and Delete handlers were reviewed but desktop automation did not conclusively exercise them. Finder menu dispatch, Intel and the older native-material fallback remain unverified in this update.
+
+Current source hashes and individual checks are in [release-verification.json](../evidence/release-verification.json). Historical small-file timings remain in [benchmark.json](../evidence/benchmark.json); they do not measure the new interface or predict large-file workloads.
 
 ## Limits retained explicitly
 

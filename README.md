@@ -84,12 +84,12 @@ Try a few photos first:
 1. In Finder, select a PNG, JPEG, HEIC or another supported image. Hold **⌘** while clicking to select several files; **⇧-click** selects a range.
 2. Right-click → **Quick Actions → Convert Here with UltraConvert**.
 3. UltraConvert opens and recognises the files. In the **Images** row, choose an output such as **WEBP**.
-4. Leave **Convert beside each source** selected and click **Convert**.
+4. Leave **Beside source files** selected and click **Convert**.
 5. When progress finishes, click **Show Results**. A fresh **Converted …** folder contains the outputs and `conversion-report.json`. Your selected source files remain in their original folder.
 
 For a mixed selection, one format selector appears for each detected category. For example, photos → WEBP, audio → OPUS, documents → DOCX and GIS → GPKG can share one batch. Video can also be converted to audio, such as MP4 → MP3 or OPUS. Unsupported files are identified; valid files can still be converted.
 
-You can also open **UltraConvert** from Spotlight or `~/Applications`, click **Choose Files…**, and use the same controls. **Help → Quick Start** works offline. The full guide opens this README in your browser.
+You can also open **UltraConvert** from Spotlight or `~/Applications`, drag files into the queue or click **Add Files…**, and use the same controls. Adding files appends to the queue and ignores repeats. Select queue rows and click **Remove Selected** (or press Delete); **Clear** empties the queue. These actions do not delete your original files. **Help → Quick Start** works offline. The full guide opens this README in your browser.
 
 Batches accept up to **1,000 files**. Content probing recognises many misleading extensions; ambiguous plain text still needs an extension hint. Select a Shapefile's `.shp` file with its matching `.dbf`, `.shx` and optional `.prj` nearby. Selecting those sidecars together produces one dataset conversion.
 
@@ -99,27 +99,28 @@ Finder's menu contains the two actions. Choose the destination format in the nat
 
 | Choice | What happens |
 | --- | --- |
-| **Convert Here with UltraConvert** / **Convert beside each source** | Creates a new batch folder beside each source folder. Files selected from different folders get results beside their respective sources. |
-| **Convert to Destination with UltraConvert** / **Use default destination** | Starts with your saved default folder, initially `~/Downloads/UltraConvert`. All results go into one fresh batch folder there. |
-| **Choose destination…** or **Choose Folder…** | Opens a folder picker. Select or create a folder, click **Open**, then click **Convert**. Cancelling the picker starts no conversion. |
+| **Convert Here with UltraConvert** / **Beside source files** | Creates a new batch folder beside each source folder. Files selected from different folders get results beside their respective sources. |
+| **Convert to Destination with UltraConvert** / **Saved destination** | Starts with your saved default folder, initially `~/Downloads/UltraConvert`. All results go into one fresh batch folder there. |
+| **Choose destination…** or **Choose…** | Opens a folder picker. Select or create a folder, click **Open**, then click **Convert**. Cancelling the picker starts no conversion. |
 
-To change the default: click **Choose Folder…**, select a folder, then click **Set as Default**. The path displayed below the controls confirms where outputs will go. **File → Open Default Destination** opens the saved folder in Finder.
+To change the default: click **Choose…**, select a folder, then click **Set as Default**. The path displayed below the controls confirms where outputs will go. **File → Open Default Destination** opens the saved folder in Finder.
 
 Every run creates a fresh batch folder. Existing outputs and originals are never overwritten. UltraConvert remembers your output formats and options for the next run; the Finder action sets the initial destination mode for that window.
 
 ## Useful controls
 
 - **Skip files already in target format:** matching files stay at their original location and are recorded as skipped. They are not copied to the output folder.
-- **1–4 jobs:** converts that many files at once. Two is the default. Use one for large media or GIS inputs to reduce memory pressure; four can help batches of small files.
+- **Batch options:** expand this row to show skip-matching, concurrency and automatic result opening.
+- **1–4 files at a time:** converts that many files at once. Two is the default. Use one for large media or GIS inputs to reduce memory pressure; four can help batches of small files.
 - **Open results when finished:** automatically opens the result folder after the batch completes.
 - **Cancel:** stops the current batch. Completed outputs and the partial batch report are retained.
-- **Show Report:** selects `conversion-report.json` in Finder. Open it in a text editor to see per-file outcomes, preservation notes and engine diagnostics. For multiple source folders, reports are created in each output folder.
+- **Report:** selects `conversion-report.json` in Finder. Open it in a text editor to see per-file outcomes, preservation notes and engine diagnostics. For multiple source folders, reports are created in each output folder.
 - **File → Copy Result Summary:** copies counts for the last completed batch, without source paths.
 - **Help → Check Setup…:** checks installed engine versions, Python/GDAL imports, native icon tools and workflow files locally. It does not inspect your selected files, upload a report or confirm Finder's enable switches. **Copy Setup Report** is optional.
-- **Keyboard:** ⌘O chooses files; ⌘Return converts here; ⇧⌘Return chooses a folder and converts. Ordinary Return activates Convert.
+- **Keyboard:** ⌘O adds files; ⌘Return converts here; ⇧⌘Return chooses a folder and converts. Ordinary Return activates Convert.
 - **Geospatial CRS:** enter the known input coordinate system, for example `EPSG:4326`, when required. Bare WKT needs a known CRS; do not guess one.
 
-The window scrolls when a mixed batch needs more controls than your screen can fit. File and folder pickers remember useful starting locations.
+The file queue and output-format list scroll independently. The conversion bar keeps progress, Convert, Cancel and completed-batch actions visible. Expand **Batch options** for less frequently used controls; the main area scrolls on smaller screens. File and folder pickers remember useful starting locations. On macOS 26+, the action bar uses native Liquid Glass; older systems use a native material fallback.
 
 ## Troubleshooting
 
@@ -128,13 +129,13 @@ The window scrolls when a mixed batch needs more controls than your screen can f
 | `brew: command not found` or installer asks for Homebrew | Complete Homebrew's printed shell setup, open a new Terminal window, and retry `brew --version`. |
 | `can't open file … install.py` | Terminal is in the wrong folder. Repeat the `cd ` + drag-folder step; the folder must contain `install.py`. |
 | App blocked by macOS, or prebuilt has the wrong architecture | Run `python3 install.py --build-from-source` in the release folder after installing Command Line Tools. Intel users must build from source. |
-| Quick Actions missing | Check both Finder switches above. Select files, not a directory or empty space. Reopen the Finder window; if still absent, quit UltraConvert and rerun its installer. The app's **Choose Files** works independently of the menu. |
+| Quick Actions missing | Check both Finder switches above. Select files, not a directory or empty space. Reopen the Finder window; if still absent, quit UltraConvert and rerun its installer. The app's **Add Files** works independently of the menu. |
 | Missing runtime, engine, or GDAL import error | Run **Help → Check Setup…**. Quit the app and rerun `python3 install.py` from the current release/source folder. The installer provisions the matching Homebrew Python/GDAL environment. |
 | Permission denied for output/source folder | Choose a folder you can access with the native picker. Check the named requester in macOS **Files & Folders** permissions if you denied its prompt. |
-| Some files failed | Open **Show Report** and read each file's error. Other files can succeed. See the preservation limits below for format-specific restrictions. |
+| Some files failed | Open **Report** and read each file's error. Other files can succeed. See the preservation limits below for format-specific restrictions. |
 | Valid but very large/unusual file is rejected | Resource and parser limits are deliberate. Try a smaller input or use the underlying engine directly; changing jobs does not bypass an input-size limit. |
 | Unknown CRS / WKT refused | Supply the correct source CRS, or keep a matching `.prj` / SRID with the source dataset. |
-| Show Report cannot find a report | The output folder may have been moved or removed. Use **Show Results**, or locate your batch under the displayed destination. |
+| Report cannot find a report | The output folder may have been moved or removed. Use **Show Results**, or locate your batch under the displayed destination. |
 
 For an unresolved issue, [open a GitHub issue](https://github.com/samuel-zhang01/UltraConvert/issues) with your app version, macOS version, format pair and relevant error. Review/redact conversion reports before sharing: they contain local paths and diagnostics. Setup checks are availability checks; they do not prove every codec or file will convert.
 

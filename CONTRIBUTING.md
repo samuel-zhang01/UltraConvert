@@ -27,6 +27,15 @@ UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
 "$UC_PY" scripts/benchmark.py
 ```
 
+Run the native AppKit layout check on macOS (uses public fixtures and does not convert files or change saved preferences):
+
+```sh
+mkdir -p build
+"$UC_PY" src/convert.py --inspect -- examples/* > build/interface-inspection.json
+xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/App.swift src/Interface.swift tests/test_interface.swift -o build/interface-test
+build/interface-test build/interface-inspection.json
+```
+
 Generated reports go to ignored `evidence/local/`. Keep upstream research snapshots unchanged with their licences. Do not change policy to allow network resources, shell interpolation, arbitrary ImageMagick delegates, or execution of TeX. Add regression checks for actual preservation/security risks.
 
 Brand source: `assets/logo.svg` and `scripts/render_icon.swift`; `python3 scripts/build_brand.py` rebuilds PNG and ICNS assets. After committing the source on macOS, `python3 scripts/build_release.py` packages only the public Git tree and the matching app into `dist/VERSION/`. Existing artifacts are preserved; choose a new `--output-dir` for another build. See [the macOS signing guide](docs/MACOS-RELEASE.md) for Developer ID and notarization.

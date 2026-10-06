@@ -1,72 +1,97 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "date": "2026-10-06",
   "environment": {
     "system": "macOS 27.0.1",
-    "architecture": "arm64",
-    "engines": {
-      "ffmpeg": "ffmpeg version 9.0.2 Copyright (c) 2000-2026 the FFmpeg developers",
-      "magick": "Version: ImageMagick 7.1.2-32 Q16-HDRI aarch64 68f8d115a:20260926 https://imagemagick.org",
-      "pandoc": "pandoc 3.12",
-      "ebook-convert": "ebook-convert (calibre 9.15.0)",
-      "gdal": "GDAL 3.13.3 \"Iowa City\", released 2026/08/13",
-      "python": "3.14.8"
-    }
+    "architecture": "arm64"
   },
-  "format_round_trips": {
-    "passed": 62,
+  "scope": "Native interface update. Conversion core, engine policies and pinned runtime dependencies match the verified 1.1.0 baseline byte for byte.",
+  "conversion_baseline": {
+    "evidence": "releases/1.1.0.json",
+    "representative_checks": 124,
+    "format_entries": 62,
+    "core_hashes_match": true
+  },
+  "native_checks": [
+    "Empty state and mixed six-category layout inspected on macOS 27.0.1",
+    "All six public fixtures recognised by the native picker and content inspector",
+    "Remove Selected reduced six files to five and retained the WEBP selection",
+    "Adding the six fixtures appended the missing item, ignored repeated paths and retained WEBP",
+    "Batch options expanded and collapsed; stored two-job/skip/open values displayed",
+    "Cancelling the destination picker retained the selected queue and destination without conversion",
+    "Chosen test destination displayed correctly; six converted with zero skips or failures",
+    "Queue rows displayed all six converted output formats",
+    "Report revealed and selected conversion-report.json in Finder",
+    "Clear reset queue, format controls, stale results and Convert availability",
+    "Installed 1.2.0 opened with the new layout and updated offline Quick Start",
+    "Native offscreen smoke passed: actual content inspection, one/six/two/six-category rebuilds, compact window, options and clear",
+    "All ten installed setup availability checks passed",
+    "Strict signature verification passed after local signing with the existing Apple Development identity"
+  ],
+  "native_mixed_batch": {
+    "success": 6,
+    "skipped": 0,
     "failed": 0,
-    "extra_checks": 14
+    "pairs": [
+      {
+        "input": "mp4",
+        "output": "webm"
+      },
+      {
+        "input": "png",
+        "output": "webp"
+      },
+      {
+        "input": "md",
+        "output": "docx"
+      },
+      {
+        "input": "geojson",
+        "output": "gpkg"
+      },
+      {
+        "input": "json",
+        "output": "json"
+      },
+      {
+        "input": "wav",
+        "output": "flac"
+      }
+    ],
+    "original_fixture_bytes_match_git": true
   },
-  "edge_checks": {
-    "passed": 10,
-    "failed": 0
-  },
-  "regression_tests": {
-    "adversarial_security": 18,
-    "batch_workflows": 4,
-    "installer_bootstrap_icons_rollback_and_ownership": 7,
-    "diagnostics": 5,
-    "signing_and_notarization_gates": 4,
-    "failed": 0
+  "regression_tests_this_update": {
+    "installer": 7,
+    "release_gates": 4,
+    "native_interface_smoke": "passed"
   },
   "static_checks": {
     "ruff_lint": "passed",
     "ruff_format": "passed",
-    "bandit": "passed with documented B404/B603 exclusions and SafeLoader annotation",
-    "runtime_dependency_audit": {
-      "dependencies": [
-        {
-          "name": "pyyaml",
-          "version": "6.0.3",
-          "vulns": []
-        },
-        {
-          "name": "tomli-w",
-          "version": "1.2.0",
-          "vulns": []
-        },
-        {
-          "name": "defusedxml",
-          "version": "0.7.1",
-          "vulns": []
-        }
-      ],
-      "fixes": []
-    }
+    "bandit": "passed with existing documented exclusions",
+    "runtime_dependency_audit": "no known vulnerabilities in the three pinned packages on audit date"
   },
-  "native_checks": [
-    "Swift compilation and ad-hoc signature with Hardened Runtime verified",
-    "Offline Quick Start and Help menu verified interactively",
-    "Finder Settings shortcut opens Login Items & Extensions",
-    "Both enabled Finder Settings rows displayed branded document icons",
-    "Native setup alert displayed all ten passing local availability checks",
-    "Copy Setup Report changed status to confirm local copying",
-    "Both Finder actions appear for six mixed selected fixture files",
-    "Native file picker and MP4 content inspection succeeded",
-    "Native MP4 to WEBM conversion completed: one converted, zero skipped or failed",
-    "Copy Result Summary confirmed copying in native status",
-    "Show Report revealed and selected the completed conversion-report.json in Finder"
+  "ci": {
+    "workflow": "https://github.com/samuel-zhang01/UltraConvert/actions/workflows/ci.yml",
+    "scope": "Each main push reruns the full engine/security/regression suite and native interface smoke. Consult the matching commit run for its result."
+  },
+  "setup_checks": {
+    "passed": 10,
+    "failed": 0,
+    "scope": "Availability only; does not prove all codecs or Finder enablement"
+  },
+  "distribution_checks": {
+    "public_signing": "ad-hoc with Hardened Runtime",
+    "local_signing": "existing Apple Development certificate",
+    "apple_notarization_accepted_and_stapled": false,
+    "engine_runtime_installer_required": true
+  },
+  "limits": [
+    "Drag-and-drop and keyboard Delete handlers reviewed, but not conclusively exercised through desktop automation",
+    "Interactive checks on Apple Silicon/macOS 27; older material fallback and Intel unverified",
+    "Finder menu dispatch not reverified in this update; 1.1.0 limitations retained",
+    "Representative fixtures do not cover every codec, schema or document layout",
+    "No OS parser sandbox; reports contain local paths and diagnostics"
   ],
   "source_sha256": {
     "install.py": "4254faffdb8152da92ccbf4f2b2f1ddd49fcbae436317e1c9bb434ec504b034f",
@@ -75,9 +100,9 @@
     "scripts/build_brand.py": "f929f13b0a1720988b137effcad8140665492a5158fab348c5a669693c6bed71",
     "scripts/build_release.py": "f177330e7130ca19d7052485c91cae9fc69a267077708b1510c02dbbeb1d2e58",
     "scripts/notarize.py": "a2c37ff0af4fad141bfa37e29e50a2d508bf98746c404cde82ae018b9caf0fde",
-    "scripts/package_app.py": "ad1205d15631796d3dbdb379625ea108bd7453f4c42aab57f984528a0e73403f",
+    "scripts/package_app.py": "5386d9dc0e477e8b89d450d9b18270414da7c28cf4f497ab6302929f170e5c94",
     "scripts/render_icon.swift": "12c7ec33ad5827a9ab4c2fc905668feb6e2956a36795177b552d0ba879230fad",
-    "src/App.swift": "d64e1e8ca5acd556d4a9ec29cc33a10b2b5182cffeb68e67163c9cda0054fcd8",
+    "src/App.swift": "7df89712af812522b66d3327ab701558c87cb58d135be55009870facfa333098",
     "src/convert.py": "6ac3cac252cf5c3608731299cb5246d9cd5e4cd5a22246281edc5a155b2b3f43",
     "src/diagnostics.py": "8b46fdf5f7b892b7a6e316c25a4d4c5efa58ecee1e2d528ace31b1d5eafa8e9e",
     "src/geospatial.py": "a5a2e37b1a5699ff0719ab2c2ecf0ab9a3801747376b91d9a0deac6f439d4a72",
@@ -92,38 +117,10 @@
     "tests/test_installer.py": "399611a93c8678175b397595e126d50c7e450fed10a547d7e2aeb9786bc8329b",
     "tests/test_release.py": "1966874262fa3265e2f1ba6fd192967ae3cddbe2038b58aabcc4bba4d1eab0ef",
     "tests/test_security.py": "31f9f75927a1a237391fae85c56bbab96f4c888edefcfd2562c0a4961c7fe65e",
-    "uninstall.py": "1be94d7c4c0b50d5070d4940b69a112ca7f5af6a58a53c920351eb9ea973a46a"
-  },
-  "limits": [
-    "Representative fixtures, not exhaustive codec/schema/layout coverage",
-    "Apple Silicon/macOS 27 verified; older macOS and Intel unverified",
-    "Not OS sandboxed or Apple notarized",
-    "Reports contain local paths and diagnostics"
-  ],
-  "representative_checks_total": 124,
-  "native_checks_limits": [
-    "Finder menu dispatch was not confirmed with the current UI automation session",
-    "Open Default Destination compiled but its Finder navigation was not conclusively observed",
-    "Historical 1.0.0 six-category UI batch checks are in evidence/releases/1.0.0.json"
-  ],
-  "setup_checks": {
-    "passed": 10,
-    "failed": 0,
-    "scope": "Availability only; does not prove Finder enablement, codec coverage or folder access"
-  },
-  "distribution_checks": {
-    "local_signature": "ad-hoc",
-    "hardened_runtime": true,
-    "developer_id_identity_available": false,
-    "apple_notarization_accepted_and_stapled": false,
-    "credential_gate_and_rejection_tests": "passed; mocked external responses",
-    "optional_dmg_packaging": "Unsigned DMG created and hdiutil integrity verification passed",
-    "engine_runtime_installer_required": true
-  },
-  "release_archive_checks": {
-    "apple_silicon_zip_integrity": "passed",
-    "extracted_prebuilt_installer_system_python_3_9": "passed before app-copy metadata refinement; final release installer retested separately",
-    "unsigned_dmg_integrity": "passed",
-    "engines_bundled": false
+    "uninstall.py": "1be94d7c4c0b50d5070d4940b69a112ca7f5af6a58a53c920351eb9ea973a46a",
+    "src/Interface.swift": "e6dfc573d0045d4f379d22cd25a1dfc0b77107f5421ea8898ec6f1e0ec6cb488",
+    "tests/test_interface.swift": "270b30e1ece7c48e0c2aa79d00d6d9a6f4b0bd4ffd667a8e663e11dbdabb3567",
+    ".github/workflows/ci.yml": "37b4e0326a5a750af8f0a636eec9c30ed0f0dac98cdcf8f039feb53c4205b018",
+    "VERSION": "1e5b51cde515396a9fa762909cf8ca6584ccc564b325d2eebeea76175fe95c4d"
   }
 }
