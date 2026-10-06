@@ -17,6 +17,22 @@ spec.loader.exec_module(installer)
 
 
 class InstallerTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform == "darwin", "App bundle metadata requires macOS")
+    def test_app_staging_preserves_metadata_and_valid_signature(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            source, dest = base / "Source.app", base / "Installed.app"
+            installer.run(["/usr/bin/ditto", installer.APP, source])
+            attribute = "com.ultraconvert.install-test"
+            installer.run(["/usr/bin/xattr", "-w", attribute, "preserve-bundle-metadata", source])
+            with patch.object(installer, "SUPPORT", base / "support"):
+                installer.install_payload([(source, dest)])
+            self.assertEqual(
+                subprocess.check_output(["/usr/bin/xattr", "-p", attribute, dest]).strip(),
+                b"preserve-bundle-metadata",
+            )
+            installer.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", dest])
+
     @unittest.skipUnless(sys.platform == "darwin", "Finder resource forks require macOS")
     def test_staged_workflow_preserves_finder_custom_icon(self):
         with tempfile.TemporaryDirectory() as temp:

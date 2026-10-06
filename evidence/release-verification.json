@@ -25,7 +25,7 @@
   "regression_tests": {
     "adversarial_security": 18,
     "batch_workflows": 4,
-    "installer_bootstrap_icons_rollback_and_ownership": 6,
+    "installer_bootstrap_icons_rollback_and_ownership": 7,
     "diagnostics": 5,
     "signing_and_notarization_gates": 4,
     "failed": 0
@@ -62,10 +62,14 @@
     "Both enabled Finder Settings rows displayed branded document icons",
     "Native setup alert displayed all ten passing local availability checks",
     "Copy Setup Report changed status to confirm local copying",
-    "Both Finder actions appear for six mixed selected fixture files"
+    "Both Finder actions appear for six mixed selected fixture files",
+    "Native file picker and MP4 content inspection succeeded",
+    "Native MP4 to WEBM conversion completed: one converted, zero skipped or failed",
+    "Copy Result Summary confirmed copying in native status",
+    "Show Report revealed and selected the completed conversion-report.json in Finder"
   ],
   "source_sha256": {
-    "install.py": "deaacd662045d1817f7bda654a669dcf340ee5e9be0c2319aa4b742f0ac6ae5e",
+    "install.py": "4254faffdb8152da92ccbf4f2b2f1ddd49fcbae436317e1c9bb434ec504b034f",
     "requirements.txt": "9b115381ee817cc6e4d660eb4e75c65a255ed7732b3b774bf031627660be5527",
     "scripts/benchmark.py": "3a6dea95b6c4b9a881b9e492ff41e031d0a2eafa06f4c752ee9c8b7c8f287bd4",
     "scripts/build_brand.py": "f929f13b0a1720988b137effcad8140665492a5158fab348c5a669693c6bed71",
@@ -85,7 +89,7 @@
     "tests/test_conversion.py": "5465405dc20e93f03e95b52330819367884d4719b33a3c57c3413c6918e24147",
     "tests/test_diagnostics.py": "c0fe273b2f47f9058444841bf14906f7160fac7938ada30104cdca53d8e25c79",
     "tests/test_edges.py": "52659e4562c34af6435c711b75c92ecd75f3e4bac2dca1cb53b71b5c793f27c6",
-    "tests/test_installer.py": "c9e683dfafdacbbfbf2a20eeae47b099e14cf3312cc41b0deb8cae4ed20b6043",
+    "tests/test_installer.py": "399611a93c8678175b397595e126d50c7e450fed10a547d7e2aeb9786bc8329b",
     "tests/test_release.py": "1966874262fa3265e2f1ba6fd192967ae3cddbe2038b58aabcc4bba4d1eab0ef",
     "tests/test_security.py": "31f9f75927a1a237391fae85c56bbab96f4c888edefcfd2562c0a4961c7fe65e",
     "uninstall.py": "1be94d7c4c0b50d5070d4940b69a112ca7f5af6a58a53c920351eb9ea973a46a"
@@ -96,10 +100,10 @@
     "Not OS sandboxed or Apple notarized",
     "Reports contain local paths and diagnostics"
   ],
-  "representative_checks_total": 123,
+  "representative_checks_total": 124,
   "native_checks_limits": [
     "Finder menu dispatch was not confirmed with the current UI automation session",
-    "Show Report, Copy Result Summary and Open Default Destination compile but were not interactively exercised this pass",
+    "Open Default Destination compiled but its Finder navigation was not conclusively observed",
     "Historical 1.0.0 six-category UI batch checks are in evidence/releases/1.0.0.json"
   ],
   "setup_checks": {
@@ -113,7 +117,13 @@
     "developer_id_identity_available": false,
     "apple_notarization_accepted_and_stapled": false,
     "credential_gate_and_rejection_tests": "passed; mocked external responses",
-    "optional_dmg_packaging": "implemented; not yet exercised",
+    "optional_dmg_packaging": "Unsigned DMG created and hdiutil integrity verification passed",
     "engine_runtime_installer_required": true
+  },
+  "release_archive_checks": {
+    "apple_silicon_zip_integrity": "passed",
+    "extracted_prebuilt_installer_system_python_3_9": "passed before app-copy metadata refinement; final release installer retested separately",
+    "unsigned_dmg_integrity": "passed",
+    "engines_bundled": false
   }
 }

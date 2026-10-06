@@ -151,8 +151,8 @@ def install_payload(payload):
             fresh = dest.parent / (".ultraconvert-new-" + transaction + "-" + dest.name)
             old = dest.parent / (".ultraconvert-old-" + transaction + "-" + dest.name)
             staged.append((fresh, dest, old))
-            if source.suffix == ".workflow" and sys.platform == "darwin":
-                # Preserve the custom Finder document icon's resource fork and FinderInfo.
+            if source.suffix in (".app", ".workflow") and sys.platform == "darwin":
+                # Preserve macOS bundle metadata, including Finder document icons.
                 run(["/usr/bin/ditto", source, fresh])
             else:
                 shutil.copytree(
