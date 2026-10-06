@@ -1,0 +1,62 @@
+{
+  "success": 6,
+  "skipped": 0,
+  "failed": 0,
+  "cancelled": false,
+  "results": [
+    {
+      "category": "video",
+      "source_format": null,
+      "target": "mp4",
+      "success": true,
+      "skipped": null,
+      "notices": null,
+      "error": null
+    },
+    {
+      "category": "image",
+      "source_format": null,
+      "target": "png",
+      "success": true,
+      "skipped": null,
+      "notices": null,
+      "error": null
+    },
+    {
+      "category": "document",
+      "source_format": null,
+      "target": "docx",
+      "success": true,
+      "skipped": null,
+      "notices": null,
+      "error": null
+    },
+    {
+      "category": "geo",
+      "source_format": null,
+      "target": "gpkg",
+      "success": true,
+      "skipped": null,
+      "notices": null,
+      "error": null
+    },
+    {
+      "category": "config",
+      "source_format": null,
+      "target": "json",
+      "success": true,
+      "skipped": null,
+      "notices": null,
+      "error": null
+    },
+    {
+      "category": "audio",
+      "source_format": null,
+      "target": "flac",
+      "success": true,
+      "skipped": null,
+      "notices": null,
+      "error": null
+    }
+  ]
+}

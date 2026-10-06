@@ -1,0 +1,10 @@
+name: Feature request
+description: Suggest a practical conversion or workflow improvement.
+body:
+  - type: textarea
+    id: request
+    attributes:
+      label: Workflow and proposed improvement
+      description: Explain the concrete input, desired output and how it would help.
+    validations:
+      required: true

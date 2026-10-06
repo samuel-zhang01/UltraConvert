@@ -1,0 +1,7 @@
+brew "ffmpeg-full"
+brew "imagemagick"
+brew "pandoc"
+brew "gdal"
+brew "mac"
+brew "python@3.14"
+cask "calibre"

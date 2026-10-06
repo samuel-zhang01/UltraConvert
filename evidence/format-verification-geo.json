@@ -1,0 +1,138 @@
+{
+  "date": "2026-10-06",
+  "method": "Generate real fixtures, write every target, detect output, convert back with installed engines; hash originals before/after.",
+  "formats": [
+    {
+      "category": "geo",
+      "format": "geojson",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "geojson",
+      "bytes": 181
+    },
+    {
+      "category": "geo",
+      "format": "gpkg",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "gpkg",
+      "bytes": 106496
+    },
+    {
+      "category": "geo",
+      "format": "shp",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "shp",
+      "bytes": 128
+    },
+    {
+      "category": "geo",
+      "format": "kml",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "kml",
+      "bytes": 646
+    },
+    {
+      "category": "geo",
+      "format": "kmz",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "kmz",
+      "bytes": 818
+    },
+    {
+      "category": "geo",
+      "format": "gpx",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "gpx",
+      "bytes": 600
+    },
+    {
+      "category": "geo",
+      "format": "gml",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "gml",
+      "bytes": 1200
+    },
+    {
+      "category": "geo",
+      "format": "wkt",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "wkt",
+      "bytes": 19
+    }
+  ],
+  "checks": [
+    {
+      "name": "original file hashes unchanged",
+      "pass": true
+    },
+    {
+      "name": "content detection overrides wrong extension",
+      "pass": true
+    },
+    {
+      "name": "binary PLIST recognition and conversion",
+      "pass": true
+    },
+    {
+      "name": "duplicate keys rejected",
+      "pass": true
+    },
+    {
+      "name": "TOML null refuses silent loss",
+      "pass": true
+    },
+    {
+      "name": "JSON date refuses silent coercion",
+      "pass": true
+    },
+    {
+      "name": "WKT without CRS rejected",
+      "pass": true
+    },
+    {
+      "name": "WKT with explicit CRS works",
+      "pass": true
+    },
+    {
+      "name": "GPX refuses polygons",
+      "pass": true
+    },
+    {
+      "name": "all GeoPackage layers exported",
+      "pass": true
+    },
+    {
+      "name": "quoted filenames convert without shell interpolation",
+      "pass": true
+    },
+    {
+      "name": "mixed batch continues after a failure and deduplicates inputs",
+      "pass": true
+    },
+    {
+      "name": "batch report saved",
+      "pass": true
+    },
+    {
+      "name": "staging directories cleaned after failures",
+      "pass": true
+    }
+  ],
+  "passed_formats": 8,
+  "failed_count": 0
+}

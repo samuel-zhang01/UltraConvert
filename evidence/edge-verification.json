@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-06",
+  "checks": [
+    {
+      "name": "local Markdown image embedded in DOCX",
+      "pass": true
+    },
+    {
+      "name": "DOCX images retained with relative HTML links",
+      "pass": true
+    },
+    {
+      "name": "missing document image refuses silent loss",
+      "pass": true
+    },
+    {
+      "name": "binary document does not fetch a remote image",
+      "pass": true
+    },
+    {
+      "name": "Finder selection of Shapefile sidecars forms one input",
+      "pass": true
+    },
+    {
+      "name": "multipage TIFF preserves both pages",
+      "pass": true
+    },
+    {
+      "name": "media content overrides audio extension on a video",
+      "pass": true
+    },
+    {
+      "name": "cancellation returns a report and exit 130",
+      "pass": true
+    },
+    {
+      "name": "cancellation cleans incomplete output",
+      "pass": true
+    },
+    {
+      "name": "cancellation leaves original unchanged",
+      "pass": true
+    }
+  ],
+  "failed_count": 0
+}

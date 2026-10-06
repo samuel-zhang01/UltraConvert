@@ -1,0 +1,26 @@
+{
+  "platform": "Darwin",
+  "architecture": "arm64",
+  "fixture": "20 \u00d7 64px PNG to WebP, 20 \u00d7 JSON to YAML",
+  "limitations": "Small-file throughput only; results depend on machine and format. Each engine is limited to two threads; up to four jobs.",
+  "results": [
+    {
+      "jobs": 1,
+      "files": 40,
+      "seconds": 1.054,
+      "converted": 40
+    },
+    {
+      "jobs": 2,
+      "files": 40,
+      "seconds": 0.547,
+      "converted": 40
+    },
+    {
+      "jobs": 4,
+      "files": 40,
+      "seconds": 0.319,
+      "converted": 40
+    }
+  ]
+}

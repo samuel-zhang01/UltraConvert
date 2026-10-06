@@ -1,0 +1,61 @@
+{
+  "repository": "https://github.com/kavostudio/moonvert",
+  "commit": "90c3740ef84fcdbb12df128844a42fa6bdd78ad6",
+  "observed_date": "2026-10-06",
+  "license": "AGPL-3.0-only",
+  "purpose": "Retained upstream evidence; no upstream code imported into runtime",
+  "files": [
+    {
+      "path": "LICENSE",
+      "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
+    },
+    {
+      "path": "README.md",
+      "sha256": "3a5a23ac29b3ac47f19367a90730bb557c8aa330ec2270b032bc50a48a9cda7d"
+    },
+    {
+      "path": "package.json",
+      "sha256": "4795be22461c955683f591a2c4fb8c7c1701d44a2503b0cee036168a728adcc1"
+    },
+    {
+      "path": "src/shared/config/converter-config.ts",
+      "sha256": "a3399f1b8027181e61f7dd9ae71876b631b2051d30e626cbe175aca2ed7778b0"
+    },
+    {
+      "path": "src/renderer/routes/main/file-utils.ts",
+      "sha256": "49317ba1a4fb1bdd5ca7e755b6540ace89a5f3bd3ae0777bcd8c7a391aa6859e"
+    },
+    {
+      "path": "src/main/ipc/conversion-handler.ts",
+      "sha256": "a9c66d347df7c96a28758784259e99d8f7a3ec6c4f4f14d6367c940167ec4a11"
+    },
+    {
+      "path": "src/main/converters/bridges/process-based/pandoc-bridge.ts",
+      "sha256": "a71ef6767b9cae6555879ee9b7db7fa135d9c501ea397402459f0016af4561d8"
+    },
+    {
+      "path": "src/main/converters/bridges/process-based/ffmpeg/ffmpeg-args.ts",
+      "sha256": "ea0177a0fcbcd53684cab00887d3455bf137fbf8dccee3c00f7643d11d4c8029"
+    },
+    {
+      "path": "src/python/convert_geo.py",
+      "sha256": "c101e823f4e077bd9642f5333a0aa8dd7b0ae1c7aec3addc7e02ee78e4adc945"
+    },
+    {
+      "path": "src/main/workers/structured-worker/structured-worker.ts",
+      "sha256": "e29ffda4d2079ba29953e1c3832cadf72c2add4eeb83181e43b1a0cec80a5240"
+    },
+    {
+      "path": "src/main/services/license-service.ts",
+      "sha256": "66eb1a4663130651170d130b72a4e11249ee8007b801d90fbcfbdd362fdc4cf1"
+    },
+    {
+      "path": "src/main/workers/magick-worker/magick-worker.ts",
+      "sha256": "5295530ea5fe63b3787860dcca62a70fe773fc5c881291f3db6c240ef8e6bfd2"
+    },
+    {
+      "path": "electron-builder.ts",
+      "sha256": "c97b2c3f162fa208e0389e10412a8c8b0e757ec7d4baae6dc89b8dbc4d023a70"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+build/
+.test-work/
+Archive/
+evidence/local/
+dist/
+prebuilt/
+.ruff_cache/

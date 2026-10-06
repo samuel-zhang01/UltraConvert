@@ -1,0 +1,18 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "London"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.12,
+          51.5
+        ]
+      }
+    }
+  ]
+}

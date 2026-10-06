@@ -1,0 +1,79 @@
+[
+  {
+    "repository": "https://github.com/Hibrielle/menumate",
+    "commit": "5e424cd3a17fa1c0eb25fa68419200241f9b6354",
+    "path": "FinderExtension/FinderSync.swift",
+    "url": "https://raw.githubusercontent.com/Hibrielle/menumate/5e424cd3a17fa1c0eb25fa68419200241f9b6354/FinderExtension/FinderSync.swift",
+    "sha256": "ab5ac40183030d17618112a23e6fe369de6596c68233e586d79dc3ec4c968035"
+  },
+  {
+    "repository": "https://github.com/Hibrielle/menumate",
+    "commit": "5e424cd3a17fa1c0eb25fa68419200241f9b6354",
+    "path": "LICENSE",
+    "url": "https://raw.githubusercontent.com/Hibrielle/menumate/5e424cd3a17fa1c0eb25fa68419200241f9b6354/LICENSE",
+    "sha256": "f698c82dbc7f780adaa84750ace19cf5314472ec0d45fbf5103b0d09056f10d1"
+  },
+  {
+    "repository": "https://github.com/wflixu/RClick",
+    "commit": "91e92109b3c20073badebd5620e558edd65b6ea6",
+    "path": "FinderSyncExt/FinderSyncExt.swift",
+    "url": "https://raw.githubusercontent.com/wflixu/RClick/91e92109b3c20073badebd5620e558edd65b6ea6/FinderSyncExt/FinderSyncExt.swift",
+    "sha256": "f0bd66e12c4320d24e2d01b5b6aa71242e743fd6fe9a209f559d21dd11133119"
+  },
+  {
+    "repository": "https://github.com/wflixu/RClick",
+    "commit": "91e92109b3c20073badebd5620e558edd65b6ea6",
+    "path": "LICENSE",
+    "url": "https://raw.githubusercontent.com/wflixu/RClick/91e92109b3c20073badebd5620e558edd65b6ea6/LICENSE",
+    "sha256": "3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986"
+  },
+  {
+    "repository": "https://github.com/VERT-sh/VERT",
+    "commit": "91091a1b91a518566afe3980f7e0e31cd340f57d",
+    "path": "src/lib/converters/converter.svelte.ts",
+    "url": "https://raw.githubusercontent.com/VERT-sh/VERT/91091a1b91a518566afe3980f7e0e31cd340f57d/src/lib/converters/converter.svelte.ts",
+    "sha256": "741b438b669479e805ce38643d89c08a77b1c320984adc6629e6a556c18f49fd"
+  },
+  {
+    "repository": "https://github.com/VERT-sh/VERT",
+    "commit": "91091a1b91a518566afe3980f7e0e31cd340f57d",
+    "path": "src/lib/converters/pandoc/pandoc.svelte.ts",
+    "url": "https://raw.githubusercontent.com/VERT-sh/VERT/91091a1b91a518566afe3980f7e0e31cd340f57d/src/lib/converters/pandoc/pandoc.svelte.ts",
+    "sha256": "2ede3836011073b100afa3a0f6b61711a0d01acce26b813232eb3c7d477dcf6d"
+  },
+  {
+    "repository": "https://github.com/VERT-sh/VERT",
+    "commit": "91091a1b91a518566afe3980f7e0e31cd340f57d",
+    "path": "src/lib/converters/vertd/vertd.svelte.ts",
+    "url": "https://raw.githubusercontent.com/VERT-sh/VERT/91091a1b91a518566afe3980f7e0e31cd340f57d/src/lib/converters/vertd/vertd.svelte.ts",
+    "sha256": "32cd3bf41a41993323fb75da38ea82139797cf7a85c4870e89952a89a2bd81e1"
+  },
+  {
+    "repository": "https://github.com/VERT-sh/VERT",
+    "commit": "91091a1b91a518566afe3980f7e0e31cd340f57d",
+    "path": "LICENSE",
+    "url": "https://raw.githubusercontent.com/VERT-sh/VERT/91091a1b91a518566afe3980f7e0e31cd340f57d/LICENSE",
+    "sha256": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
+  },
+  {
+    "repository": "https://github.com/Tichau/FileConverter",
+    "commit": "6c157a411fb70fb7440d2e3b226042781fd55b15",
+    "path": "Application/FileConverter/ConversionJobs/ConversionJobFactory.cs",
+    "url": "https://raw.githubusercontent.com/Tichau/FileConverter/6c157a411fb70fb7440d2e3b226042781fd55b15/Application/FileConverter/ConversionJobs/ConversionJobFactory.cs",
+    "sha256": "048422cf923f05b6aed5b774c5c0af3575236cec864932ca98488f1e93295c8d"
+  },
+  {
+    "repository": "https://github.com/Tichau/FileConverter",
+    "commit": "6c157a411fb70fb7440d2e3b226042781fd55b15",
+    "path": "Application/FileConverter/ConversionJobs/ConversionJob_FFMPEG.Converters.cs",
+    "url": "https://raw.githubusercontent.com/Tichau/FileConverter/6c157a411fb70fb7440d2e3b226042781fd55b15/Application/FileConverter/ConversionJobs/ConversionJob_FFMPEG.Converters.cs",
+    "sha256": "d0fec4391b6bda78a70d9e62501d4f8e1dabe890200791dbb9443f90b30847ec"
+  },
+  {
+    "repository": "https://github.com/Tichau/FileConverter",
+    "commit": "6c157a411fb70fb7440d2e3b226042781fd55b15",
+    "path": "LICENSE.md",
+    "url": "https://raw.githubusercontent.com/Tichau/FileConverter/6c157a411fb70fb7440d2e3b226042781fd55b15/LICENSE.md",
+    "sha256": "04ead70876b85465850b50bde32652a6e7fc35a407fb5df9d36952fabf9c6670"
+  }
+]

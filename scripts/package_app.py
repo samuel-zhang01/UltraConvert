@@ -1,0 +1,95 @@
+"""Build the native app; conversion engines are installed separately."""
+
+import json
+import platform
+import plistlib
+import subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def run(args):
+    subprocess.run(list(map(str, args)), check=True)
+
+
+def build_app(destination):
+    version = (ROOT / "VERSION").read_text().strip()
+    icon = ROOT / "assets/UltraConvert.icns"
+    if not icon.is_file():
+        raise RuntimeError("Missing app icon. Run python3 scripts/build_brand.py first.")
+    app = Path(destination) / "UltraConvert.app"
+    contents = app / "Contents"
+    (contents / "MacOS").mkdir(parents=True)
+    (contents / "Resources").mkdir()
+    arch = "arm64" if platform.machine() == "arm64" else "x86_64"
+    run(
+        [
+            "/usr/bin/xcrun",
+            "swiftc",
+            "-O",
+            "-target",
+            f"{arch}-apple-macosx13.0",
+            "-framework",
+            "AppKit",
+            ROOT / "src/App.swift",
+            "-o",
+            contents / "MacOS/UltraConvert",
+        ]
+    )
+    info = {
+        "CFBundleIdentifier": "local.ultraconvert",
+        "CFBundleName": "UltraConvert",
+        "CFBundleDisplayName": "UltraConvert",
+        "CFBundleExecutable": "UltraConvert",
+        "CFBundlePackageType": "APPL",
+        "CFBundleVersion": version,
+        "CFBundleShortVersionString": version,
+        "CFBundleIconFile": "UltraConvert",
+        "NSHighResolutionCapable": True,
+        "LSMinimumSystemVersion": "13.0",
+        "NSHumanReadableCopyright": "© 2026 UltraConvert contributors. MIT licence.",
+        "CFBundleDocumentTypes": [
+            {
+                "CFBundleTypeName": "Convertible files",
+                "CFBundleTypeRole": "Viewer",
+                "LSHandlerRank": "None",
+                "LSItemContentTypes": ["public.data"],
+            }
+        ],
+    }
+    (contents / "Info.plist").write_bytes(plistlib.dumps(info))
+    (contents / "Resources/UltraConvert.icns").write_bytes(icon.read_bytes())
+    (contents / "Resources/LICENSE").write_bytes((ROOT / "LICENSE").read_bytes())
+    (contents / "Resources/ultraconvert-managed.json").write_text(
+        json.dumps({"owner": "UltraConvert", "version": version}) + "\n"
+    )
+    run(["/usr/bin/codesign", "--force", "--sign", "-", app])
+    run(["/usr/bin/codesign", "--verify", "--deep", "--strict", app])
+    return app
+
+
+def validate_prebuilt(app):
+    app = Path(app)
+    data = plistlib.loads((app / "Contents/Info.plist").read_bytes())
+    if (
+        data.get("CFBundleIdentifier") != "local.ultraconvert"
+        or data.get("CFBundleShortVersionString") != (ROOT / "VERSION").read_text().strip()
+    ):
+        raise RuntimeError("Prebuilt app version/identifier does not match this source release")
+    marker = json.loads((app / "Contents/Resources/ultraconvert-managed.json").read_text())
+    if marker.get("owner") != "UltraConvert":
+        raise RuntimeError("Prebuilt app is not marked as UltraConvert")
+    if (app / "Contents/Resources/UltraConvert.icns").read_bytes() != (
+        ROOT / "assets/UltraConvert.icns"
+    ).read_bytes():
+        raise RuntimeError("Prebuilt icon does not match this release")
+    architectures = subprocess.check_output(
+        ["/usr/bin/lipo", "-archs", app / "Contents/MacOS/UltraConvert"], text=True
+    ).split()
+    if platform.machine() not in architectures:
+        raise RuntimeError(
+            "This prebuilt app does not support this Mac. Install with --build-from-source."
+        )
+    run(["/usr/bin/codesign", "--verify", "--deep", "--strict", app])
+    return app

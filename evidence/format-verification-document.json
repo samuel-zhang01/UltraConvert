@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-06",
+  "method": "Generate real fixtures, write every target, detect output, convert back with installed engines; hash originals before/after.",
+  "formats": [
+    {
+      "category": "document",
+      "format": "docx",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "docx",
+      "bytes": 10714
+    },
+    {
+      "category": "document",
+      "format": "odt",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "odt",
+      "bytes": 7447
+    },
+    {
+      "category": "document",
+      "format": "rtf",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "rtf",
+      "bytes": 794
+    },
+    {
+      "category": "document",
+      "format": "md",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "md",
+      "bytes": 66
+    },
+    {
+      "category": "document",
+      "format": "html",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "html",
+      "bytes": 4270
+    },
+    {
+      "category": "document",
+      "format": "tex",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "tex",
+      "bytes": 1892
+    },
+    {
+      "category": "document",
+      "format": "epub",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "epub",
+      "bytes": 5427
+    },
+    {
+      "category": "document",
+      "format": "mobi",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "mobi",
+      "bytes": 9902
+    },
+    {
+      "category": "document",
+      "format": "azw3",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "azw3",
+      "bytes": 12923
+    }
+  ],
+  "checks": [
+    {
+      "name": "original file hashes unchanged",
+      "pass": true
+    },
+    {
+      "name": "content detection overrides wrong extension",
+      "pass": true
+    },
+    {
+      "name": "binary PLIST recognition and conversion",
+      "pass": true
+    },
+    {
+      "name": "duplicate keys rejected",
+      "pass": true
+    },
+    {
+      "name": "TOML null refuses silent loss",
+      "pass": true
+    },
+    {
+      "name": "JSON date refuses silent coercion",
+      "pass": true
+    },
+    {
+      "name": "quoted filenames convert without shell interpolation",
+      "pass": true
+    },
+    {
+      "name": "mixed batch continues after a failure and deduplicates inputs",
+      "pass": true
+    },
+    {
+      "name": "batch report saved",
+      "pass": true
+    },
+    {
+      "name": "staging directories cleaned after failures",
+      "pass": true
+    }
+  ],
+  "passed_formats": 9,
+  "failed_count": 0
+}

@@ -1,0 +1,8 @@
+{
+  "success": 3,
+  "skipped": 3,
+  "failed": 0,
+  "destination": "chosen folder",
+  "files": 6,
+  "method": "Installed native app: choose destination, enable skip matching, convert six recognised files."
+}

@@ -1,0 +1,22 @@
+name: Conversion problem
+description: Report a reproducible conversion or Finder integration issue.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Include expected behaviour, source/target formats and reproduction steps. Redact private paths and diagnostics.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Version and environment
+      placeholder: UltraConvert version, macOS version, Apple Silicon or Intel
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Safe example or error
+      description: Attach only a small non-sensitive fixture. Report security vulnerabilities privately.

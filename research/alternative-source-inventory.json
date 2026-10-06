@@ -1,0 +1,62 @@
+[
+  {
+    "repository": "https://github.com/Hibrielle/menumate",
+    "tree_commit": "5e424cd3a17fa1c0eb25fa68419200241f9b6354",
+    "candidate_source_paths": [
+      "FinderExtension/FinderSync.swift"
+    ]
+  },
+  {
+    "repository": "https://github.com/wflixu/RClick",
+    "tree_commit": "91e92109b3c20073badebd5620e558edd65b6ea6",
+    "candidate_source_paths": [
+      "FinderSyncExt/FinderSyncExt.swift"
+    ]
+  },
+  {
+    "repository": "https://github.com/VERT-sh/VERT",
+    "tree_commit": "91091a1b91a518566afe3980f7e0e31cd340f57d",
+    "candidate_source_paths": [
+      "src/lib/converters/converter.svelte.ts",
+      "src/lib/converters/ffmpeg/ffmpeg.animated.ts",
+      "src/lib/converters/ffmpeg/ffmpeg.codecs.ts",
+      "src/lib/converters/ffmpeg/ffmpeg.svelte.ts",
+      "src/lib/converters/ffmpeg/utils/ffmpeg.ts",
+      "src/lib/converters/index.ts",
+      "src/lib/converters/magick/magick-automated.ts",
+      "src/lib/converters/magick/magick-settings.ts",
+      "src/lib/converters/magick/magick.svelte.ts",
+      "src/lib/converters/mediabunny/mediabunny.svelte.ts",
+      "src/lib/converters/pandoc/pandoc.svelte.ts",
+      "src/lib/converters/vertd/vertd.svelte.ts",
+      "src/lib/types/conversion-settings.ts",
+      "src/lib/types/conversion-worker.ts"
+    ]
+  },
+  {
+    "repository": "https://github.com/Tichau/FileConverter",
+    "tree_commit": "6c157a411fb70fb7440d2e3b226042781fd55b15",
+    "candidate_source_paths": [
+      "Application/FileConverter/Application.xaml.cs",
+      "Application/FileConverter/ApplicationTerminateArgs.cs",
+      "Application/FileConverter/Controls/ConversionJobControl.xaml.cs",
+      "Application/FileConverter/Controls/EncodingMode.cs",
+      "Application/FileConverter/Controls/EncodingQualitySliderControl.xaml.cs",
+      "Application/FileConverter/Controls/IconButton.cs",
+      "Application/FileConverter/ConversionJobs/ConversionFlags.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJob.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJobFactory.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJob_Excel.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJob_ExtractCDA.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJob_FFMPEG.Converters.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJob_FFMPEG.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJob_Gif.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJob_Ico.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJob_ImageMagick.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJob_Office.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJob_PowerPoint.cs",
+      "Application/FileConverter/ConversionJobs/ConversionJob_Word.cs",
+      "Application/FileConverter/ConversionJobs/ConversionState.cs"
+    ]
+  }
+]

@@ -1,0 +1,624 @@
+{
+  "date": "2026-10-06",
+  "method": "Generate real fixtures, write every target, detect output, convert back with installed engines; hash originals before/after.",
+  "formats": [
+    {
+      "category": "geo",
+      "format": "geojson",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "geojson",
+      "bytes": 181
+    },
+    {
+      "category": "geo",
+      "format": "gpkg",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "gpkg",
+      "bytes": 106496
+    },
+    {
+      "category": "geo",
+      "format": "shp",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "shp",
+      "bytes": 128
+    },
+    {
+      "category": "geo",
+      "format": "kml",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "kml",
+      "bytes": 646
+    },
+    {
+      "category": "geo",
+      "format": "kmz",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "kmz",
+      "bytes": 818
+    },
+    {
+      "category": "geo",
+      "format": "gpx",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "gpx",
+      "bytes": 600
+    },
+    {
+      "category": "geo",
+      "format": "gml",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "gml",
+      "bytes": 1200
+    },
+    {
+      "category": "geo",
+      "format": "wkt",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "wkt",
+      "bytes": 19
+    },
+    {
+      "category": "image",
+      "format": "png",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "png",
+      "bytes": 817
+    },
+    {
+      "category": "image",
+      "format": "jpg",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "jpg",
+      "bytes": 1187
+    },
+    {
+      "category": "image",
+      "format": "jpeg",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "jpg",
+      "bytes": 1187
+    },
+    {
+      "category": "image",
+      "format": "heic",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "heic",
+      "bytes": 428
+    },
+    {
+      "category": "image",
+      "format": "webp",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "webp",
+      "bytes": 250
+    },
+    {
+      "category": "image",
+      "format": "tiff",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "tiff",
+      "bytes": 73992
+    },
+    {
+      "category": "image",
+      "format": "bmp",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "bmp",
+      "bytes": 37002
+    },
+    {
+      "category": "image",
+      "format": "ico",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "ico",
+      "bytes": 370070
+    },
+    {
+      "category": "image",
+      "format": "icns",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "icns",
+      "bytes": 75960
+    },
+    {
+      "category": "image",
+      "format": "avif",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "avif",
+      "bytes": 344
+    },
+    {
+      "category": "document",
+      "format": "docx",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "docx",
+      "bytes": 10714
+    },
+    {
+      "category": "document",
+      "format": "odt",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "odt",
+      "bytes": 7447
+    },
+    {
+      "category": "document",
+      "format": "rtf",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "rtf",
+      "bytes": 794
+    },
+    {
+      "category": "document",
+      "format": "md",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "md",
+      "bytes": 66
+    },
+    {
+      "category": "document",
+      "format": "html",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "html",
+      "bytes": 4270
+    },
+    {
+      "category": "document",
+      "format": "tex",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "tex",
+      "bytes": 1892
+    },
+    {
+      "category": "document",
+      "format": "epub",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "epub",
+      "bytes": 5427
+    },
+    {
+      "category": "document",
+      "format": "mobi",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "mobi",
+      "bytes": 9902
+    },
+    {
+      "category": "document",
+      "format": "azw3",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "azw3",
+      "bytes": 12923
+    },
+    {
+      "category": "video",
+      "format": "mp4",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "mp4",
+      "bytes": 41818
+    },
+    {
+      "category": "video",
+      "format": "mov",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "mov",
+      "bytes": 41869
+    },
+    {
+      "category": "video",
+      "format": "webm",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "webm",
+      "bytes": 33283
+    },
+    {
+      "category": "video",
+      "format": "mkv",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "mkv",
+      "bytes": 41088
+    },
+    {
+      "category": "video",
+      "format": "avi",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "avi",
+      "bytes": 51508
+    },
+    {
+      "category": "video",
+      "format": "gif",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "gif",
+      "bytes": 1110344
+    },
+    {
+      "category": "video",
+      "format": "m4v",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "m4v",
+      "bytes": 41818
+    },
+    {
+      "category": "video",
+      "format": "3gp",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "3gp",
+      "bytes": 42571
+    },
+    {
+      "category": "video",
+      "format": "flv",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "flv",
+      "bytes": 41438
+    },
+    {
+      "category": "video",
+      "format": "ts",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "ts",
+      "bytes": 48316
+    },
+    {
+      "category": "video",
+      "format": "mts",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "mts",
+      "bytes": 48316
+    },
+    {
+      "category": "video",
+      "format": "m2ts",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "m2ts",
+      "bytes": 55296
+    },
+    {
+      "category": "video",
+      "format": "wmv",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "wmv",
+      "bytes": 103457
+    },
+    {
+      "category": "video",
+      "format": "ogv",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "ogv",
+      "bytes": 43437
+    },
+    {
+      "category": "video",
+      "format": "mpg",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "mpg",
+      "bytes": 110592
+    },
+    {
+      "category": "video",
+      "format": "mpeg",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "mpeg",
+      "bytes": 110592
+    },
+    {
+      "category": "video",
+      "format": "mxf",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "mxf",
+      "bytes": 1741881
+    },
+    {
+      "category": "video",
+      "format": "vob",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "vob",
+      "bytes": 110592
+    },
+    {
+      "category": "audio",
+      "format": "mp3",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "mp3",
+      "bytes": 7604
+    },
+    {
+      "category": "audio",
+      "format": "wav",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "wav",
+      "bytes": 288102
+    },
+    {
+      "category": "audio",
+      "format": "flac",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "flac",
+      "bytes": 21848
+    },
+    {
+      "category": "audio",
+      "format": "aac",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "aac",
+      "bytes": 24867
+    },
+    {
+      "category": "audio",
+      "format": "m4a",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "m4a",
+      "bytes": 25529
+    },
+    {
+      "category": "audio",
+      "format": "ogg",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "ogg",
+      "bytes": 10429
+    },
+    {
+      "category": "audio",
+      "format": "wma",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "wma",
+      "bytes": 26142
+    },
+    {
+      "category": "audio",
+      "format": "aiff",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "aiff",
+      "bytes": 288054
+    },
+    {
+      "category": "audio",
+      "format": "alac",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "alac",
+      "bytes": 19192
+    },
+    {
+      "category": "audio",
+      "format": "opus",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "opus",
+      "bytes": 18037
+    },
+    {
+      "category": "audio",
+      "format": "ape",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "ape",
+      "bytes": 69638
+    },
+    {
+      "category": "audio",
+      "format": "wv",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "wv",
+      "bytes": 44652
+    },
+    {
+      "category": "config",
+      "format": "json",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "json",
+      "bytes": 153
+    },
+    {
+      "category": "config",
+      "format": "yaml",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "yaml",
+      "bytes": 91
+    },
+    {
+      "category": "config",
+      "format": "yml",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "yml",
+      "bytes": 91
+    },
+    {
+      "category": "config",
+      "format": "plist",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "plist",
+      "bytes": 500
+    },
+    {
+      "category": "config",
+      "format": "toml",
+      "write": true,
+      "read": true,
+      "error": null,
+      "detected_format": "toml",
+      "bytes": 115
+    }
+  ],
+  "checks": [
+    {
+      "name": "original file hashes unchanged",
+      "pass": true
+    },
+    {
+      "name": "content detection overrides wrong extension",
+      "pass": true
+    },
+    {
+      "name": "binary PLIST recognition and conversion",
+      "pass": true
+    },
+    {
+      "name": "duplicate keys rejected",
+      "pass": true
+    },
+    {
+      "name": "TOML null refuses silent loss",
+      "pass": true
+    },
+    {
+      "name": "JSON date refuses silent coercion",
+      "pass": true
+    },
+    {
+      "name": "WKT without CRS rejected",
+      "pass": true
+    },
+    {
+      "name": "WKT with explicit CRS works",
+      "pass": true
+    },
+    {
+      "name": "GPX refuses polygons",
+      "pass": true
+    },
+    {
+      "name": "all GeoPackage layers exported",
+      "pass": true
+    },
+    {
+      "name": "quoted filenames convert without shell interpolation",
+      "pass": true
+    },
+    {
+      "name": "mixed batch continues after a failure and deduplicates inputs",
+      "pass": true
+    },
+    {
+      "name": "batch report saved",
+      "pass": true
+    },
+    {
+      "name": "staging directories cleaned after failures",
+      "pass": true
+    }
+  ],
+  "passed_formats": 62,
+  "failed_count": 0
+}

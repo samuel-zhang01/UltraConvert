@@ -1,0 +1,43 @@
+test_archive_duplicate (test_security.SecurityTests.test_archive_duplicate) ... ok
+test_archive_expansion_limit (test_security.SecurityTests.test_archive_expansion_limit) ... ok
+test_archive_symlink (test_security.SecurityTests.test_archive_symlink) ... ok
+test_archive_traversal (test_security.SecurityTests.test_archive_traversal) ... ok
+test_cancel_escalates_for_uncooperative_engine (test_security.SecurityTests.test_cancel_escalates_for_uncooperative_engine) ... ok
+test_configuration_size_limit (test_security.SecurityTests.test_configuration_size_limit) ... ok
+test_document_cannot_read_outside_folder (test_security.SecurityTests.test_document_cannot_read_outside_folder) ... ok
+test_engine_log_volume_is_bounded (test_security.SecurityTests.test_engine_log_volume_is_bounded) ... ok
+test_gml_external_schema_include_is_refused (test_security.SecurityTests.test_gml_external_schema_include_is_refused) ... ok
+test_gml_reader_does_not_write_beside_original (test_security.SecurityTests.test_gml_reader_does_not_write_beside_original) ... ok
+test_invalid_plan_fails_before_output (test_security.SecurityTests.test_invalid_plan_fails_before_output) ... ok
+test_nested_config_is_bounded (test_security.SecurityTests.test_nested_config_is_bounded) ... ok
+test_network_document_and_kml_are_not_fetched (test_security.SecurityTests.test_network_document_and_kml_are_not_fetched) ... ok
+test_source_change_is_refused (test_security.SecurityTests.test_source_change_is_refused) ... ok
+test_svg_disguised_as_png_is_refused (test_security.SecurityTests.test_svg_disguised_as_png_is_refused) ... ok
+test_xml_entities_refused (test_security.SecurityTests.test_xml_entities_refused) ... ok
+test_yaml_alias_expansion_is_bounded (test_security.SecurityTests.test_yaml_alias_expansion_is_bounded) ... ok
+test_yaml_tags_do_not_execute (test_security.SecurityTests.test_yaml_tags_do_not_execute) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 4.447s
+
+OK
+
+
+test_chosen_destination_and_name_collisions (test_batch.BatchTests.test_chosen_destination_and_name_collisions) ... ok
+test_here_places_each_result_beside_its_source (test_batch.BatchTests.test_here_places_each_result_beside_its_source) ... ok
+test_repeat_batches_do_not_overwrite (test_batch.BatchTests.test_repeat_batches_do_not_overwrite) ... ok
+test_same_format_skip_is_explicit (test_batch.BatchTests.test_same_format_skip_is_explicit) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.341s
+
+OK
+
+
+test_failed_second_swap_restores_every_component (test_installer.InstallerTests.test_failed_second_swap_restores_every_component) ... ok
+test_wrong_owner_and_symlink_are_not_managed (test_installer.InstallerTests.test_wrong_owner_and_symlink_are_not_managed) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.004s
+
+OK
