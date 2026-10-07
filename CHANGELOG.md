@@ -6,6 +6,7 @@
 - Cancellable, serialized read-only file tests. Edits, rule switches, window closing and quit invalidate late results; quit waits for test cleanup.
 - Test previews refuse linked or changed sources and apply the same document/GIS source-action protections as conversion.
 - Native Undo/Redo/Cut and Close Window commands; an explicit Cancel/Escape action in the Finder format chooser.
+- Explicit app-delegate retention across the event loop so optimized builds keep their controllers/actions alive.
 - Cached Activity date formatting and complete empty-row reset when table cells are reused.
 - The neutral native glass design and existing format support remain in place. Public packaging retains the separate-runtime installer and is not notarized.
 

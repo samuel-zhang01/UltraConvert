@@ -695,7 +695,9 @@ struct UltraConvertMain {
         }
         let delegate = ConverterApp()
         app.delegate = delegate
-        app.run()
+        // NSApplication's delegate is weak. Keep its controllers and action
+        // closures alive for the entire event loop, including optimized builds.
+        withExtendedLifetime(delegate) { app.run() }
     }
 }
 #endif

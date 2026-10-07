@@ -5,6 +5,7 @@ The 1.5.0 scoped developer assessment remains **9.0/10**; this patch closes addi
 - Discard now reloads the saved rule instead of retaining edited fields in memory. Save commits before navigation; failed validation keeps the editor open.
 - Read-only tests have Cancel Test/Escape, cancellation on rule changes/closing/quit, serialized engine work and suppression of stale plans. Quit waits for test work to drain.
 - Previews reject linked/changed sources and document/GIS original policies that the actual pipeline would refuse.
+- The app explicitly retains its weak AppKit delegate across the event loop, including optimized builds.
 - Standard Mac text editing and Close Window commands are present; the grouped Finder chooser cancels with Escape. Activity reuses a date formatter and resets empty-row diagnostics.
 
 All **265 local automation assertions passed**. [Regression evidence](../evidence/automation-1.5.1.json) covers these cases alongside the existing watcher, publication and source-integrity checks. The underlying conversion engines are unchanged. The independent accessibility/user-study, older-system and public standalone-distribution gaps below still apply.
