@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.0 preview — 2026-10-07
+
+- Native folder automation with a neutral native glass block rule builder, templates, ALL/ANY content/name conditions, ordered conversion and rename steps, output routing, and explicit after-success Keep/Archive/Trash policies.
+- Event-driven watching, stable-file waiting, first-match priority, one automation job at a time, manual-batch priority, menu-bar pause/resume and persistent local activity. Existing files are ignored on startup; Run Existing Files is an explicit action.
+- Safety limits, exclusive output publication, loop prevention, source-change/cancellation checks, linked-file exclusion and a cross-process watcher lock. Document/GIS originals must be kept because of companion resources.
+- Finder “Convert Here with UltraConvert — Choose Format…” service with a grouped picker for all 62 formats; category/format submenus in the app's file-row menu. Finder Services/Quick Actions remain flat under macOS control.
+- Optional start-in-menu-bar setting alongside Launch at Login and automatic Finder registration. Default startup preferences stay off unless enabled by the user.
+- Size-optimised Swift compilation; no conversion subprocess or polling timer while folder watching is idle.
+- Public preview retains the separate engine installer and is not notarized. The local standalone development app retains all engines and format support.
+
 ## 1.4.0 preview — 2026-10-06
 
 - Native Settings (⌘,): optional Launch at Login with macOS approval/error status, automatic Finder registration preference, manual Quick Action repair, Services refresh and system settings shortcuts. Repair templates are included in every native app.

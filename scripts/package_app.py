@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+APP_SOURCES = sorted((ROOT / "src").glob("*.swift"))
 
 
 def run(args):
@@ -42,20 +43,19 @@ def build_app(destination, sign_identity=None):
         [
             "/usr/bin/xcrun",
             "swiftc",
-            "-O",
+            "-Osize",
             "-parse-as-library",
             "-target",
             f"{arch}-apple-macosx13.0",
             "-framework",
             "AppKit",
-            ROOT / "src/App.swift",
-            ROOT / "src/Interface.swift",
-            ROOT / "src/Interaction.swift",
-            ROOT / "src/Backend.swift",
+            *APP_SOURCES,
             "-o",
             contents / "MacOS/UltraConvert",
         ]
     )
+    # Keep runtime/exported symbols; discard local/debug names before signing.
+    run(["/usr/bin/strip", "-S", "-x", contents / "MacOS/UltraConvert"])
     info = {
         "CFBundleIdentifier": "local.ultraconvert",
         "CFBundleName": "UltraConvert",
@@ -132,6 +132,17 @@ def format_services():
             ("MP4", "mp4", ["public.movie"]),
         ]
     ]
+    services.append(
+        {
+            "NSMenuItem": {"default": "Convert Here with UltraConvert — Choose Format…"},
+            "NSMessage": "prepareConversion",
+            "NSPortName": "UltraConvert",
+            "NSUserData": "choose",
+            "NSSendFileTypes": ["public.data"],
+            "NSRequiredContext": {"NSApplicationIdentifier": "com.apple.finder"},
+            "NSServiceDescription": "Choose Audio, Video, Images, Documents, Geospatial or Structured data, then review the conversion.",
+        }
+    )
     return services
 
 

@@ -41,7 +41,9 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         helpButton.bezelStyle = .helpButton
         helpButton.target = self; helpButton.action = #selector(showQuickStart)
         helpButton.toolTip = "Quick start, installation help and Finder settings"
-        let heading = NSStackView(views: [icon, titles, NSView(), helpButton])
+        let rules = NSButton(title: "Folder Rules…", target: self, action: #selector(showFolderRules))
+        rules.bezelStyle = .rounded; rules.image = NSImage(systemSymbolName: "square.stack.3d.up", accessibilityDescription: nil); rules.imagePosition = .imageLeading
+        let heading = NSStackView(views: [icon, titles, NSView(), rules, helpButton])
         heading.spacing = 12
         addFullWidth(heading)
 

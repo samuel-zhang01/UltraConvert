@@ -65,6 +65,12 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     var lastSummary = ""
     let preferences = UserDefaults.standard
     var settingsController: IntegrationSettings?
+    var automation: FolderAutomation?
+    var automationError: String?
+    var rulesController: FolderRulesWindow?
+    var watcherStatusItem: NSStatusItem?
+    var formatPicker: FormatPicker?
+    var waitingForAutomationQuit = false
     let support = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/UltraConvert")
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -78,6 +84,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         let settingsItem = NSMenuItem(title: "Settings…", action: #selector(showSettings), keyEquivalent: ",")
         settingsItem.target = self
         appMenu.addItem(settingsItem)
+        addMenuItem(appMenu, "Folder Rules…", #selector(showFolderRules), symbol: "square.stack.3d.up")
         appMenu.addItem(.separator())
         let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
         servicesItem.submenu = NSMenu(title: "Services")
@@ -144,9 +151,11 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         if preferences.bool(forKey: "autoRegisterFinderActions"),
            FileManager.default.fileExists(atPath: Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/FinderActions").path),
            Bundle.main.bundleURL.deletingLastPathComponent().lastPathComponent == "Applications" {
-            do { try FinderActions.install(app: Bundle.main.bundleURL, home: FileManager.default.homeDirectoryForCurrentUser) }
+            do { try FinderActions.install(app: Bundle.main.bundleURL, home: FileManager.default.homeDirectoryForCurrentUser); try FormatServices.register(app: Bundle.main.bundleURL) }
             catch { status.stringValue = "The app is ready. Finder actions need attention; use Help → Install Finder Quick Actions." }
         }
+        startFolderAutomation()
+        if args.isEmpty && preferences.bool(forKey: "startInMenuBar") && automation?.keepsRunning == true { window.orderOut(nil); NSApp.setActivationPolicy(.accessory) }
         if !args.isEmpty { loadFiles(args) }
         else if !files.isEmpty { loadFiles(files) }
     }
@@ -157,6 +166,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             files = filenames
             if window != nil { loadFiles(filenames) }
         }
+        if window != nil { showConverter() }
         sender.reply(toOpenOrPrint: .success)
     }
 
@@ -235,6 +245,10 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     @objc func convertToFolder() { guard !busy else { return }; if chooseFolder() { convertFiles() } }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(contextConvert(_:)) {
+            guard !busy, !selectedQueuePaths.isEmpty, let target = menuItem.representedObject as? String else { return false }
+            return selectedQueuePaths.contains { path in rowByPath[path].flatMap { queueRows[$0]["targets"] as? [String] }?.contains(target) == true }
+        }
         if let enabled = contextActionEnabled(menuItem.action) { return enabled }
         if menuItem.action == #selector(pickFiles) || menuItem.action == #selector(checkSetup) { return !busy }
         if menuItem.action == #selector(clearFiles) { return !busy && !files.isEmpty }
@@ -361,6 +375,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         openAfter.isEnabled = !value
         saveDefault.isEnabled = !value && !here
         refreshPresentation()
+        if !value { automation?.manualBatchFinished() }
     }
 
     func launch(_ args: [String], script: String = "convert.py", completion: @escaping (Int32, String, String) -> Void) {
@@ -619,8 +634,18 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         else if resultURLs.count > 1 { NSWorkspace.shared.activateFileViewerSelecting(Array(resultURLs.prefix(8))) }
         else if let url = resultURL { NSWorkspace.shared.open(url) }
     }
-    func windowShouldClose(_ sender: NSWindow) -> Bool { if busy { cancelConversion(); return false }; NSApp.terminate(nil); return true }
-    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply { if busy { cancelConversion(); return .terminateCancel }; return .terminateNow }
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        if busy { cancelConversion(); return false }
+        if automation?.keepsRunning == true { sender.orderOut(nil); if rulesController?.window?.isVisible != true { NSApp.setActivationPolicy(.accessory) }; return false }
+        NSApp.terminate(nil); return true
+    }
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if rulesController?.window?.isVisible == true && rulesController?.mayDiscard() == false { return .terminateCancel }
+        if busy { cancelConversion(); return .terminateCancel }
+        automation?.stop()
+        if automation?.running == true { waitingForAutomationQuit = true; return .terminateLater }
+        return .terminateNow
+    }
 }
 
 final class FlippedView: NSView {

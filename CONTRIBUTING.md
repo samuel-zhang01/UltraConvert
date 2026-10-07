@@ -32,8 +32,23 @@ Run the native AppKit layout check on macOS (uses public fixtures and does not c
 ```sh
 mkdir -p build
 "$UC_PY" src/convert.py --inspect -- examples/* > build/interface-inspection.json
-xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/App.swift src/Interface.swift src/Interaction.swift src/Backend.swift tests/test_interface.swift -o build/interface-test
+xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_interface.swift -o build/interface-test
 build/interface-test build/interface-inspection.json
+```
+
+Run native folder-rule tests (uses temporary folders and an injected Trash operation, never user files):
+
+```sh
+xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_automation.swift -o build/automation-test
+build/automation-test
+# Optional real-engine recognition/conversion in a standalone development app:
+build/automation-test /Applications/UltraConvert.app
+```
+
+For installer tests without a source-installed app in `~/Applications`, point `ULTRACONVERT_TEST_APP` at a freshly built native app. This preserves the signature/resource-fork checks without copying the full engine bundle:
+
+```sh
+ULTRACONVERT_TEST_APP="$PWD/build/native/UltraConvert.app" "$UC_PY" -m unittest discover -s tests -p 'test_installer.py' -v
 ```
 
 Generated reports go to ignored `evidence/local/`. Keep upstream research snapshots unchanged with their licences. Do not change policy to allow network resources, shell interpolation, arbitrary ImageMagick delegates, or execution of TeX. Add regression checks for actual preservation/security risks.

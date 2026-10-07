@@ -2,6 +2,7 @@
 
 import ast
 import importlib.util
+import os
 import plistlib
 import subprocess
 import sys
@@ -16,6 +17,8 @@ installer = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(installer)
 from package_app import format_services
 
+APP_FIXTURE = Path(os.environ.get("ULTRACONVERT_TEST_APP", str(installer.APP)))
+
 
 class InstallerTests(unittest.TestCase):
     @unittest.skipUnless(sys.platform == "darwin", "App bundle metadata requires macOS")
@@ -23,7 +26,7 @@ class InstallerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             base = Path(temp)
             source, dest = base / "Source.app", base / "Installed.app"
-            installer.run(["/usr/bin/ditto", installer.APP, source])
+            installer.run(["/usr/bin/ditto", APP_FIXTURE, source])
             attribute = "com.ultraconvert.install-test"
             installer.run(["/usr/bin/xattr", "-w", attribute, "preserve-bundle-metadata", source])
             with patch.object(installer, "SUPPORT", base / "support"):
@@ -41,7 +44,7 @@ class InstallerTests(unittest.TestCase):
             source, dest = base / "Source.workflow", base / "Installed.workflow"
             installer.workflow(source)
             installer.run(
-                [installer.APP / "Contents/MacOS/UltraConvert", "--brand-workflows", source]
+                [APP_FIXTURE / "Contents/MacOS/UltraConvert", "--brand-workflows", source]
             )
             with patch.object(installer, "SUPPORT", base / "support"):
                 installer.install_payload([(source, dest)])
@@ -87,9 +90,10 @@ class InstallerTests(unittest.TestCase):
     def test_finder_format_services_are_bounded_and_reviewable(self):
         services = format_services()
         self.assertEqual(
-            {item["NSUserData"] for item in services}, {"png", "jpg", "webp", "mp3", "opus", "mp4"}
+            {item["NSUserData"] for item in services},
+            {"png", "jpg", "webp", "mp3", "opus", "mp4", "choose"},
         )
-        self.assertEqual(len(services), 6)
+        self.assertEqual(len(services), 7)
         for item in services:
             self.assertEqual(item["NSMessage"], "prepareConversion")
             self.assertEqual(

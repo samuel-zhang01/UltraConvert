@@ -226,6 +226,7 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
     let login: any LoginService
     let registerFinder: () throws -> Void
     let loginToggle = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
+    let menuBarToggle = NSButton(checkboxWithTitle: "Start in the menu bar when folder rules are enabled", target: nil, action: nil)
     let finderToggle = NSButton(checkboxWithTitle: "Register Finder actions automatically", target: nil, action: nil)
     let loginStatus = NSTextField(wrappingLabelWithString: "")
     let integrationStatus = NSTextField(wrappingLabelWithString: "")
@@ -259,6 +260,9 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
         add(loginToggle)
         loginStatus.font = .systemFont(ofSize: 12); loginStatus.textColor = .secondaryLabelColor
         add(loginStatus)
+        menuBarToggle.target = self; menuBarToggle.action = #selector(changeMenuBarPreference)
+        add(menuBarToggle)
+        add(note("Enabled folder rules keep running when the converter window closes. Quit UltraConvert from its menu bar icon to stop watching."))
         add(button("Open Login Items Settings…", #selector(openLoginSettings), symbol: "person.crop.circle.badge.checkmark"))
         let divider = NSBox(); divider.boxType = .separator; add(divider)
         finderToggle.target = self; finderToggle.action = #selector(changeFinderPreference)
@@ -291,6 +295,7 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
         let state = login.state
         loginToggle.state = state.requested ? .on : .off
         loginStatus.stringValue = state.message
+        menuBarToggle.state = preferences.bool(forKey: "startInMenuBar") ? .on : .off
         finderToggle.state = preferences.object(forKey: "autoRegisterFinderActions") as? Bool != false ? .on : .off
     }
 
@@ -306,6 +311,8 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
             loginStatus.stringValue = "Could not change launch at login: " + error.localizedDescription
         }
     }
+
+    @objc func changeMenuBarPreference() { preferences.set(menuBarToggle.state == .on, forKey: "startInMenuBar") }
 
     @objc func changeFinderPreference() {
         preferences.set(finderToggle.state == .on, forKey: "autoRegisterFinderActions")

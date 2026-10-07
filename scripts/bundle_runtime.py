@@ -138,7 +138,7 @@ class RuntimeBundler:
         shutil.copytree(
             ROOT / "src",
             self.resources / "Source",
-            ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.swift"),
         )
         for name, formula in (
             ("ffmpeg", "ffmpeg-full"),

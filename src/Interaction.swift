@@ -4,7 +4,7 @@ import AppKit
 // inspection, preservation rules and explicit Convert button remain in the path.
 extension ConverterApp: NSMenuDelegate {
     @objc func prepareConversion(_ pasteboard: NSPasteboard, userData: String?, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
-        let allowed = Set(["png", "jpg", "webp", "mp3", "opus", "mp4"])
+        let allowed = FormatCatalog.all.union(["choose"])
         guard let format = userData, allowed.contains(format) else {
             error.pointee = "This format shortcut is unavailable."; return
         }
@@ -15,6 +15,13 @@ extension ConverterApp: NSMenuDelegate {
         let paths = uniquePaths(urls.map(\.path))
         guard !paths.isEmpty && paths.count <= 1000 else {
             error.pointee = "Select between 1 and 1,000 files in Finder."; return
+        }
+        if format == "choose" {
+            formatPicker = FormatPicker(count: paths.count, choose: { [weak self] target in
+                guard let self else { return }; guard !self.busy else { self.status.stringValue = "A batch is running. Wait or cancel, then choose a format again."; return }; self.presetFormat = target; self.here = true; self.refreshDestination(); self.loadFiles(paths); self.showConverter()
+            })
+            formatPicker?.showWindow(nil); formatPicker?.window?.makeKeyAndOrderFront(nil); NSApp.setActivationPolicy(.regular); NSApp.activate(ignoringOtherApps: true)
+            return
         }
         presetFormat = format
         here = true
@@ -74,6 +81,9 @@ extension ConverterApp: NSMenuDelegate {
     func buildQueueMenu() {
         let menu = NSMenu(title: "File actions")
         menu.delegate = self
+        let conversion = NSMenuItem(title: "Convert Here to", action: nil, keyEquivalent: "")
+        conversion.submenu = FormatCatalog.menu(target: self, action: #selector(contextConvert(_:)))
+        menu.addItem(conversion); menu.addItem(.separator())
         addMenuItem(menu, "Reveal Original in Finder", #selector(revealSources), symbol: "folder")
         addMenuItem(menu, "Show Converted File", #selector(revealSelectedOutputs), symbol: "folder.badge.checkmark")
         menu.addItem(.separator())
@@ -89,6 +99,11 @@ extension ConverterApp: NSMenuDelegate {
         if queueRows.indices.contains(row) && !fileTable.selectedRowIndexes.contains(row) {
             fileTable.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
         }
+    }
+
+    @objc func contextConvert(_ sender: NSMenuItem) {
+        guard !busy, let format = sender.representedObject as? String, !selectedQueuePaths.isEmpty else { return }
+        presetFormat = format; here = true; refreshDestination(); loadFiles(selectedQueuePaths)
     }
 
     func contextActionEnabled(_ action: Selector?) -> Bool? {

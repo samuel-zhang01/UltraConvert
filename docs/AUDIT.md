@@ -44,3 +44,16 @@ The binary release is Apple Silicon, ad-hoc signed with Hardened Runtime and not
 ## Primary technical references
 
 [Pandoc security](https://pandoc.org/demo/example33/22-a-note-on-security.html), [Pandoc manual](https://pandoc.org/MANUAL.html), [ImageMagick policy](https://imagemagick.org/script/security-policy.php), [GDAL LIBKML](https://gdal.org/en/stable/drivers/vector/libkml.html), [GDAL GML](https://gdal.org/en/stable/drivers/vector/gml.html), [Python subprocess](https://docs.python.org/3/library/subprocess.html), [GitHub runner labels](https://docs.github.com/en/actions/reference/runners/github-hosted-runners). Converter project research is in [research/REVIEW.md](../research/REVIEW.md).
+
+
+## Folder automation — 1.5.0 preview
+
+The watcher/scheduler, rule model and UI are Swift. Only explicitly chosen folders are watched. It has no arbitrary shell/code blocks and invokes the existing content-aware coordinator with argument arrays and isolated runtime configuration. Scans run off the UI queue, shared roots are deduplicated, and dropped/coalesced events trigger bounded rescans. A moved root pauses rather than silently following another location.
+
+Rule/activity data is local, size-bounded and atomically written. Metadata reads use no-follow descriptors, file identity checks and bounded reads. Invalid configuration fails closed. A file lock prevents simultaneous watcher owners; a second manual-conversion instance cannot replace active rules. Pause persists. Restart/resume/saved changes to enabled rules establish a baseline and ignore existing files unless the user explicitly invokes Run Existing Files.
+
+Output/archive paths must be outside every enabled watch root. Identity-based ancestry catches case aliases/firmlinks; internal staging is excluded from enumeration. Inputs skip hidden/temporary/linked files and package descendants. Limits: 32 rules, 12 conditions and 8 steps each, 20,000 observed files, 40,000 recursive entries, 1,000 candidates and 200 activity records.
+
+Original actions default to Keep and require explicit acknowledgement for Archive/Trash. Publication uses exclusive rename and never replaces a destination. After success, originals are verified by identity and SHA-256. A same-filesystem hidden quarantine prevents a replacement at the old name from being removed. Failure restores the original exclusively; if its name is occupied, the held original is retained with a recovery path in Activity. Trash is recoverable, not permanent deletion. Document/GIS originals stay in place because of dependencies. These guards do not turn conversion into a filesystem-wide transactional system or guarantee semantic preservation for every possible format.
+
+The 231 native automation assertions and full engine/security corpus passed locally; [UX/performance scope](UX-AUDIT.md) states measurement limits. Public releases still use the separate-runtime installer, are ad-hoc signed and are not notarized. The complete local-development app remains gated on source/licence completion, Developer ID signing, notarization and clean-Mac verification.
