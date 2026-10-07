@@ -1,0 +1,14 @@
+{
+  "checks": 265,
+  "idle_cpu_seconds": 0.0032,
+  "idle_sample_seconds": 5,
+  "native_events": true,
+  "passed": true,
+  "real_engine": true,
+  "scan_1000_files_seconds": 0.006557941436767578,
+  "test_peak_rss_bytes": 33243136,
+  "platform": "Apple Silicon/macOS 27",
+  "assessment": "Local regression fixtures, including real FSEvents and the unchanged bundled engine. CPU/RSS values describe a short fixture process sample, not full GUI or engine peaks.",
+  "version": "1.5.1",
+  "native_signed_executable_bytes": 600800
+}

@@ -1,3 +1,14 @@
+# Refinement crawl — 1.5.1 preview
+
+The 1.5.0 scoped developer assessment remains **9.0/10**; this patch closes additional correctness and keyboard gaps found during a second code/UI review.
+
+- Discard now reloads the saved rule instead of retaining edited fields in memory. Save commits before navigation; failed validation keeps the editor open.
+- Read-only tests have Cancel Test/Escape, cancellation on rule changes/closing/quit, serialized engine work and suppression of stale plans. Quit waits for test work to drain.
+- Previews reject linked/changed sources and document/GIS original policies that the actual pipeline would refuse.
+- Standard Mac text editing and Close Window commands are present; the grouped Finder chooser cancels with Escape. Activity reuses a date formatter and resets empty-row diagnostics.
+
+All **265 local automation assertions passed**. [Regression evidence](../evidence/automation-1.5.1.json) covers these cases alongside the existing watcher, publication and source-integrity checks. The underlying conversion engines are unchanged. The independent accessibility/user-study, older-system and public standalone-distribution gaps below still apply.
+
 # Native UX crawl — 1.5.0 preview
 
 Developer assessment on Apple Silicon/macOS 27, 2026-10-07: **9.0/10** for the checked rule-builder, conversion and supported Finder flows. This is a scoped developer judgment, not an independent usability study, security certification or a promise about every file. Equal weighting of the six areas below gives 9.0.

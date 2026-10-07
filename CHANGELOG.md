@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.1 preview — 2026-10-07
+
+- Rule navigation/closing offers Save Changes, Keep Editing and Discard Changes. Discard actually restores the saved rule; failed saves block navigation.
+- Cancellable, serialized read-only file tests. Edits, rule switches, window closing and quit invalidate late results; quit waits for test cleanup.
+- Test previews refuse linked or changed sources and apply the same document/GIS source-action protections as conversion.
+- Native Undo/Redo/Cut and Close Window commands; an explicit Cancel/Escape action in the Finder format chooser.
+- Cached Activity date formatting and complete empty-row reset when table cells are reused.
+- The neutral native glass design and existing format support remain in place. Public packaging retains the separate-runtime installer and is not notarized.
+
 ## 1.5.0 preview — 2026-10-07
 
 - Native folder automation with a neutral native glass block rule builder, templates, ALL/ANY content/name conditions, ordered conversion and rename steps, output routing, and explicit after-success Keep/Archive/Trash policies.

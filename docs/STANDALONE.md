@@ -14,7 +14,7 @@ The native Swift/AppKit app can run its conversion engines from inside `UltraCon
 
 In v1.5.0, **Folder Rules…** adds the same native block builder, event-driven watcher and menu bar control described in the [user guide](../README.md#folder-rules-v150-preview). The watcher itself is Swift; it starts the private engine coordinator only for recognition/conversion. No package manager or Python process runs while idle.
 
-This is a **local development preview**, not an Apple-notarized public download. The first engine bundle requires **Apple Silicon and macOS 27** because its installed engine binaries require that OS. Older macOS/Intel and a fresh quarantined Mac are unverified. The complete bundle is substantial because it includes Calibre and its frameworks along with the other engines. The public v1.5.0 preview uses the separate-runtime installer; this standalone DMG remains local.
+This is a **local development preview**, not an Apple-notarized public download. The first engine bundle requires **Apple Silicon and macOS 27** because its installed engine binaries require that OS. Older macOS/Intel and a fresh quarantined Mac are unverified. The complete bundle is substantial because it includes Calibre and its frameworks along with the other engines. The public v1.5.1 preview uses the separate-runtime installer; this standalone DMG remains local.
 
 ## Build and verify
 

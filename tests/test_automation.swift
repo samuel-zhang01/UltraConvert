@@ -20,6 +20,21 @@ final class FixtureAutomationEngine: AutomationEngine {
         return output
     }
 }
+final class ControlledInspectionEngine: AutomationEngine {
+    let release = DispatchSemaphore(value: 0)
+    private let lock = NSLock()
+    private var didStart = false
+    let beforeReturn: () throws -> Void
+    var started: Bool { lock.lock(); defer { lock.unlock() }; return didStart }
+    init(beforeReturn: @escaping () throws -> Void = {}) { self.beforeReturn = beforeReturn }
+    func inspect(_ url: URL, cancellation: AutomationCancellation) throws -> RecognizedFile {
+        lock.lock(); didStart = true; lock.unlock()
+        guard release.wait(timeout: .now() + 10) == .success else { throw AutomationIssue("Test fixture timed out") }
+        try cancellation.check(); try beforeReturn()
+        return try FixtureAutomationEngine().inspect(url, cancellation: cancellation)
+    }
+    func convert(_ file: RecognizedFile, to format: String, staging: URL, cancellation: AutomationCancellation) throws -> URL { throw AutomationIssue("Read-only tests must never convert") }
+}
 @main
 struct AutomationTests {
     static var checks = 0
@@ -96,9 +111,13 @@ struct AutomationTests {
         let doc = inbox.appendingPathComponent("Book.docx"); try Data("doc".utf8).write(to: doc)
         var docRule = trashed; docRule.conditions = [.init(field: .category, value: "document")]; docRule.steps = [.init(kind: .convert, value: "md")]
         rejects("Companion original protected", { _ = try trashPipeline.run(doc, rule: docRule, roots: roots, cancellation: AutomationCancellation()) }); check(fm.fileExists(atPath: doc.path), "Document source retained")
+        rejects("Preview refuses document source removal", { _ = try pipeline.preview(doc, rule: docRule, cancellation: AutomationCancellation()) })
+        var renameDocument = docRule; renameDocument.originalPolicy = .keep; renameDocument.steps = [.init(kind: .rename, value: "Copy-{name}")]
+        rejects("Preview refuses document routing without companion preservation", { _ = try pipeline.preview(doc, rule: renameDocument, cancellation: AutomationCancellation()) })
         let sourceLink = inbox.appendingPathComponent("linked.mp3"); try fm.createSymbolicLink(at: sourceLink, withDestinationURL: doc)
         rejects("Input symlink", { _ = try FileStamp.read(sourceLink) })
-        let hardLink = inbox.appendingPathComponent("hard.mp3"); try fm.linkItem(at: doc, to: hardLink); rejects("Input hard link", { _ = try FileStamp.read(hardLink) }); try fm.removeItem(at: hardLink)
+        rejects("Preview refuses linked sources", { _ = try pipeline.preview(sourceLink, rule: rule, cancellation: AutomationCancellation()) })
+        let hardLink = inbox.appendingPathComponent("hard.mp3"); try fm.linkItem(at: doc, to: hardLink); rejects("Input hard link", { _ = try FileStamp.read(hardLink) }); rejects("Preview refuses hard-linked sources", { _ = try pipeline.preview(hardLink, rule: rule, cancellation: AutomationCancellation()) }); try fm.removeItem(at: hardLink)
         let hidden = inbox.appendingPathComponent(".hidden.mp3"), partial = inbox.appendingPathComponent("unfinished.part")
         for item in [hidden, partial] { try Data("fixture".utf8).write(to: item); check(!RulePaths.eligible(item), "Temporary/hidden ignored") }
         let support = root.appendingPathComponent("Support"), store = try AutomationStore(support: support)
@@ -168,7 +187,16 @@ struct AutomationTests {
         #if compiler(>=6.2)
         if #available(macOS 26.0, *), !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency { check(nativeCard.usesGlass, "Native macOS glass API") }
         #endif
-        let picker = FormatPicker(count: 3, choose: { _ in }); picker.category.selectItem(at: 5); picker.refreshFormats(); check(picker.format.numberOfItems == 5, "Grouped Finder picker")
+        var pickerCommitted = false
+        let picker = FormatPicker(count: 3, choose: { _ in pickerCommitted = true }); picker.category.selectItem(at: 5); picker.refreshFormats(); check(picker.format.numberOfItems == 5, "Grouped Finder picker")
+        picker.window!.contentView!.layoutSubtreeIfNeeded()
+        for button in [picker.cancel, picker.review] {
+            let frame = button.convert(button.bounds, to: picker.window!.contentView)
+            check(frame.minX >= 0 && frame.maxX <= 560 && frame.minY >= 0 && frame.maxY <= 265, "Finder chooser actions stay inside their window")
+        }
+        picker.window!.orderFront(nil)
+        let escape = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: picker.window!.windowNumber, context: nil, characters: "\u{1b}", charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)!
+        check(picker.window!.performKeyEquivalent(with: escape) && !picker.window!.isVisible && !pickerCommitted, "Escape closes the format chooser without committing a batch")
         let menu = FormatCatalog.menu(target: NSObject(), action: #selector(NSApplication.terminate(_:))); check(menu.items.count == 6 && menu.items.reduce(0) { $0 + ($1.submenu?.items.count ?? 0) } == 62, "Native category submenus")
         rulesWindow.refreshActivity()
         check(rulesWindow.activityTable.numberOfRows == runtime.activities.count, "Virtualized history retains all outcomes")
@@ -182,6 +210,56 @@ struct AutomationTests {
         check(activityCell.details.frame.width > 400 && activityCell.reveal.frame.maxX == 588, "Activity text fills the row with a trailing Reveal control")
         let detailFrame = activityCell.details.convert(activityCell.details.bounds, to: activityCell)
         check(detailFrame.minY >= 0 && detailFrame.maxY <= 90 && activityCell.details.stringValue.contains("Finished"), "Activity outcome stays visible within the row")
+        activityCell.configure(nil)
+        check(activityCell.reveal.isHidden && activityCell.details.toolTip == activityCell.details.stringValue && activityCell.accessibilityLabel() == "No files processed yet", "Reused empty Activity rows clear old output details")
+        runtime.setPaused(true)
+        let savedDraft = runtime.rules.first!
+        rulesWindow.name.stringValue = "Unsaved edit"
+        check(!rulesWindow.resolveUnsavedChanges(.alertSecondButtonReturn) && rulesWindow.name.stringValue == "Unsaved edit", "Keep Editing preserves unsaved controls")
+        check(rulesWindow.resolveUnsavedChanges(.alertThirdButtonReturn) && rulesWindow.draft == savedDraft && rulesWindow.name.stringValue == savedDraft.name, "Discard restores the saved rule and controls")
+        rulesWindow.window!.makeKeyAndOrderFront(nil); rulesWindow.window!.makeFirstResponder(rulesWindow.name)
+        guard let liveEditor = rulesWindow.name.currentEditor() else { preconditionFailure("Rule name must support native text editing") }
+        liveEditor.string = "Live field-editor input"; rulesWindow.gather()
+        check(rulesWindow.draft.name == "Live field-editor input", "Unsaved-change checks include active field-editor text")
+        _ = rulesWindow.resolveUnsavedChanges(.alertThirdButtonReturn)
+        check(rulesWindow.name.currentEditor() == nil && rulesWindow.name.stringValue == savedDraft.name, "Discard ends live text editing before restoring saved controls")
+        rulesWindow.draft.destination = inbox.path; rulesWindow.rebuildEditor()
+        check(!rulesWindow.resolveUnsavedChanges(.alertFirstButtonReturn) && runtime.rules.first == savedDraft, "Invalid enabled-rule saves block navigation without changing saved data")
+        _ = rulesWindow.resolveUnsavedChanges(.alertThirdButtonReturn)
+        rulesWindow.name.stringValue = "Saved from close prompt"
+        check(rulesWindow.resolveUnsavedChanges(.alertFirstButtonReturn) && runtime.rules.first?.name == "Saved from close prompt", "Save Changes commits before navigation")
+        let delayed = ControlledInspectionEngine(); runtime.engine = { delayed }; rulesWindow.gather()
+        rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ delayed.started })
+        check(rulesWindow.previewRunning && !rulesWindow.test.isEnabled && !rulesWindow.cancelTest.isHidden, "Read-only tests expose cancellation and disable repeated starts")
+        rulesWindow.window!.setContentSize(NSSize(width: 900, height: 620)); rulesWindow.window!.contentView!.layoutSubtreeIfNeeded()
+        let cancelFrame = rulesWindow.cancelTest.convert(rulesWindow.cancelTest.bounds, to: rulesWindow.window!.contentView)
+        check(cancelFrame.minX >= 0 && cancelFrame.maxX <= 900 && cancelFrame.minY >= 0 && cancelFrame.maxY <= 620, "Cancel Test remains reachable at minimum window size")
+        rulesWindow.name.stringValue = "Edited during test"; delayed.release.signal(); spin({ rulesWindow.previewWorkCount == 0 })
+        check(rulesWindow.message.stringValue.contains("changed during its test") && rulesWindow.test.isEnabled, "A late plan cannot describe edited rule controls")
+        _ = rulesWindow.resolveUnsavedChanges(.alertThirdButtonReturn)
+        let cancelledPreview = ControlledInspectionEngine(); runtime.engine = { cancelledPreview }; rulesWindow.gather()
+        rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ cancelledPreview.started }); rulesWindow.cancelTest.invoke()
+        check(!rulesWindow.previewRunning && !rulesWindow.test.isEnabled, "Cancelled tests stay serialized until their work finishes")
+        cancelledPreview.release.signal(); spin({ rulesWindow.previewWorkCount == 0 })
+        check(rulesWindow.message.stringValue == "Test cancelled. No files changed." && rulesWindow.test.isEnabled, "Cancelled test completion does not overwrite current feedback")
+        let switchedPreview = ControlledInspectionEngine(); runtime.engine = { switchedPreview }; rulesWindow.gather()
+        rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ switchedPreview.started })
+        rulesWindow.selectedID = fallback.id; rulesWindow.draft = runtime.rules.first { $0.id == fallback.id }!; rulesWindow.rebuildEditor(); rulesWindow.message.stringValue = "Current rule feedback"
+        switchedPreview.release.signal(); spin({ rulesWindow.previewWorkCount == 0 })
+        check(rulesWindow.message.stringValue == "Current rule feedback" && !rulesWindow.previewRunning, "Rule switches cancel tests and suppress their late completion")
+        let changedSource = ControlledInspectionEngine(beforeReturn: { try Data("Changed during preview recognition".utf8).write(to: source) }); changedSource.release.signal()
+        let changedPipeline = AutomationPipeline(engine: changedSource, scratch: root.appendingPathComponent("Preview Scratch"))
+        rejects("Preview refuses a source changed during recognition", { _ = try changedPipeline.preview(source, rule: rule, cancellation: AutomationCancellation()) })
+        let closingPreview = ControlledInspectionEngine(); runtime.engine = { closingPreview }; rulesWindow.gather()
+        rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ closingPreview.started })
+        rulesWindow.windowWillClose(Notification(name: NSWindow.willCloseNotification)); closingPreview.release.signal(); spin({ rulesWindow.previewWorkCount == 0 })
+        check(!rulesWindow.previewRunning && rulesWindow.cancelTest.isHidden, "Closing the rule window cancels and drains its test")
+        let quittingPreview = ControlledInspectionEngine(); runtime.engine = { quittingPreview }; rulesWindow.gather()
+        rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ quittingPreview.started })
+        let quittingApp = ConverterApp(); quittingApp.rulesController = rulesWindow
+        check(quittingApp.applicationShouldTerminate(NSApp) == .terminateLater && !rulesWindow.previewRunning, "Quit cancels a file test and waits for its work to drain")
+        quittingPreview.release.signal(); spin({ rulesWindow.previewWorkCount == 0 }); quittingApp.waitingForAutomationQuit = false
+        check(quittingApp.applicationShouldTerminate(NSApp) == .terminateNow, "Quit proceeds after file-test cleanup")
         runtime.stop(); secondRuntime.stop()
         if CommandLine.arguments.count > 1 {
             let contents = URL(fileURLWithPath: CommandLine.arguments[1]).appendingPathComponent("Contents")

@@ -88,9 +88,14 @@ final class AutomationPipeline {
         self.engine = engine; self.scratch = scratch; self.trash = trash
     }
     func preview(_ url: URL, rule: WatchRule, cancellation: AutomationCancellation) throws -> String {
+        try cancellation.check()
         guard RulePaths.contains(root: rule.inputFolder, path: url.path) else { throw AutomationIssue("Choose a test file inside this rule’s inbox.") }
+        let stamp = try FileStamp.read(url)
         let file = try engine.inspect(url, cancellation: cancellation)
+        try cancellation.check()
+        guard try FileStamp.read(url) == stamp else { throw AutomationIssue("The test file changed during recognition. Test it again. No files changed.") }
         guard rule.matches(file) else { return "No match: detected \(file.format.uppercased()) / \(file.category). No files changed." }
+        try validateOriginalActions(file, rule: rule)
         var name = url.deletingPathExtension().lastPathComponent, format = file.format
         for step in rule.steps {
             if step.kind == .convert {
@@ -109,8 +114,7 @@ final class AutomationPipeline {
         if let recognized { guard recognized.1 == originalStamp, recognized.0.url == url else { throw AutomationIssue("The original changed after recognition. It was kept.") } }
         let original = try recognized?.0 ?? engine.inspect(url, cancellation: cancellation)
         guard rule.matches(original) else { return .init(message: "No matching conditions", output: nil) }
-        if rule.originalPolicy != .keep && ["geo", "document"].contains(original.category) { throw AutomationIssue("Geospatial and document originals may have companion files. Use Keep original for this category.") }
-        if ["geo", "document"].contains(original.category) && !rule.steps.contains(where: { $0.kind == .convert }) { throw AutomationIssue("Add a conversion block for documents and geospatial files so companion resources are preserved.") }
+        try validateOriginalActions(original, rule: rule)
         let digest = rule.originalPolicy == .keep ? nil : try RulePaths.digest(url)
         try FileManager.default.createDirectory(at: scratch, withIntermediateDirectories: true)
         let stage = scratch.appendingPathComponent(UUID().uuidString)
@@ -146,6 +150,10 @@ final class AutomationPipeline {
             }
             return .init(message: "Finished · original \(rule.originalPolicy == .keep ? "kept" : rule.originalPolicy == .archive ? "archived" : "sent to Trash")", output: result)
         } catch { return .init(message: "Output ready · " + error.localizedDescription, output: result) }
+    }
+    private func validateOriginalActions(_ file: RecognizedFile, rule: WatchRule) throws {
+        if rule.originalPolicy != .keep && ["geo", "document"].contains(file.category) { throw AutomationIssue("Geospatial and document originals may have companion files. Use Keep original for this category.") }
+        if ["geo", "document"].contains(file.category) && !rule.steps.contains(where: { $0.kind == .convert }) { throw AutomationIssue("Add a conversion block for documents and geospatial files so companion resources are preserved.") }
     }
     private func finishOriginal(_ source: URL, stamp: FileStamp, digest: Data, rule: WatchRule, roots: [String], cancellation: AutomationCancellation) throws {
         try cancellation.check()

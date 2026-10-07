@@ -54,6 +54,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     let pause = RuleButton()
     let save = RuleButton()
     let test = RuleButton()
+    let cancelTest = RuleButton()
     let name = NSTextField()
     let enabled = NSButton(checkboxWithTitle: "Enable this rule after saving", target: nil, action: nil)
     let recursive = NSButton(checkboxWithTitle: "Include subfolders", target: nil, action: nil)
@@ -69,6 +70,11 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     var activityDate: Date?
     var onClose: (() -> Void)?
     var ruleTools: [NSButton] = []
+    private var previewID: UUID?
+    private var previewCancellation: AutomationCancellation?
+    var previewRunning: Bool { previewID != nil }
+    private(set) var previewWorkCount = 0
+    var onPreviewFinished: (() -> Void)?
 
     init(runtime: FolderAutomation) {
         self.runtime = runtime
@@ -120,8 +126,12 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         save.title = "Save Rule"; save.bezelStyle = .rounded; save.target = save; save.action = #selector(RuleButton.performAction); save.keyEquivalent = "s"; save.keyEquivalentModifierMask = .command
         save.invoke = { [weak self] in self?.saveRule() }
         test.title = "Test a File…"; test.bezelStyle = .rounded; test.target = test; test.action = #selector(RuleButton.performAction); test.invoke = { [weak self] in self?.testFile() }
+        cancelTest.title = "Cancel Test"; cancelTest.bezelStyle = .rounded; cancelTest.target = cancelTest; cancelTest.action = #selector(RuleButton.performAction); cancelTest.isHidden = true
+        cancelTest.keyEquivalent = "\u{1b}"
+        cancelTest.keyEquivalentModifierMask = []
+        cancelTest.invoke = { [weak self] in self?.cancelPreview(); self?.message.textColor = .secondaryLabelColor; self?.message.stringValue = "Test cancelled. No files changed." }
         let existing = RuleButton("Run Existing Files…", action: { [weak self] in self?.runExisting() })
-        let footer = horizontal([test, existing, NSView(), save]); full(RuleBlock(content: footer), in: right)
+        let footer = horizontal([test, cancelTest, existing, NSView(), save]); full(RuleBlock(content: footer), in: right)
         NSLayoutConstraint.activate([area.heightAnchor.constraint(equalTo: main.heightAnchor, constant: -112), sidebar.heightAnchor.constraint(equalTo: area.heightAnchor), right.heightAnchor.constraint(equalTo: area.heightAnchor)])
         if let first = runtime.rules.first { selectedID = first.id; draft = first }
         rebuildEditor(); reloadList(); refreshStatus(); window.center()
@@ -159,9 +169,11 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         return horizontal([text, button])
     }
     func rebuildEditor() {
+        window?.makeFirstResponder(nil)
+        cancelPreview()
         for view in body.arrangedSubviews { body.removeArrangedSubview(view); view.removeFromSuperview() }
         conditions = []; steps = []
-        save.isEnabled = selectedID != nil; test.isEnabled = selectedID != nil
+        save.isEnabled = selectedID != nil; test.isEnabled = selectedID != nil && previewWorkCount == 0
         guard selectedID != nil else {
             block("Make your first flow", subtitle: "Choose Audio → MP3, Images → WebP or Data → YAML on the left. Pick two folders, test a file, then enable your rule.", views: [uiLabel("WHEN a file arrives → IF it matches → THEN run your blocks → SAVE the result", size: 13, weight: .medium)])
             return
@@ -213,17 +225,19 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     }
     func gather() {
         guard selectedID != nil else { return }
-        draft.name = name.stringValue; draft.enabled = enabled.state == .on; draft.recursive = recursive.state == .on; draft.settleSeconds = settle.selectedItem?.representedObject as? Double ?? 3; draft.matchAll = matching.indexOfSelectedItem == 0
-        draft.conditions = conditions.map { field, control in .init(field: field, value: (control as? NSPopUpButton)?.selectedItem?.representedObject as? String ?? (control as? NSTextField)?.stringValue ?? "") }
-        draft.steps = steps.map { kind, control in .init(kind: kind, value: (control as? NSPopUpButton)?.selectedItem?.representedObject as? String ?? (control as? NSTextField)?.stringValue ?? "") }
+        draft.name = textValue(name); draft.enabled = enabled.state == .on; draft.recursive = recursive.state == .on; draft.settleSeconds = settle.selectedItem?.representedObject as? Double ?? 3; draft.matchAll = matching.indexOfSelectedItem == 0
+        draft.conditions = conditions.map { field, control in .init(field: field, value: controlValue(control)) }
+        draft.steps = steps.map { kind, control in .init(kind: kind, value: controlValue(control)) }
         draft.originalPolicy = OriginalPolicy(rawValue: policy.selectedItem?.representedObject as? String ?? "keep") ?? .keep
         draft.acknowledgedRemoval = acknowledge.state == .on
     }
-    func saveRule() {
-        gather(); guard let index = runtime.rules.firstIndex(where: { $0.id == selectedID }) else { return }
+    private func textValue(_ field: NSTextField) -> String { field.currentEditor()?.string ?? field.stringValue }
+    private func controlValue(_ control: NSControl) -> String { (control as? NSPopUpButton)?.selectedItem?.representedObject as? String ?? (control as? NSTextField).map(textValue) ?? "" }
+    @discardableResult func saveRule() -> Bool {
+        gather(); guard let index = runtime.rules.firstIndex(where: { $0.id == selectedID }) else { return false }
         var next = runtime.rules; next[index] = draft
-        do { try runtime.save(next); message.textColor = .secondaryLabelColor; message.stringValue = draft.enabled ? "Saved and watching. Only new or changed files arriving from now on will run." : "Draft saved. Turn on Enable this rule, then save to start watching."; reloadList() }
-        catch { message.textColor = .systemRed; message.stringValue = error.localizedDescription }
+        do { try runtime.save(next); cancelPreview(); message.textColor = .secondaryLabelColor; message.stringValue = draft.enabled ? "Saved and watching. Only new or changed files arriving from now on will run." : "Draft saved. Turn on Enable this rule, then save to start watching."; reloadList(); return true }
+        catch { message.textColor = .systemRed; message.stringValue = error.localizedDescription; return false }
     }
     func newRule(template: Int) {
         guard mayDiscard() else { return }
@@ -238,8 +252,15 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     func mayDiscard() -> Bool {
         gather()
         guard let saved = runtime.rules.first(where: { $0.id == selectedID }), saved != draft else { return true }
-        let alert = NSAlert(); alert.messageText = "Save changes to this rule?"; alert.informativeText = "Your edits have not been saved."; alert.addButton(withTitle: "Keep Editing"); alert.addButton(withTitle: "Discard Changes")
-        return alert.runModal() == .alertSecondButtonReturn
+        let alert = NSAlert(); alert.messageText = "Save changes to this rule?"; alert.informativeText = "Saved changes take effect before you continue."; alert.addButton(withTitle: "Save Changes"); alert.addButton(withTitle: "Keep Editing"); alert.addButton(withTitle: "Discard Changes")
+        alert.buttons[1].keyEquivalent = "\u{1b}"
+        alert.buttons[1].keyEquivalentModifierMask = []
+        return resolveUnsavedChanges(alert.runModal())
+    }
+    func resolveUnsavedChanges(_ choice: NSApplication.ModalResponse) -> Bool {
+        if choice == .alertFirstButtonReturn { return saveRule() }
+        guard choice == .alertThirdButtonReturn, let saved = runtime.rules.first(where: { $0.id == selectedID }) else { return false }
+        draft = saved; rebuildEditor(); message.textColor = .secondaryLabelColor; message.stringValue = "Changes discarded. The saved rule was restored."; return true
     }
     func duplicate() {
         guard selectedID != nil, mayDiscard() else { return }
@@ -263,12 +284,33 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         do { try rule.validate(roots: runtime.enabledRules.map(\.inputFolder) + [rule.inputFolder]) } catch { message.stringValue = error.localizedDescription; return }
         let panel = NSOpenPanel(); panel.canChooseDirectories = false; panel.message = "Test matching and preview this rule. No files will change."; panel.directoryURL = URL(fileURLWithPath: rule.inputFolder)
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        test.isEnabled = false; message.stringValue = "Checking content and building a read-only plan…"
+        startPreview(url, rule: rule)
+    }
+    func cancelPreview() {
+        let wasRunning = previewRunning
+        previewCancellation?.cancel(); previewCancellation = nil; previewID = nil
+        test.isEnabled = selectedID != nil && previewWorkCount == 0; cancelTest.isHidden = true
+        if wasRunning { message.textColor = .secondaryLabelColor; message.stringValue = "The rule changed or its test was closed. Test again to see a current plan." }
+    }
+    func startPreview(_ url: URL, rule: WatchRule) {
+        guard previewWorkCount == 0 else { message.stringValue = "The previous test is finishing. Try again when Test a File becomes available."; return }
+        cancelPreview()
+        let id = UUID(), cancellation = AutomationCancellation(); previewID = id; previewCancellation = cancellation
+        previewWorkCount += 1
+        test.isEnabled = false; cancelTest.isHidden = false; message.textColor = .secondaryLabelColor; message.stringValue = "Checking \(url.lastPathComponent) and building a read-only plan…"
         let factory = runtime.engine, scratch = runtime.store.url("Staging")
         DispatchQueue.global(qos: .utility).async { [weak self] in
-            let text: String
-            do { text = try AutomationPipeline(engine: factory(), scratch: scratch).preview(url, rule: rule, cancellation: AutomationCancellation()) } catch { text = error.localizedDescription }
-            DispatchQueue.main.async { self?.test.isEnabled = true; self?.message.stringValue = text }
+            let text: String, failed: Bool
+            do { text = try AutomationPipeline(engine: factory(), scratch: scratch).preview(url, rule: rule, cancellation: cancellation); failed = false } catch { text = error.localizedDescription; failed = true }
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.previewWorkCount -= 1; self.test.isEnabled = self.selectedID != nil && self.previewWorkCount == 0
+                defer { self.onPreviewFinished?() }
+                guard self.previewID == id else { return }
+                self.gather(); self.previewID = nil; self.previewCancellation = nil; self.cancelTest.isHidden = true
+                guard self.selectedID == rule.id, self.draft == rule else { self.message.textColor = .secondaryLabelColor; self.message.stringValue = "The rule changed during its test. Test again to see a current plan. No files changed."; return }
+                self.message.textColor = failed ? .systemRed : .secondaryLabelColor; self.message.stringValue = text
+            }
         }
     }
     func runExisting() {
@@ -302,7 +344,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     }
     func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool { tableView == activityTable || runtime.rules[row].id == selectedID || mayDiscard() }
     func windowShouldClose(_ sender: NSWindow) -> Bool { mayDiscard() }
-    func windowWillClose(_ notification: Notification) { onClose?() }
+    func windowWillClose(_ notification: Notification) { cancelPreview(); onClose?() }
     func tableViewSelectionDidChange(_ notification: Notification) {
         guard notification.object as? NSTableView === table, runtime.rules.indices.contains(table.selectedRow), runtime.rules[table.selectedRow].id != selectedID else { return }
         selectedID = runtime.rules[table.selectedRow].id; draft = runtime.rules[table.selectedRow]; rebuildEditor(); reloadList(); message.stringValue = "Edit blocks, test a file, then save. Changes take effect after saving."
@@ -312,6 +354,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
 /// Reuse only visible history rows; hundreds of per-row glass effects and
 /// full-stack rebuilding would waste memory and frame time during bulk work.
 final class ActivityCell: NSTableCellView {
+    private static let timestamp: DateFormatter = { let value = DateFormatter(); value.locale = .autoupdatingCurrent; value.timeZone = .autoupdatingCurrent; value.dateStyle = .short; value.timeStyle = .short; return value }()
     let title = NSTextField(labelWithString: "")
     let details = NSTextField(wrappingLabelWithString: "")
     let reveal = RuleButton()
@@ -337,9 +380,9 @@ final class ActivityCell: NSTableCellView {
     }
     required init?(coder: NSCoder) { fatalError() }
     func configure(_ event: AutomationActivity?) {
-        guard let event else { title.stringValue = "No files processed yet"; details.stringValue = "Test your rule, then add a new file to its inbox. Activity stays local; the last 200 outcomes are retained."; reveal.isHidden = true; return }
+        guard let event else { title.stringValue = "No files processed yet"; details.stringValue = "Test your rule, then add a new file to its inbox. Activity stays local; the last 200 outcomes are retained."; details.toolTip = details.stringValue; reveal.isHidden = true; reveal.invoke = {}; setAccessibilityLabel(title.stringValue); return }
         title.stringValue = event.file
-        let date = DateFormatter.localizedString(from: event.date, dateStyle: .short, timeStyle: .short)
+        let date = Self.timestamp.string(from: event.date)
         details.stringValue = event.rule + " · " + date + "\n" + event.message; details.toolTip = event.message
         reveal.isHidden = event.output == nil; reveal.setAccessibilityLabel("Reveal output for " + event.file)
         reveal.invoke = { if let output = event.output { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: output)]) } }

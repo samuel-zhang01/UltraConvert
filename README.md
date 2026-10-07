@@ -3,7 +3,7 @@
 <p align="center">Convert files locally. One selection. A clear destination.</p>
 <p align="center"><a href="https://github.com/samuel-zhang01/UltraConvert/actions/workflows/ci.yml"><img src="https://github.com/samuel-zhang01/UltraConvert/actions/workflows/ci.yml/badge.svg" alt="CI"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT licence"></a> <a href="https://github.com/samuel-zhang01/UltraConvert/releases/latest"><img src="https://img.shields.io/github/v/release/samuel-zhang01/UltraConvert" alt="Latest release"></a></p>
 
-UltraConvert is a native macOS app with two Finder Quick Actions, seven Finder Services and native folder rules in Finder’s Services menu. Convert one file or a mixed batch of images, documents, ebooks, video, audio, geospatial data and configuration files. Files are recognised from their contents where possible, and compatible output formats appear in the app.
+UltraConvert is a native macOS app with folder rules, two Finder Quick Actions and seven Finder Services. Convert one file or a mixed batch of images, documents, ebooks, video, audio, geospatial data and configuration files. Files are recognised from their contents where possible, and compatible output formats appear in the app.
 
 Conversion runs on your Mac. Manual conversion always keeps originals; folder rules keep them by default and can explicitly archive or Trash them after success. No account, upload service or telemetry. Enabled folder rules run while the app is open, including when its main window is closed. **Both Finder actions support bulk conversion.**
 
@@ -11,9 +11,9 @@ Conversion runs on your Mac. Manual conversion always keeps originals; folder ru
 
 ## Install
 
-The latest stable release is **v1.3.0**. The **[v1.5.0 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.5.0)** adds folder automation, a grouped format picker and startup/Finder settings; use its installer ZIP and the steps below. Both public versions install conversion engines separately and are **not Apple notarized**.
+The latest stable release is **v1.3.0**. The **[v1.5.1 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.5.1)** includes folder automation, a grouped format picker and startup/Finder settings; use its installer ZIP and the steps below. Both public versions install conversion engines separately and are **not Apple notarized**.
 
-A self-contained v1.5.0 development app also runs locally, with all engines packaged inside `UltraConvert.app`. Its drag-to-Applications DMG is currently Apple Silicon/macOS 27 only and remains unpublished while dependency-source/licence review and Apple distribution signing are completed. See the [standalone build guide](docs/STANDALONE.md) for developer commands and measured size reductions.
+A self-contained v1.5.1 development app also runs locally, with all engines packaged inside `UltraConvert.app`. Its drag-to-Applications DMG is currently Apple Silicon/macOS 27 only and remains unpublished while dependency-source/licence review and Apple distribution signing are completed. See the [standalone build guide](docs/STANDALONE.md) for developer commands and measured size reductions.
 
 ### 1. Check your Mac and prerequisites
 
@@ -23,7 +23,7 @@ A self-contained v1.5.0 development app also runs locally, with all engines pack
 
 ### 2. Install on Apple Silicon
 
-1. Download **UltraConvert-…-macos-arm64.zip** from [the stable release](https://github.com/samuel-zhang01/UltraConvert/releases/latest) or the [v1.5.0 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.5.0). Do not choose GitHub's automatic “Source code” download for this route.
+1. Download **UltraConvert-…-macos-arm64.zip** from [the stable release](https://github.com/samuel-zhang01/UltraConvert/releases/latest) or the [v1.5.1 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.5.1). Do not choose GitHub's automatic “Source code” download for this route.
 2. Double-click the ZIP in Finder to extract it. It contains a folder named **UltraConvert**, with `install.py` inside.
 3. Open **Terminal** (Applications → Utilities). Type `cd ` with a space, drag the extracted **UltraConvert folder** from Finder into Terminal, then press Return. This handles folders with spaces or a suffix such as “UltraConvert 2”.
 4. Run:
@@ -139,10 +139,10 @@ The same registration/repair controls work in installer and standalone builds. T
 5. Add and reorder **Convert** and **Rename output** blocks. Rename templates accept `{name}`, `{format}` and `{date}`; do not add the extension. For example, `{name}-{format}` produces `Recording-mp3.mp3`. Sequential conversions support single-file results; companion bundles need one conversion block.
 6. In **SAVE**, choose an existing output folder outside every enabled watch folder. Results are direct files unless companion resources need one folder. Name collisions get numbered suffixes.
 7. Leave **Keep the original** selected, or explicitly choose **Move to archive** / **Send to Trash** and check the acknowledgement. Archive folders must also stay outside watch folders. These actions happen only after successful publication and a source-integrity check; failure/cancellation/changed-source cases keep the original. GIS and document originals must be kept because they may have companion files. They also need a conversion block when routing to preserve those companions. Trash is recoverable through Finder. If a source name is replaced during a failed final action, the earlier original is retained in a hidden recovery folder; Activity identifies its full path. Copy that path into Finder’s Go → Go to Folder to recover it without replacing the new file.
-8. Click **Test a File…** and choose an inbox file. This only recognises it and shows a plan; it changes no files. Check the plan, turn on **Enable this rule after saving**, then click **Save Rule**.
+8. Click **Test a File…** and choose an inbox file. This only recognises it and shows a plan; it changes no files. Use **Cancel Test** or **Escape** to stop it. Editing or switching a rule invalidates an in-progress test, so old results cannot appear as the current plan. Test previews also refuse linked/changed sources and unsafe document/GIS original actions. Check the plan, turn on **Enable this rule after saving**, then click **Save Rule**.
 9. Add a new file to the inbox. **Activity** shows outcomes and offers **Reveal Output**. At most 200 local activity entries are retained.
 
-Rules run top to bottom: the first matching enabled rule handles each file. **Move Up/Down** changes priority. **Duplicate** creates a disabled copy. Rule edits take effect only after saving. Saving changes to enabled rules, resuming or restarting establishes a fresh baseline: existing inbox files are ignored. **Run Existing Files…** explicitly queues up to 1,000 current files using the saved rules, including their original-file policy. Pause persists across app restarts. Pausing ignores arrivals until resumed; it does not build a hidden backlog.
+Rules run top to bottom: the first matching enabled rule handles each file. **Move Up/Down** changes priority. **Duplicate** creates a disabled copy. Rule edits take effect only after saving. When leaving an edited rule, choose **Save Changes**, **Keep Editing** or **Discard Changes**. Discard restores the saved rule; a failed save keeps the editor open. Saving changes to enabled rules, resuming or restarting establishes a fresh baseline: existing inbox files are ignored. **Run Existing Files…** explicitly queues up to 1,000 current files using the saved rules, including their original-file policy. Pause persists across app restarts. Pausing ignores arrivals until resumed; it does not build a hidden backlog.
 
 The menu bar icon offers **Open Converter**, **Folder Rules**, **Pause/Resume**, **Settings** and **Quit**. Closing the converter keeps enabled rules running. **Quit UltraConvert** stops watching and waits for an active automation conversion to cancel. Enable **Launch at login** in Settings if you want watching to resume when you sign in. A second UltraConvert instance can perform manual conversions but cannot run another watcher on the same rules.
 
@@ -162,7 +162,7 @@ The watcher uses native filesystem events. It has **no polling timer or conversi
 - **Report:** selects the conversion report in Finder. Open it in a text editor to see per-file outcomes, preservation notes and engine diagnostics. Convert Here keeps reports under `~/Library/Application Support/UltraConvert/Reports/` to avoid cluttering your source folders. Destination batches keep `conversion-report.json` in their batch folder.
 - **File → Copy Result Summary:** copies counts for the last completed batch, without source paths.
 - **Help → Check Setup…:** checks installed engine versions, Python/GDAL imports, native icon tools and workflow files locally. It does not inspect your selected files, upload a report or confirm Finder's enable switches. **Copy Setup Report** is optional.
-- **Keyboard:** ⌘O adds files; ⌘Return converts here; ⇧⌘Return chooses a folder and converts. Ordinary Return activates Convert.
+- **Keyboard:** ⌘O adds files; ⌘Return converts here; ⇧⌘Return chooses a folder and converts. Ordinary Return activates Convert. ⌘Z / ⇧⌘Z undo/redo text edits; ⌘X cuts selected text; ⌘W closes the current window with its normal unsaved-change guard. Escape cancels the format chooser or an active rule test.
 - **Geospatial CRS:** enter the known input coordinate system, for example `EPSG:4326`, when required. Bare WKT needs a known CRS; do not guess one.
 
 File rows preview the source → target format. Unsupported and failed files have concise labels, with full diagnostics in their tooltip, Copy Error Details and Report. A skipped-only batch keeps Report available and hides Show Results.

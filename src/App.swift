@@ -112,11 +112,16 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         addMenuItem(fileMenu, "Show Results", #selector(showResults), symbol: "folder.badge.checkmark")
         addMenuItem(fileMenu, "Show Conversion Report", #selector(showReport), symbol: "doc.text")
         addMenuItem(fileMenu, "Copy Result Summary", #selector(copySummary), symbol: "doc.on.doc")
+        fileMenu.addItem(.separator())
+        fileMenu.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
         fileMenuItem.submenu = fileMenu
         menu.addItem(fileMenuItem)
         let editMenuItem = NSMenuItem()
         let editMenu = NSMenu(title: "Edit")
-        for (title, action, key) in [("Copy", "copy:", "c"), ("Paste", "paste:", "v"), ("Select All", "selectAll:", "a")] {
+        editMenu.addItem(withTitle: "Undo", action: NSSelectorFromString("undo:"), keyEquivalent: "z")
+        let redo = editMenu.addItem(withTitle: "Redo", action: NSSelectorFromString("redo:"), keyEquivalent: "z"); redo.keyEquivalentModifierMask = [.command, .shift]
+        editMenu.addItem(.separator())
+        for (title, action, key) in [("Cut", "cut:", "x"), ("Copy", "copy:", "c"), ("Paste", "paste:", "v"), ("Select All", "selectAll:", "a")] {
             editMenu.addItem(withTitle: title, action: Selector(action), keyEquivalent: key)
         }
         editMenuItem.submenu = editMenu
@@ -642,8 +647,9 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         if rulesController?.window?.isVisible == true && rulesController?.mayDiscard() == false { return .terminateCancel }
         if busy { cancelConversion(); return .terminateCancel }
+        rulesController?.cancelPreview()
         automation?.stop()
-        if automation?.running == true { waitingForAutomationQuit = true; return .terminateLater }
+        if automation?.running == true || (rulesController?.previewWorkCount ?? 0) > 0 { waitingForAutomationQuit = true; return .terminateLater }
         return .terminateNow
     }
 }
