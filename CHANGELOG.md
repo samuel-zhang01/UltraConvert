@@ -8,6 +8,7 @@
 - Persistent rule setup checklist, ALL/ANY/wait explanations, unsaved-state text and reachable read-only preview details with full output/archive paths. Run Existing Files respects saved-rule prerequisites.
 - Discard resets hidden original-removal acknowledgement; source and cancellation protections remain covered.
 - Developer ID/Xcode archive support with source provenance, strict signed-export/ticket/Gatekeeper gates and truthful per-artifact notarization metadata. Engines remain a separate public installation; the complete bundled development app retains its distribution gates.
+- Canonical ICNS artwork for Finder document icons avoids a reproduced nonfatal macOS 27 IconServices fault during registration; Quick Action artwork stays in place.
 
 ## 1.5.1 preview — 2026-10-07
 

@@ -1,4 +1,5 @@
 import AppKit
+import Darwin
 
 final class TestLoginService: LoginService {
     var state = LoginState.disabled
@@ -15,6 +16,24 @@ final class TestLoginService: LoginService {
 
 @main
 struct BackendSmoke {
+    static func extendedAttribute(_ name: String, at url: URL) -> Data {
+        let count = getxattr(url.path, name, nil, 0, 0, 0)
+        precondition(count > 0, "Expected workflow icon metadata")
+        var data = Data(count: count)
+        let read = data.withUnsafeMutableBytes { getxattr(url.path, name, $0.baseAddress, count, 0, 0) }
+        precondition(read == count)
+        return data
+    }
+    static func iconBlock(_ kind: String, in icon: Data) -> Data {
+        var offset = 8
+        while offset + 8 <= icon.count {
+            let size = icon[(offset + 4)..<(offset + 8)].reduce(0) { ($0 << 8) | Int($1) }
+            precondition(size >= 8 && offset + size <= icon.count)
+            if String(data: icon[offset..<(offset + 4)], encoding: .ascii) == kind { return Data(icon[offset..<(offset + size)]) }
+            offset += size
+        }
+        preconditionFailure("Missing canonical icon resolution")
+    }
     static func main() throws {
         _ = NSApplication.shared
         let fm = FileManager.default
@@ -51,6 +70,9 @@ struct BackendSmoke {
         // owned previous actions and refuses a foreign destination before swaps.
         let templates = URL(fileURLWithPath: CommandLine.arguments[1])
         try fm.copyItem(at: templates, to: resources.appendingPathComponent("FinderActions"))
+        let repository = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let canonicalIcon = try Data(contentsOf: repository.appendingPathComponent("assets/UltraConvert.icns"))
+        try canonicalIcon.write(to: resources.appendingPathComponent("UltraConvert.icns"))
         try FinderActions.install(app: app, home: home)
         let services = home.appendingPathComponent("Library/Services")
         let action = services.appendingPathComponent(FinderActions.names[0] + ".workflow")
@@ -60,6 +82,16 @@ struct BackendSmoke {
         let actions = plist["actions"] as! [[String: Any]]
         let command = ((actions[0]["action"] as! [String: Any])["ActionParameters"] as! [String: Any])["COMMAND_STRING"] as! String
         precondition(command.contains("'\\''") && command.contains("--mode here -- \"$@\""))
+        // Finder gets the existing multi-resolution ICNS, including its exact
+        // small and Retina payloads. The Settings image remains the original PNG.
+        let finderMetadata = extendedAttribute("com.apple.FinderInfo", at: action)
+        precondition(finderMetadata.count >= 10 && finderMetadata[8] & 0x04 != 0)
+        let fork = extendedAttribute("com.apple.ResourceFork", at: action.appendingPathComponent("Icon\r"))
+        for kind in ["ic04", "ic07", "ic10", "ic11"] { precondition(fork.range(of: iconBlock(kind, in: canonicalIcon)) != nil) }
+        let quickActionImage = try Data(contentsOf: templates.appendingPathComponent(FinderActions.names[0] + ".workflow/Contents/Resources/workflowCustomImage.png"))
+        let installedQuickActionImage = try Data(contentsOf: action.appendingPathComponent("Contents/Resources/workflowCustomImage.png"))
+        precondition(installedQuickActionImage == quickActionImage)
+        precondition((plist["workflowMetaData"] as! [String: Any])["customImageFileData"] as? Data == quickActionImage)
         try FinderActions.install(app: app, home: home)
         let repeated = try Data(contentsOf: document)
         precondition(repeated == saved)
@@ -73,6 +105,23 @@ struct BackendSmoke {
         catch { }
         let retained = try Data(contentsOf: document)
         precondition(retained == saved)
+        // A damaged/partial app without the canonical ICNS still installs its
+        // workflows without asking IconServices to encode the small Settings PNG.
+        let noIconApp = root.appendingPathComponent("No Icon.app")
+        let noIconTemplates = noIconApp.appendingPathComponent("Contents/Resources/FinderActions")
+        try fm.createDirectory(at: noIconTemplates.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fm.copyItem(at: templates, to: noIconTemplates)
+        for name in FinderActions.names {
+            let template = noIconTemplates.appendingPathComponent(name + ".workflow")
+            let icon = template.appendingPathComponent("Icon\r")
+            if fm.fileExists(atPath: icon.path) { try fm.removeItem(at: icon) }
+            _ = removexattr(template.path, "com.apple.FinderInfo", 0)
+        }
+        let noIconHome = root.appendingPathComponent("no-icon-home")
+        try FinderActions.install(app: noIconApp, home: noIconHome)
+        let noIconAction = noIconHome.appendingPathComponent("Library/Services/" + FinderActions.names[0] + ".workflow")
+        precondition(fm.fileExists(atPath: noIconAction.appendingPathComponent("Contents/document.wflow").path))
+        precondition(!fm.fileExists(atPath: noIconAction.appendingPathComponent("Icon\r").path))
         // Settings must reflect macOS's real state, including approval and
         // failures, without registering a login item as a side effect of opening.
         let suite = "UltraConvert-settings-test-" + UUID().uuidString

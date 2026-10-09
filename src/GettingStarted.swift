@@ -53,7 +53,7 @@ final class GettingStarted: NSWindowController {
         switch topics.selectedSegment {
         case 1:
             card("Quick Actions · convert any supported batch", "In Finder, select one or more files, right-click → Quick Actions → Convert Here with UltraConvert. The app opens for review. ‘Here’ saves single-file results beside each original. Convert to Destination with UltraConvert uses your saved output folder.")
-            card("Services · choose a format first", "Right-click files → Services → Convert Here with UltraConvert — Choose Format… Select a category and format, then Review Conversion. Shortcuts such as Convert to MP3 are also available. Click Convert in the app to start; choosing a shortcut starts no conversion.")
+            card("Services · choose a format first", "Right-click files → Services → Convert Here with UltraConvert — Choose Format… Select a category and format, then Review Conversion. Convert Here with UltraConvert — MP3 is a preset shortcut. Click Convert in the app to start; choosing a shortcut starts no conversion.")
             card("If an action is missing", "Open Settings and use Install or Repair Quick Actions. Enable them in System Settings → General → Login Items & Extensions → Finder (ⓘ). For format shortcuts, use System Settings → Keyboard → Keyboard Shortcuts → Services. macOS chooses which Services suit your selected file types; use the general Quick Action for a misnamed file.")
             action("Open Finder Setup…", .settings)
         case 2:
@@ -65,7 +65,7 @@ final class GettingStarted: NSWindowController {
         case 3:
             card("Where results go", "Beside source files saves single-file outputs next to their originals. Saved destination uses the folder remembered with Set as Default. Choose destination selects a folder for this batch. Destination batches use a Converted folder; files that need companions stay together. Existing names receive a numbered suffix.")
             card("Batch options", "Skip files already in target format leaves matching files unchanged and records them as skipped. Open results when finished reveals successful outputs. Files at a time controls simultaneous conversion: 2 suits most batches; 1 reduces peak resource use for large media or geospatial files. These settings do not affect folder-rule jobs.")
-            card("Startup and recovery", "Launch at login opens UltraConvert after signing in to macOS. Start in the menu bar applies when enabled folder rules exist. Both are optional. If something fails, Show Report contains details, Retry Failed prepares those files for review, and Help → Check Setup checks the local engines.")
+            card("Startup and recovery", "Launch at login opens UltraConvert after signing in to macOS. Start in the menu bar applies when enabled folder rules exist. Both are optional. If something fails, Report contains details, Retry Failed prepares those files for review, and Help → Check Setup checks the local engines.")
             action("Open Settings…", .settings); action("Check Setup…", .setup)
         default:
             card("1. Add files", "Drop one or more files into the converter or use Add Files (⌘O). UltraConvert recognises the contents, even when an extension is misleading. Add Files keeps the current queue. Remove Selected and Clear only remove queue entries.")

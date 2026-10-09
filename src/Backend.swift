@@ -154,7 +154,10 @@ enum FinderActions {
                 plist["actions"] = actions
                 try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0).write(to: document, options: .atomic)
                 try JSONSerialization.data(withJSONObject: ["owner": "UltraConvert", "app": app.path]).write(to: fresh.appendingPathComponent("Contents/ultraconvert-managed.json"), options: .atomic)
-                if let icon = NSImage(contentsOf: fresh.appendingPathComponent("Contents/Resources/workflowCustomImage.png")) {
+                // The canonical multi-resolution ICNS is already encoded for
+                // Finder. Converting the small Quick Action PNG in setIcon
+                // triggers an IconServices guard fault on macOS 27.
+                if let icon = NSImage(contentsOf: resources.appendingPathComponent("UltraConvert.icns")) {
                     NSWorkspace.shared.setIcon(icon, forFile: fresh.path, options: [])
                 }
             }
