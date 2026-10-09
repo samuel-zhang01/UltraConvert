@@ -1,0 +1,12 @@
+{
+  "checks": 312,
+  "idle_cpu_seconds": 0.008058,
+  "idle_sample_seconds": 5,
+  "native_events": true,
+  "passed": true,
+  "real_engine": false,
+  "scan_1000_files_seconds": 0.005292057991027832,
+  "scope": "native temporary fixtures; no user rules or files changed",
+  "test_peak_rss_bytes": 273006592,
+  "version": "1.7.0"
+}

@@ -71,9 +71,17 @@ struct WatchRule: Codable, Equatable, Identifiable {
             if condition.field == .format && !FormatCatalog.all.contains(condition.value.lowercased()) { throw AutomationIssue("Choose a supported input format.") }
             if condition.field == .category && !FormatCatalog.groups.contains(where: { $0.id == condition.value.lowercased() }) { throw AutomationIssue("Choose a supported file category.") }
         }
+        // Once a conversion establishes a format, incompatible later blocks
+        // can be rejected before enabling the watcher rather than on every file.
+        var previousFormat = matchAll ? conditions.first(where: { $0.field == .format })?.value.lowercased() : nil
         for step in steps {
             if step.kind == .convert {
                 guard FormatCatalog.all.contains(step.value) else { throw AutomationIssue("Choose a supported conversion format.") }
+                if let previousFormat, let group = FormatCatalog.groups.first(where: { $0.formats.contains(previousFormat) }) {
+                    let targets = group.formats + (group.id == "video" ? FormatCatalog.groups.first(where: { $0.id == "audio" })!.formats : [])
+                    guard targets.contains(step.value) else { throw AutomationIssue("A Convert block cannot go from \(previousFormat.uppercased()) to \(step.value.uppercased()). Change or remove that block, then preview a file.") }
+                }
+                previousFormat = step.value
             } else { _ = try RuleNaming.render(step.value, name: "Example", format: "mp3", date: Date(timeIntervalSince1970: 0)) }
         }
         let outputs = [destination] + (originalPolicy == .archive ? [archiveFolder] : [])
@@ -200,11 +208,11 @@ final class AutomationStore {
         guard FileManager.default.fileExists(atPath: url("rules.json").path) else { return [] }
         let data = try read("rules.json", limit: 1024 * 1024)
         let document = try JSONDecoder().decode(AutomationDocument.self, from: data)
-        guard document.schema == 1, document.rules.count <= 32, Set(document.rules.map(\.id)).count == document.rules.count else { throw AutomationIssue("The folder rules file is invalid. Restore it before enabling automation.") }
+        guard document.schema == 1, document.rules.count <= 32, Set(document.rules.map(\.id)).count == document.rules.count, document.rules.allSatisfy({ $0.conditions.count <= 12 && $0.steps.count <= 8 }) else { throw AutomationIssue("The folder rules file is invalid. Restore it before enabling automation.") }
         return document.rules
     }
     func save(_ rules: [WatchRule]) throws {
-        guard rules.count <= 32, Set(rules.map(\.id)).count == rules.count else { throw AutomationIssue("Use up to 32 rules with unique identifiers.") }
+        guard rules.count <= 32, Set(rules.map(\.id)).count == rules.count, rules.allSatisfy({ $0.conditions.count <= 12 && $0.steps.count <= 8 }) else { throw AutomationIssue("Use up to 32 rules with unique identifiers, 12 conditions and 8 actions per rule, including drafts.") }
         let data = try JSONEncoder().encode(AutomationDocument(rules: rules))
         guard data.count <= 1024 * 1024 else { throw AutomationIssue("The rules exceed the 1 MB storage limit. Shorten draft values before saving.") }
         try write(data, "rules.json")

@@ -56,6 +56,8 @@ jobs:
           /tmp/ultraconvert-backend-test build/FinderActions
           xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_automation.swift -o /tmp/ultraconvert-automation-test
           /tmp/ultraconvert-automation-test
+          xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_rule_editor.swift -o /tmp/ultraconvert-rule-editor-test
+          /tmp/ultraconvert-rule-editor-test
       - name: Security, batch workflow and rollback checks
         run: |
           UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"

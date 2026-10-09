@@ -90,6 +90,16 @@ final class AutomationPipeline {
     func preview(_ url: URL, rule: WatchRule, cancellation: AutomationCancellation) throws -> String {
         try cancellation.check()
         guard RulePaths.contains(root: rule.inputFolder, path: url.path) else { throw AutomationIssue("Choose a test file inside this rule’s inbox.") }
+        guard rule.recursive || RulePaths.canonical(url.deletingLastPathComponent().path) == RulePaths.canonical(rule.inputFolder) else { throw AutomationIssue("This file is in a subfolder. Turn on Include subfolders in Arrival Options, or preview a file directly in the inbox.") }
+        guard RulePaths.eligible(url) else { throw AutomationIssue("Hidden, temporary and linked files are skipped by folder watching. Choose an ordinary inbox file to preview.") }
+        var ancestor = url.deletingLastPathComponent()
+        for _ in 0..<128 {
+            let properties = try ancestor.resourceValues(forKeys: [.isPackageKey, .isSymbolicLinkKey])
+            guard properties.isSymbolicLink != true else { throw AutomationIssue("Files inside linked folders are skipped by watching. Choose an ordinary inbox file.") }
+            if RulePaths.canonical(ancestor.path) == RulePaths.canonical(rule.inputFolder) { break }
+            guard !ancestor.lastPathComponent.hasPrefix("."), properties.isPackage != true else { throw AutomationIssue("Files inside hidden folders or packages are skipped by watching. Choose an ordinary inbox file.") }
+            let parent = ancestor.deletingLastPathComponent(); if parent == ancestor { break }; ancestor = parent
+        }
         let stamp = try FileStamp.read(url)
         let file = try engine.inspect(url, cancellation: cancellation)
         try cancellation.check()
@@ -116,7 +126,7 @@ final class AutomationPipeline {
         Matches rule: \(rule.name)
         Detected: \(file.format.uppercased()) (\(category))
         Source: \(url.path)
-        Planned output: \(name).\(format)
+        Planned output: \(name).\(FormatCatalog.outputExtension(format))
         Save in: \(rule.destination)
         After success: \(original)
 
@@ -159,7 +169,7 @@ final class AutomationPipeline {
         guard !roots.contains(where: { RulePaths.contains(root: $0, path: destination.path) }) else { throw AutomationIssue("The output folder moved inside a watched inbox. The original was kept.") }
         let values = try payload.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
         guard values.isSymbolicLink != true else { throw AutomationIssue("Symbolic-link outputs cannot be published.") }
-        let result = try RulePaths.publish(payload, into: destination, name: name + (values.isDirectory == true ? "-" + format : "." + format), beforeCommit: { try cancellation.check(); guard try FileStamp.read(url) == originalStamp else { throw AutomationIssue("The original changed during publication. It was kept.") } })
+        let result = try RulePaths.publish(payload, into: destination, name: name + (values.isDirectory == true ? "-" + format : "." + FormatCatalog.outputExtension(format)), beforeCommit: { try cancellation.check(); guard try FileStamp.read(url) == originalStamp else { throw AutomationIssue("The original changed during publication. It was kept.") } })
         do {
             try cancellation.check()
             if rule.originalPolicy != .keep {

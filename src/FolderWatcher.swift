@@ -100,6 +100,7 @@ final class FolderAutomation {
     var enabledRules: [WatchRule] { rules.filter(\.enabled) }
     var keepsRunning: Bool { !enabledRules.isEmpty && lockFD >= 0 }
     var pendingCount: Int { candidates.count }
+    var canRunExisting: Bool { !paused && stream != nil && !scanRunning }
 
     init(support: URL, engine: @escaping () throws -> any AutomationEngine) throws {
         store = try AutomationStore(support: support); self.engine = engine
@@ -180,6 +181,7 @@ final class FolderAutomation {
         }
         scanRunning = true
         let version = epoch, rules = enabledRules, storage = store.directory
+        onChange?()
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let result = WatchScan.run(rules, excluding: [storage])
             DispatchQueue.main.async {
@@ -203,12 +205,15 @@ final class FolderAutomation {
             }
         }
     }
-    func runExisting() {
-        guard !paused, stream != nil, !scanRunning else { return }
+    @discardableResult func runExisting() -> Int? {
+        guard canRunExisting else { return nil }
         // Explicit invocation processes the current baseline, without changing
-        // the default of ignoring files already present at startup.
-        for (path, stamp) in known.sorted(by: { $0.key < $1.key }).prefix(1000) { candidates[path] = .init(stamp: stamp, unchangedSince: Date()) }
+        // the default of ignoring files already present at startup. Reject a
+        // scan-time request explicitly so the UI cannot claim it queued work.
+        let snapshot = known.sorted(by: { $0.key < $1.key }).prefix(1000), requestedAt = Date()
+        for (path, stamp) in snapshot { candidates[path] = .init(stamp: stamp, unchangedSince: requestedAt) }
         schedule(); updateStatus()
+        return snapshot.count
     }
     func manualBatchFinished() { schedule() }
     private func eligibleRules(for path: String) -> [WatchRule] {
