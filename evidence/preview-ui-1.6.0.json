@@ -1,0 +1,71 @@
+{
+  "version": "1.6.0",
+  "observation_date": "2026-10-09",
+  "method": "Observed native UI crawl through CUA on installed notarized app; independent developer heuristic, not participant research.",
+  "fixture": "Disposable Tone.wav and disabled Audio-to-MP3 draft; no personal files or rules.",
+  "outcomes": {
+    "folder_pickers": "Disposable inbox and separate destination accepted using Go to Folder, setValue and Return.",
+    "file_picker": "Tone.wav selected; Open enabled; preview accepted.",
+    "recognition": "WAV (Audio)",
+    "output_plan": "Tone.mp3 in separate disposable destination; keep original.",
+    "collision_guidance": "Existing names get numbered suffixes; companion files may use one folder.",
+    "complete_details": "Read-only window showed source, output, destination, original policy and final no-files-changed tail.",
+    "selectability": "Final No files changed. text visibly selected.",
+    "read_only": "Typing into selected tail left preview text unchanged.",
+    "tail": "Final tail visible in screenshot and accessibility tree.",
+    "invalidation": "Editing name cleared prior plan and disabled View Preview Details; new preview requested.",
+    "discard": "Discard Changes closed editor; reopening restored saved disabled template and empty inbox/output.",
+    "cleanup": "Own rule removed; rule table empty; no folders watched; converter queue empty.",
+    "settings": "No startup, permissions or user rule settings changed."
+  },
+  "score": {
+    "baseline": 7.9,
+    "final_weighted": 9.04,
+    "rounded": 9.0,
+    "dimensions": [
+      {
+        "name": "Feature discovery",
+        "weight": 0.25,
+        "score": 9.2
+      },
+      {
+        "name": "First manual conversion",
+        "weight": 0.2,
+        "score": 9.0,
+        "evidence": "Parent observed installed-app WAV-to-MP3 and PNG-to-WebP, truthful completion, sibling files and retained originals/collision targets."
+      },
+      {
+        "name": "Destinations and options",
+        "weight": 0.15,
+        "score": 9.1
+      },
+      {
+        "name": "Automation learning",
+        "weight": 0.2,
+        "score": 9.0
+      },
+      {
+        "name": "Finder and startup clarity",
+        "weight": 0.1,
+        "score": 9.0
+      },
+      {
+        "name": "Safety and recovery",
+        "weight": 0.05,
+        "score": 9.0
+      },
+      {
+        "name": "Layout and native accessibility",
+        "weight": 0.05,
+        "score": 8.5
+      }
+    ]
+  },
+  "limitations": [
+    "No novice participant study",
+    "VoiceOver flow not validated",
+    "Older macOS versions not exercised",
+    "Actual login activation not performed"
+  ],
+  "picker_clarification": "Earlier transient automation selection failures withdrawn as product-blocking assertion; final file and folder selection succeeded."
+}

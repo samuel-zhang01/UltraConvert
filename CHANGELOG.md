@@ -7,7 +7,7 @@
 - Mixed-selection shortcuts require compatible targets for every file. Finder presets that cannot apply to the whole selection block conversion until explicit per-category review.
 - Persistent rule setup checklist, ALL/ANY/wait explanations, unsaved-state text and reachable read-only preview details with full output/archive paths. Run Existing Files respects saved-rule prerequisites.
 - Discard resets hidden original-removal acknowledgement; source and cancellation protections remain covered.
-- Developer ID/Xcode archive support with source provenance, strict signed-export/ticket/Gatekeeper gates and truthful per-artifact notarization metadata. Engines remain a separate public installation; the complete bundled development app retains its distribution gates.
+- Developer ID signed, Apple-notarized native app with a stapled ticket and verified Gatekeeper acceptance. Xcode's existing account authorizes upload/export; source provenance and strict certificate/ticket gates protect reuse. Engines remain a separate public installation; the complete bundled development app retains its distribution gates.
 - Canonical ICNS artwork for Finder document icons avoids a reproduced nonfatal macOS 27 IconServices fault during registration; Quick Action artwork stays in place.
 - Automatic Finder setup recognises only the system/user Applications roots, including subfolders; launching Xcode archive candidates cannot repoint installed workflows.
 

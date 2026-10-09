@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "version": "1.6.0",
+  "programmatic_controller": {
+    "checks": 33,
+    "conversion": [
+      "wav→mp3",
+      "png→webp"
+    ],
+    "existing_targets_unchanged": true,
+    "final_conversion_status": "2 converted, 0 skipped, 0 failed. ",
+    "final_conversion_summary": "Saved beside the originals. Companion files use one folder. Reports are kept separately; click Report for details.",
+    "kind": "programmatic controller and real sealed-engine smoke; not visually observed",
+    "originals_unchanged": true,
+    "outputs": [
+      "Colour (2).webp",
+      "Tone (2).mp3"
+    ],
+    "passed": true,
+    "placement": "direct collision-numbered sibling outputs",
+    "recognition": [
+      "wav",
+      "png"
+    ],
+    "reports_isolated": true,
+    "result_reinspection": [
+      "mp3",
+      "webp"
+    ],
+    "source_commit": "3f5ea72154c494df89413a74d9d464fa1c9df0e6",
+    "ui_opened": false,
+    "watcher_started": false
+  },
+  "installed_native_ui_conversion": {
+    "version": "1.6.0",
+    "native_source_fingerprint": "efa8e242d7041b8def2ebbe08b06499f2a772b5eb80dbf9552731ed0ddfeaf8d",
+    "method": "Actual installed notarized app via native UI, separate runtime",
+    "observed_add_files_wav_png": true,
+    "observed_conversion_status": "2 converted, 0 skipped, 0 failed",
+    "originals_and_existing_targets_unchanged": true,
+    "outputs": [
+      "Colour (2).webp",
+      "Tone (2).mp3"
+    ],
+    "placement": "direct collision-numbered siblings",
+    "passed": true
+  }
+}

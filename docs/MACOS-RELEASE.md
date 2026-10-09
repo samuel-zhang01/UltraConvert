@@ -4,7 +4,7 @@ The app interface, menus, file pickers, progress and Finder integration are Swif
 
 ## Current release status
 
-Stable v1.3.0 and the v1.5.1 installer preview are ad-hoc signed and not notarized. The v1.6.0 release tooling can use a valid Developer ID Application certificate and either a Keychain notarization profile or an app notarized and exported by Xcode Organizer. Release metadata records the actual verified app and DMG status; successful signing alone does not imply notarization.
+Stable v1.3.0 and the v1.5.1 installer preview are ad-hoc signed and not notarized. The v1.6.0 installer preview contains a Developer ID Application signed app accepted by Apple on 2026-10-09, with its ticket stapled and Gatekeeper assessment verified. Authentication used Xcode's existing signed-in account without a separate notarytool profile. Release metadata records the verified artifact status. The ZIP installs conversion engines separately; no standalone bundled-engine app or DMG is included in this release.
 
 Public packages retain the separate Homebrew/Python engine installer. The complete local development app and drag-to-Applications DMG remain unpublished pending corresponding-source/notices review and complete nested-code distribution verification. See [standalone development](STANDALONE.md). Apple enrollment is approved and Developer ID provisioning is available; credentials stay in the maintainer's Keychain.
 

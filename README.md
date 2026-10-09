@@ -11,7 +11,7 @@ Conversion runs on your Mac. Manual conversion always keeps originals; folder ru
 
 ## Install
 
-The latest stable release is **v1.3.0**. The **[v1.6.0 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.6.0)** adds a task-based Getting Started guide, format advice and clearer folder/Finder setup. Use its installer ZIP and the steps below. Public versions install conversion engines separately. Check the release’s **RELEASE-METADATA.json** for verified signing and app/DMG notarization status; older v1.5.1 and stable v1.3.0 packages are not notarized.
+The latest stable release is **v1.3.0**. The **[v1.6.0 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.6.0)** includes a **Developer ID signed, Apple-notarized native app**, with a stapled ticket, a task-based Getting Started guide, format advice and clearer folder/Finder setup. Use its installer ZIP and the steps below. Public versions install conversion engines separately. **RELEASE-METADATA.json** records the verified artifact status; older v1.5.1 and stable v1.3.0 packages are not notarized.
 
 A self-contained v1.6.0 development app also runs locally, with all engines packaged inside `UltraConvert.app`. Its drag-to-Applications DMG is currently Apple Silicon/macOS 27 only and remains unpublished while dependency-source/licence review and complete bundled-engine distribution verification are completed. See the [standalone build guide](docs/STANDALONE.md) for developer commands and measured size reductions.
 
