@@ -201,7 +201,7 @@ Every listed entry passed a representative encode/decode round trip. Conversions
 | Documents and ebooks | docx, odt, rtf, md, html, tex, epub, mobi, azw3 |
 | Video | mp4, mov, webm, mkv, avi, gif, m4v, 3gp, flv, ts, mts, m2ts, wmv, ogv, mpg, mpeg, mxf, vob |
 | Audio | mp3, wav, flac, aac, m4a, ogg, wma, aiff, alac, opus, ape, wv |
-| Configuration | json, yaml, yml, plist, toml |
+| Structured data | json, yaml, yml, plist, toml |
 
 ### Preservation limits
 

@@ -20,6 +20,8 @@ Regression checks cover the real native AppKit hierarchy, first-use persistence 
 
 Manual VoiceOver, older macOS, actual login activation, long-duration energy use and conversion-engine peak memory remain unverified. Native controls and system animation are retained; no additional custom animation or idle engine process was introduced.
 
+A single idle 1.6 candidate snapshot with two queued files measured about **159 MiB RSS and 0.0% CPU**. The automation fixture used 0.0053 CPU seconds over five seconds and scanned 1,000 small files in 0.0068 seconds. These short local observations are not engine-peak or long-duration energy measurements. The signed native app is about 1.6 MiB on disk; the complete local engine app remains about 1.9 GiB and is dominated by unchanged conversion engines/data.
+
 # Refinement crawl — 1.5.1 preview
 
 The 1.5.0 scoped developer assessment remains **9.0/10**; this patch closes additional correctness and keyboard gaps found during a second code/UI review.

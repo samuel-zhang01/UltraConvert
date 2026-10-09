@@ -65,6 +65,19 @@ python3 scripts/build_xcode_archive.py \
 
 Open the archive in Xcode. In Organizer select **Distribute App → Direct Distribution** (or **Developer ID**, depending on Xcode version), choose upload for notarization, and use the enrolled team. Complete any Apple authentication locally. Wait for **Ready to distribute**, then **Export Notarized App** into a new folder. [Apple’s Organizer guide](https://help.apple.com/xcode/mac/current/en.lproj/dev88332a81e.html) describes this flow.
 
+Xcode's command-line export can also use that signed-in account. Create an export-options plist containing `method: developer-id`, `destination: upload`, `signingStyle: manual`, your `teamID` and the exact existing Developer ID certificate SHA-1 as `signingCertificate`. Then run:
+
+```sh
+xcodebuild -exportArchive \
+  -archivePath build/UltraConvert.xcarchive \
+  -exportOptionsPlist /absolute/path/to/ExportOptions.plist
+xcodebuild -exportNotarizedApp \
+  -archivePath build/UltraConvert.xcarchive \
+  -exportPath /absolute/path/to/new-export-folder
+```
+
+Upload success alone is not notarization acceptance. The second command refuses an archive still processing or rejected by Apple; wait for processing and export again. It produces the notarized app for the validation step below. This route uses Xcode's existing authorization without reading its private credentials or creating a separate notarytool profile. Consult the installed `xcodebuild -help` for the supported export options.
+
 Package that exact export from a clean committed tree:
 
 ```sh
