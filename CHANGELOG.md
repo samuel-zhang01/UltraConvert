@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.0 preview — 2026-10-09
+
+- First-use Getting Started window with task guides and direct routes for manual conversion, Finder, folder rules and startup. Visible Settings and numbered conversion steps.
+- Plain-language advice for all 62 output formats; clearer Quick Actions vs Services and login-off state.
+- Mixed-selection shortcuts require compatible targets for every file. Finder presets that cannot apply to the whole selection block conversion until explicit per-category review.
+- Persistent rule setup checklist, ALL/ANY/wait explanations, unsaved-state text and reachable read-only preview details with full output/archive paths. Run Existing Files respects saved-rule prerequisites.
+- Discard resets hidden original-removal acknowledgement; source and cancellation protections remain covered.
+- Developer ID/Xcode archive support with source provenance, strict signed-export/ticket/Gatekeeper gates and truthful per-artifact notarization metadata. Engines remain a separate public installation; the complete bundled development app retains its distribution gates.
+
 ## 1.5.1 preview — 2026-10-07
 
 - Rule navigation/closing offers Save Changes, Keep Editing and Discard Changes. Discard actually restores the saved rule; failed saves block navigation.

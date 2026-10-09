@@ -38,12 +38,18 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         icon.imageScaling = .scaleProportionallyUpOrDown
         icon.widthAnchor.constraint(equalToConstant: 46).isActive = true
         icon.heightAnchor.constraint(equalToConstant: 46).isActive = true
-        helpButton.bezelStyle = .helpButton
+        helpButton.title = "Getting Started…"
+        helpButton.bezelStyle = .rounded
+        helpButton.setAccessibilityLabel("Getting Started")
         helpButton.target = self; helpButton.action = #selector(showQuickStart)
-        helpButton.toolTip = "Quick start, installation help and Finder settings"
+        helpButton.toolTip = "Learn conversion, Finder, folder rules and startup settings"
         let rules = NSButton(title: "Folder Rules…", target: self, action: #selector(showFolderRules))
         rules.bezelStyle = .rounded; rules.image = NSImage(systemSymbolName: "square.stack.3d.up", accessibilityDescription: nil); rules.imagePosition = .imageLeading
-        let heading = NSStackView(views: [icon, titles, NSView(), rules, helpButton])
+        rules.setAccessibilityLabel("Folder Rules")
+        rules.toolTip = "Watch an inbox and convert new files with saved rules"
+        let settings = NSButton(title: "Settings…", target: self, action: #selector(showSettings)); settings.bezelStyle = .rounded
+        settings.setAccessibilityLabel("Settings"); settings.toolTip = "Launch at login and Finder Quick Actions"
+        let heading = NSStackView(views: [icon, titles, NSView(), rules, settings, helpButton])
         heading.spacing = 12
         addFullWidth(heading)
 
@@ -94,7 +100,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
     func buildQueueCard() -> NSView {
         let card = RoundedCard()
         let contents = card.contents
-        let title = uiLabel("Files", size: 15, weight: .semibold)
+        let title = uiLabel("1. Add files", size: 15, weight: .semibold)
         queueCount.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
         queueCount.textColor = .secondaryLabelColor
         choose.title = "Add Files…"
@@ -111,7 +117,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         queueSurface.heightAnchor.constraint(greaterThanOrEqualToConstant: 230).isActive = true
         let empty = NSStackView(views: [uiSymbol("square.and.arrow.down", size: 32),
                                       uiLabel("Drop files here", size: 17, weight: .medium),
-                                      uiLabel("or add them from Finder", size: 12, color: .secondaryLabelColor)])
+                                      uiLabel("or use Add Files to choose a batch", size: 12, color: .secondaryLabelColor)])
         empty.orientation = .vertical; empty.spacing = 10
         empty.translatesAutoresizingMaskIntoConstraints = false
         queueSurface.addSubview(empty)
@@ -157,7 +163,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
 
     func buildFormatsCard() -> NSView {
         let card = RoundedCard()
-        card.contents.addArrangedSubview(uiLabel("Output formats", size: 15, weight: .semibold))
+        card.contents.addArrangedSubview(uiLabel("2. Choose formats", size: 15, weight: .semibold))
         formats.orientation = .vertical; formats.alignment = .leading; formats.spacing = 12
         formatsScroll.hasVerticalScroller = true
         formatsScroll.autohidesScrollers = true
@@ -213,7 +219,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         location.widthAnchor.constraint(equalToConstant: 200).isActive = true
         styleButton(destination, symbol: "folder", action: #selector(pickDestination))
         styleButton(saveDefault, symbol: "pin", action: #selector(saveDefaultFolder))
-        let row = NSStackView(views: [uiSymbol("folder", size: 18), uiLabel("Save to", size: 14, weight: .semibold), location, NSView(), destination, saveDefault])
+        let row = NSStackView(views: [uiSymbol("folder", size: 18), uiLabel("3. Save to", size: 14, weight: .semibold), location, NSView(), destination, saveDefault])
         row.spacing = 10
         card.contents.addArrangedSubview(row)
         row.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
@@ -241,6 +247,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         heading.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
         optionsBody.orientation = .vertical; optionsBody.alignment = .leading; optionsBody.spacing = 10
         optionsBody.isHidden = true
+        optionsBody.addArrangedSubview(uiLabel("These options apply to this conversion batch. Folder rules use their own settings.", size: 11, color: .secondaryLabelColor))
         skipSame.toolTip = "Matching files are recorded as skipped and remain in their original folder."
         skipSame.state = preferences.bool(forKey: "skipSame") ? .on : .off
         openAfter.state = preferences.bool(forKey: "openAfter") ? .on : .off
@@ -252,6 +259,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         optionsBody.addArrangedSubview(openAfter)
         let concurrency = NSStackView(views: [uiLabel("Convert", size: 12, color: .secondaryLabelColor), jobs]); concurrency.spacing = 10
         optionsBody.addArrangedSubview(concurrency)
+        optionsBody.addArrangedSubview(uiLabel("2 files suits most batches. Use 1 for large media or geospatial files to reduce peak resource use.", size: 11, color: .secondaryLabelColor))
         card.contents.addArrangedSubview(optionsBody)
         optionsBody.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
         return card
@@ -326,6 +334,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
         button.imagePosition = .imageLeading
         button.bezelStyle = .rounded
+        button.setAccessibilityLabel(button.title)
     }
 
     func refreshPresentation() {
@@ -421,8 +430,8 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         guard !busy else { return }
         files = []; infos = []; fileIcons = [:]
         resetOutcomes()
-        presetFormat = nil
-        selectors.removeAll()
+        presetFormat = nil; rejectedPreset = nil
+        selectors.removeAll(); formatExplanations.removeAll()
         formats.arrangedSubviews.forEach { formats.removeArrangedSubview($0); $0.removeFromSuperview() }
         resultURL = nil; resultURLs = []; lastSummary = ""
         reportURLs = []; publishedURLs = []; resultsHere = false
@@ -442,6 +451,12 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
     }
 
     @objc func formatChanged(_ sender: NSPopUpButton) {
+        if rejectedPreset != nil {
+            rejectedPreset = nil; start.isEnabled = !busy && !selectors.isEmpty
+            phase = infos.contains { $0["error"] is String } ? .attention : .ready
+            status.stringValue = "Review each category's format and save location, then click Convert."
+        }
+        if let category = selectors.first(where: { $0.value === sender })?.key { formatExplanations[category]?.stringValue = FormatCatalog.advice(sender.selectedItem?.representedObject as? String ?? "") }
         if let entry = selectors.first(where: { $0.value === sender }), let value = sender.selectedItem?.representedObject as? String {
             draftTargets[entry.key] = value
         }

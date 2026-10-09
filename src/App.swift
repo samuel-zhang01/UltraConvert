@@ -47,8 +47,10 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     var outcomeRefresh: DispatchWorkItem?
     var queueReloadCount = 0
     var presetFormat: String?
+    var rejectedPreset: String?
     var phase = BatchPhase.empty { didSet { refreshPresentation() } }
     var selectors: [String: NSPopUpButton] = [:]
+    var formatExplanations: [String: NSTextField] = [:]
     var files: [String] = []
     var infos: [[String: Any]] = []
     var outputURL: URL?
@@ -63,7 +65,9 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     var pendingFiles: [String] = []
     var here = true
     var lastSummary = ""
-    let preferences = UserDefaults.standard
+    let preferences: UserDefaults
+    init(preferences: UserDefaults = .standard) { self.preferences = preferences; super.init() }
+    var guideController: GettingStarted?
     var settingsController: IntegrationSettings?
     var automation: FolderAutomation?
     var automationError: String?
@@ -128,7 +132,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         menu.addItem(editMenuItem)
         let helpMenuItem = NSMenuItem()
         let helpMenu = NSMenu(title: "Help")
-        addMenuItem(helpMenu, "Quick Start", #selector(showQuickStart), symbol: "questionmark.circle")
+        addMenuItem(helpMenu, "Getting Started…", #selector(showQuickStart), symbol: "questionmark.circle")
         addMenuItem(helpMenu, "Installation and User Guide", #selector(openGuide), symbol: "book")
         addMenuItem(helpMenu, "Check Setup…", #selector(checkSetup), symbol: "checkmark.shield")
         addMenuItem(helpMenu, "Install Finder Quick Actions…", #selector(installFinderActions), symbol: "cursorarrow.click")
@@ -163,6 +167,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         if args.isEmpty && preferences.bool(forKey: "startInMenuBar") && automation?.keepsRunning == true { window.orderOut(nil); NSApp.setActivationPolicy(.accessory) }
         if !args.isEmpty { loadFiles(args) }
         else if !files.isEmpty { loadFiles(files) }
+        DispatchQueue.main.async { [weak self] in if let self, self.shouldOfferGettingStarted { self.showQuickStart() } }
     }
 
     func application(_ sender: NSApplication, openFiles filenames: [String]) {
@@ -178,7 +183,10 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     @objc func pickFiles() {
         guard !busy else { return }
         let panel = NSOpenPanel()
+        panel.canChooseFiles = true
         panel.canChooseDirectories = false
+        panel.allowedContentTypes = []
+        panel.allowsOtherFileTypes = true
         panel.allowsMultipleSelection = true
         panel.message = "Add files to your conversion queue"
         if let path = preferences.string(forKey: "lastSourceFolder") { panel.directoryURL = URL(fileURLWithPath: path) }
@@ -251,13 +259,16 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         if menuItem.action == #selector(contextConvert(_:)) {
-            guard !busy, !selectedQueuePaths.isEmpty, let target = menuItem.representedObject as? String else { return false }
-            return selectedQueuePaths.contains { path in rowByPath[path].flatMap { queueRows[$0]["targets"] as? [String] }?.contains(target) == true }
+            guard !busy, !selectedQueuePaths.isEmpty, let target = menuItem.representedObject as? String, FormatCatalog.all.contains(target) else { return false }
+            return selectedQueuePaths.allSatisfy { path in
+                guard let row = rowByPath[path], queueRows.indices.contains(row), queueRows[row]["error"] is NSNull else { return false }
+                return (queueRows[row]["targets"] as? [String])?.contains(target) == true
+            }
         }
         if let enabled = contextActionEnabled(menuItem.action) { return enabled }
         if menuItem.action == #selector(pickFiles) || menuItem.action == #selector(checkSetup) { return !busy }
         if menuItem.action == #selector(clearFiles) { return !busy && !files.isEmpty }
-        if menuItem.action == #selector(convertHere) || menuItem.action == #selector(convertToFolder) { return !busy && !selectors.isEmpty }
+        if menuItem.action == #selector(convertHere) || menuItem.action == #selector(convertToFolder) { return !busy && !selectors.isEmpty && rejectedPreset == nil }
         if menuItem.action == #selector(showResults) { return !publishedURLs.isEmpty }
         if menuItem.action == #selector(showReport) { return !reportURLs.isEmpty }
         if menuItem.action == #selector(retryFailed) { return !busy && !failedPaths.isEmpty }
@@ -276,19 +287,6 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
 
     @objc func openFinderSettings() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension")!)
-    }
-
-    @objc func showQuickStart() {
-        let alert = NSAlert()
-        alert.messageText = "Convert your first batch"
-        alert.informativeText = "1. Drop files into the queue or click Add Files. You can also use Finder → right-click → Quick Actions → UltraConvert.\n2. Choose an output format for each detected category. Scroll the format list for mixed batches.\n3. Choose Beside source files, Saved destination, or Choose destination.\n4. Click Convert, then Show Results or Report.\n\nAdd more files without replacing the queue. Remove Selected or Clear changes only the queue; originals stay in place. Expand Batch options for skip-matching, concurrency and automatic result opening.\n\nEnable both Finder actions in System Settings → General → Login Items & Extensions → Finder (ⓘ)."
-        alert.addButton(withTitle: "Done")
-        alert.addButton(withTitle: "Full Guide")
-        alert.addButton(withTitle: "Finder Settings")
-        alert.beginSheetModal(for: window) { response in
-            if response == .alertSecondButtonReturn { self.openGuide() }
-            if response == .alertThirdButtonReturn { self.openFinderSettings() }
-        }
     }
 
     @objc func openDefaultFolder() {
@@ -370,7 +368,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         busy = value
         choose.isEnabled = !value
         destination.isEnabled = !value
-        start.isEnabled = !value && !selectors.isEmpty
+        start.isEnabled = !value && !selectors.isEmpty && rejectedPreset == nil
         cancel.isEnabled = value
         for control in selectors.values { control.isEnabled = !value }
         crs.isEnabled = !value
@@ -485,16 +483,20 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
 
     func buildSelectors() {
         formats.arrangedSubviews.forEach { formats.removeArrangedSubview($0); $0.removeFromSuperview() }
-        selectors.removeAll()
+        selectors.removeAll(); formatExplanations.removeAll()
         var groups: [String: [[String: Any]]] = [:]
         for info in infos where info["error"] is NSNull {
             groups[info["category"] as? String ?? "", default: []].append(info)
+        }
+        rejectedPreset = nil
+        if let requested = presetFormat, !infos.allSatisfy({ $0["error"] is NSNull && ($0["targets"] as? [String] ?? []).contains(requested) }) {
+            rejectedPreset = requested; presetFormat = nil
         }
         let defaults = ["image": "png", "geo": "gpkg", "document": "docx", "audio": "flac", "video": "mp4", "config": "json"]
         for key in ["image", "document", "video", "audio", "geo", "config"] {
             guard let items = groups[key], let initial = items.first?["targets"] as? [String] else { continue }
             let common = initial.filter { target in items.allSatisfy { ($0["targets"] as? [String] ?? []).contains(target) } }
-            let names = ["image": "Images", "document": "Documents & ebooks", "video": "Video", "audio": "Audio", "geo": "Geospatial", "config": "Configuration"]
+            let names = ["image": "Images", "document": "Documents & ebooks", "video": "Video", "audio": "Audio", "geo": "Geospatial", "config": "Structured data"]
             let symbols = ["image": "photo", "document": "doc.text", "video": "film", "audio": "waveform", "geo": "map", "config": "curlybraces"]
             let image = NSImageView(image: NSImage(systemSymbolName: symbols[key]!, accessibilityDescription: nil)!)
             image.widthAnchor.constraint(equalToConstant: 18).isActive = true
@@ -511,6 +513,9 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             let heading = NSStackView(views: [image, label]); heading.spacing = 8
             let row = NSStackView(views: [heading, popup])
             row.orientation = .vertical; row.alignment = .leading; row.spacing = 4
+            let advice = uiLabel(FormatCatalog.advice(popup.selectedItem?.representedObject as? String ?? ""), size: 11, color: .secondaryLabelColor)
+            advice.isSelectable = true; advice.setAccessibilityLabel("Format advice for " + names[key]!)
+            row.addArrangedSubview(advice); advice.widthAnchor.constraint(equalTo: row.widthAnchor).isActive = true; formatExplanations[key] = advice
             formats.addArrangedSubview(row)
             popup.widthAnchor.constraint(equalTo: formats.widthAnchor).isActive = true
             row.widthAnchor.constraint(equalTo: formats.widthAnchor).isActive = true
@@ -525,14 +530,17 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             self.presetFormat = nil
         }
         summary.stringValue = "Right-click a file to reveal its original, copy its name or remove it from the queue. Originals and existing outputs are kept."
-        start.isEnabled = !selectors.isEmpty
+        if let rejectedPreset {
+            status.stringValue = "\(rejectedPreset.uppercased()) does not suit every selected file. Choose compatible formats below to review a mixed batch. Nothing has been converted."
+        }
+        start.isEnabled = !selectors.isEmpty && rejectedPreset == nil
         refreshDestination()
-        phase = selectors.isEmpty || failed > 0 ? .attention : .ready
+        phase = selectors.isEmpty || failed > 0 || rejectedPreset != nil ? .attention : .ready
         refreshQueue()
     }
 
     @objc func convertFiles() {
-        guard !busy && !selectors.isEmpty else { return }
+        guard !busy && !selectors.isEmpty && rejectedPreset == nil else { return }
         resultURL = nil; resultURLs = []; lastSummary = ""
         reportURLs = []; publishedURLs = []; resultsHere = false
         reveal.isHidden = true; reportButton.isHidden = true

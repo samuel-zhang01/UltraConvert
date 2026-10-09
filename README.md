@@ -3,7 +3,7 @@
 <p align="center">Convert files locally. One selection. A clear destination.</p>
 <p align="center"><a href="https://github.com/samuel-zhang01/UltraConvert/actions/workflows/ci.yml"><img src="https://github.com/samuel-zhang01/UltraConvert/actions/workflows/ci.yml/badge.svg" alt="CI"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT licence"></a> <a href="https://github.com/samuel-zhang01/UltraConvert/releases/latest"><img src="https://img.shields.io/github/v/release/samuel-zhang01/UltraConvert" alt="Latest release"></a></p>
 
-UltraConvert is a native macOS app with folder rules, two Finder Quick Actions and seven Finder Services. Convert one file or a mixed batch of images, documents, ebooks, video, audio, geospatial data and configuration files. Files are recognised from their contents where possible, and compatible output formats appear in the app.
+UltraConvert is a native macOS app with folder rules, two Finder Quick Actions and seven Finder Services. Convert one file or a mixed batch of images, documents, ebooks, video, audio, geospatial data and structured data files. Files are recognised from their contents where possible, and compatible output formats appear in the app.
 
 Conversion runs on your Mac. Manual conversion always keeps originals; folder rules keep them by default and can explicitly archive or Trash them after success. No account, upload service or telemetry. Enabled folder rules run while the app is open, including when its main window is closed. **Both Finder actions support bulk conversion.**
 
@@ -11,9 +11,9 @@ Conversion runs on your Mac. Manual conversion always keeps originals; folder ru
 
 ## Install
 
-The latest stable release is **v1.3.0**. The **[v1.5.1 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.5.1)** includes folder automation, a grouped format picker and startup/Finder settings; use its installer ZIP and the steps below. Both public versions install conversion engines separately and are **not Apple notarized**.
+The latest stable release is **v1.3.0**. The **[v1.6.0 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.6.0)** adds a task-based Getting Started guide, format advice and clearer folder/Finder setup. Use its installer ZIP and the steps below. Public versions install conversion engines separately. Check the release’s **RELEASE-METADATA.json** for verified signing and app/DMG notarization status; older v1.5.1 and stable v1.3.0 packages are not notarized.
 
-A self-contained v1.5.1 development app also runs locally, with all engines packaged inside `UltraConvert.app`. Its drag-to-Applications DMG is currently Apple Silicon/macOS 27 only and remains unpublished while dependency-source/licence review and Apple distribution signing are completed. See the [standalone build guide](docs/STANDALONE.md) for developer commands and measured size reductions.
+A self-contained v1.6.0 development app also runs locally, with all engines packaged inside `UltraConvert.app`. Its drag-to-Applications DMG is currently Apple Silicon/macOS 27 only and remains unpublished while dependency-source/licence review and complete bundled-engine distribution verification are completed. See the [standalone build guide](docs/STANDALONE.md) for developer commands and measured size reductions.
 
 ### 1. Check your Mac and prerequisites
 
@@ -23,7 +23,7 @@ A self-contained v1.5.1 development app also runs locally, with all engines pack
 
 ### 2. Install on Apple Silicon
 
-1. Download **UltraConvert-…-macos-arm64.zip** from [the stable release](https://github.com/samuel-zhang01/UltraConvert/releases/latest) or the [v1.5.1 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.5.1). Do not choose GitHub's automatic “Source code” download for this route.
+1. Download **UltraConvert-…-macos-arm64.zip** from [the stable release](https://github.com/samuel-zhang01/UltraConvert/releases/latest) or the [v1.6.0 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.6.0). Do not choose GitHub's automatic “Source code” download for this route.
 2. Double-click the ZIP in Finder to extract it. It contains a folder named **UltraConvert**, with `install.py` inside.
 3. Open **Terminal** (Applications → Utilities). Type `cd ` with a space, drag the extracted **UltraConvert folder** from Finder into Terminal, then press Return. This handles folders with spaces or a suffix such as “UltraConvert 2”.
 4. Run:
@@ -37,7 +37,7 @@ A self-contained v1.5.1 development app also runs locally, with all engines pack
 
 The installer uses the ZIP's prebuilt app, installs shared open source engines with Homebrew, and creates a local Python runtime. Keep the extracted folder if you want easy access to the uninstaller. Dragging the `.app` alone into Applications does not set up the runtime.
 
-The binary is ad-hoc signed and **not Apple notarized**. If Gatekeeper blocks it, use a source build below. Do not disable Gatekeeper.
+Use the signing/notarization status shown on the release page for the downloaded package. Older previews are ad-hoc signed and not notarized; if an older build is blocked, use the source-build route below. Do not disable Gatekeeper.
 
 ### Alternative: build from source
 
@@ -83,25 +83,27 @@ For ordinary use, select files or folders through the native pickers and respond
 
 ## Your first conversion
 
-Try a few photos first:
+Start in the app; Finder shortcuts are optional:
 
-1. In Finder, select a PNG, JPEG, HEIC or another supported image. Hold **⌘** while clicking to select several files; **⇧-click** selects a range.
-2. Right-click → **Quick Actions → Convert Here with UltraConvert**.
-3. UltraConvert opens and recognises the files. In the **Images** row, choose an output such as **WEBP**.
-4. Leave **Beside source files** selected and click **Convert**.
-5. When progress finishes, click **Show Results**. The converted files appear directly beside the originals: `Photo.png` → `Photo.webp`, with no extra folders. Your original files stay in place. Click **Report** for conversion details.
+1. Open **UltraConvert** from Spotlight or `~/Applications`. The first-use **Getting Started** guide explains conversion, Finder, folder rules and startup; you can reopen it from the main window or **Help → Getting Started**.
+2. Click **Add Files…** (⌘O) or drop one or more files into **1. Add files**. UltraConvert recognises their contents and shows compatible targets.
+3. In **2. Choose formats**, pick an output for each category. The advice below each choice explains uses and tradeoffs; for example, MP3 is widely compatible compressed audio, while FLAC is lossless.
+4. Review **3. Save to**. **Beside source files** keeps ordinary results beside each original; **Choose destination** selects an output folder.
+5. Click **Convert**. **Show Results** reveals the new files; **Report** explains failures or skipped files. Originals and existing outputs are kept.
+
+Once comfortable, select files in Finder → right-click → **Quick Actions → Convert Here with UltraConvert** for the same review flow, or **Convert to Destination with UltraConvert** for your saved output folder.
 
 For a mixed selection, one format selector appears for each detected category. For example, photos → WEBP, audio → OPUS, documents → DOCX and GIS → GPKG can share one batch. Video can also be converted to audio, such as MP4 → MP3 or OPUS. Unsupported files are identified; valid files can still be converted.
 
-You can also open **UltraConvert** from Spotlight or `~/Applications`, drag files into the queue or click **Add Files…**, and use the same controls. Adding files appends to the queue and ignores repeats. Select queue rows and click **Remove Selected** (or press Delete); **Clear** empties the queue. These actions do not delete your original files. **Help → Quick Start** works offline. The full guide opens this README in your browser.
+You can also open **UltraConvert** from Spotlight or `~/Applications`, drag files into the queue or click **Add Files…**, and use the same controls. Adding files appends to the queue and ignores repeats. Select queue rows and click **Remove Selected** (or press Delete); **Clear** empties the queue. These actions do not delete your original files. **Help → Getting Started** works offline. The full guide opens this README in your browser.
 
 Batches accept up to **1,000 files**. Content probing recognises many misleading extensions; ambiguous plain text still needs an extension hint. Select a Shapefile's `.shp` file with its matching `.dbf`, `.shx` and optional `.prj` nearby. Selecting those sidecars together produces one dataset conversion.
 
-For a common format, right-click → **Services → Convert to … with UltraConvert**. PNG, JPEG and WebP appear for images; MP3 and Opus for audio/video; MP4 for movies. macOS filters these shortcuts by the file type known to Finder. They open the app with that format selected and **Beside source files** chosen. Review the batch, then click **Convert**. They reuse an idle app window; if a batch is busy, wait or cancel before trying again. The two general Quick Actions open a fresh window with their chosen destination mode.
+For a common format, right-click → **Services → Convert to … with UltraConvert**. PNG, JPEG and WebP appear for images; MP3 and Opus for audio/video; MP4 for movies. macOS filters these shortcuts by the file type known to Finder. They open the app with that format selected and **Beside source files** chosen. Review the batch, then click **Convert**. A preset that does not suit every selected file leaves Convert disabled until you explicitly choose compatible per-category formats. They reuse an idle app window; if a batch is busy, wait or cancel before trying again. The two general Quick Actions open a fresh window with their chosen destination mode.
 
 If a format shortcut is missing, check **System Settings → Keyboard → Keyboard Shortcuts → Services** and enable the named UltraConvert shortcut. For a misleading extension or a mixed selection that Finder cannot categorise, use the general Quick Actions or Add Files; content inspection still runs in the app.
 
-For every supported target, use **Services → Convert Here with UltraConvert — Choose Format…**. Pick Audio, Video, Images, Documents, Geospatial or Structured data, choose a format and click **Review Conversion**. The app recognises the selection and checks compatibility before you click Convert. In the app, right-click a queue row → **Convert Here to → category → format**; incompatible targets are disabled.
+For every supported target, use **Services → Convert Here with UltraConvert — Choose Format…**. Pick Audio, Video, Images, Documents, Geospatial or Structured data, choose a format and click **Review Conversion**. The app recognises the selection and checks compatibility before you click Convert. In the app, right-click a queue row → **Review Selected Files Here as → category → format**; targets are enabled only when every selected file supports them. This prepares the selected files for review; click Convert to start.
 
 macOS does not expose nested submenus through Quick Actions or Services. [Apple documents that Services have no submenus](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/SysServices/Articles/properties.html). A custom nested Finder menu would require a separately enabled Finder Sync extension scoped to selected folders; this preview uses supported Services and the grouped picker.
 
@@ -123,10 +125,10 @@ Open **UltraConvert → Settings…** or press **⌘,**.
 
 - **Launch at login:** off by default. Turning it on asks macOS to open the app at your next login. The status reflects macOS's current state, including any approval needed in **Login Items**. Turning it off unregisters the login item. Finder conversion works with this option off.
 - **Start in the menu bar when folder rules are enabled:** off by default. Hides the converter at startup if enabled rules are configured. Files opened from Finder still show the converter. The menu bar icon opens the converter/rules and pauses or resumes watching.
-- **Register Finder actions automatically:** on by default. Opening an installed app from Applications checks/repairs its two owned Quick Actions. Turning it off leaves existing actions available and stops automatic registration.
-- **Register / Repair Actions:** restores the two owned workflows and points them at this app's actual location. It preserves earlier owned workflows in backups and refuses unrelated actions. Wait for any conversion to finish first.
-- **Refresh Format Services:** registers this app and refreshes its six preset shortcuts and the all-format Choose Format service.
-- **Finder Settings… / Services Settings…:** open the relevant macOS settings pane. For Services, open **Keyboard Shortcuts → Services** and enable the named shortcuts. Registration does not change macOS's enable switches.
+- **Keep Finder Quick Actions installed:** on by default. Opening an installed app from Applications checks/repairs its two owned Quick Actions. Turning it off leaves existing actions available and stops automatic registration.
+- **Install or Repair Quick Actions:** restores the two owned workflows and points them at this app's actual location. It preserves earlier owned workflows in backups and refuses unrelated actions. Wait for any conversion to finish first.
+- **Refresh Format Shortcuts:** registers this app and refreshes its six preset shortcuts and the all-format Choose Format service.
+- **Enable Quick Actions in macOS… / Enable Format Shortcuts in macOS…:** open the relevant macOS settings pane. For Services, open **Keyboard Shortcuts → Services** and enable the named shortcuts. Registration does not change macOS's enable switches.
 
 The same registration/repair controls work in installer and standalone builds. The source/installer build still needs its separately provisioned runtime; moving the app does not move that runtime.
 
@@ -139,7 +141,7 @@ The same registration/repair controls work in installer and standalone builds. T
 5. Add and reorder **Convert** and **Rename output** blocks. Rename templates accept `{name}`, `{format}` and `{date}`; do not add the extension. For example, `{name}-{format}` produces `Recording-mp3.mp3`. Sequential conversions support single-file results; companion bundles need one conversion block.
 6. In **SAVE**, choose an existing output folder outside every enabled watch folder. Results are direct files unless companion resources need one folder. Name collisions get numbered suffixes.
 7. Leave **Keep the original** selected, or explicitly choose **Move to archive** / **Send to Trash** and check the acknowledgement. Archive folders must also stay outside watch folders. These actions happen only after successful publication and a source-integrity check; failure/cancellation/changed-source cases keep the original. GIS and document originals must be kept because they may have companion files. They also need a conversion block when routing to preserve those companions. Trash is recoverable through Finder. If a source name is replaced during a failed final action, the earlier original is retained in a hidden recovery folder; Activity identifies its full path. Copy that path into Finder’s Go → Go to Folder to recover it without replacing the new file.
-8. Click **Test a File…** and choose an inbox file. This only recognises it and shows a plan; it changes no files. Use **Cancel Test** or **Escape** to stop it. Editing or switching a rule invalidates an in-progress test, so old results cannot appear as the current plan. Test previews also refuse linked/changed sources and unsafe document/GIS original actions. Check the plan, turn on **Enable this rule after saving**, then click **Save Rule**.
+8. Click **Preview a File…** and choose an inbox file. This only recognises it and shows a plan; it changes no files. Use **Cancel Preview** or **Escape** to stop it. Editing or switching a rule invalidates an in-progress test, so old results cannot appear as the current plan. Test previews also refuse linked/changed sources and unsafe document/GIS original actions. Use **View Preview Details…** for the full source/output/archive paths and original-file consequence, even when the summary is long. Editing invalidates completed details. Check the plan, turn on **Enable this rule after saving**, then click **Save Rule**.
 9. Add a new file to the inbox. **Activity** shows outcomes and offers **Reveal Output**. At most 200 local activity entries are retained.
 
 Rules run top to bottom: the first matching enabled rule handles each file. **Move Up/Down** changes priority. **Duplicate** creates a disabled copy. Rule edits take effect only after saving. When leaving an edited rule, choose **Save Changes**, **Keep Editing** or **Discard Changes**. Discard restores the saved rule; a failed save keeps the editor open. Saving changes to enabled rules, resuming or restarting establishes a fresh baseline: existing inbox files are ignored. **Run Existing Files…** explicitly queues up to 1,000 current files using the saved rules, including their original-file policy. Pause persists across app restarts. Pausing ignores arrivals until resumed; it does not build a hidden backlog.
@@ -156,7 +158,7 @@ The watcher uses native filesystem events. It has **no polling timer or conversi
 - **Batch options:** expand this row to show skip-matching, concurrency and automatic result opening.
 - **1–4 files at a time:** converts that many files at once. Two is the default. Use one for large media or GIS inputs to reduce memory pressure; four can help batches of small files.
 - **Open results when finished:** reveals converted files for Convert Here, or opens the destination batch folder, after completion.
-- **File-row right-click:** choose a target through **Convert Here to → category → format**, reveal the original, reveal its converted result, copy file names or error details, or remove the selected rows from the queue. Removing rows keeps the files on disk.
+- **File-row right-click:** choose a target through **Review Selected Files Here as → category → format**, reveal the original, reveal its converted result, copy file names or error details, or remove the selected rows from the queue. Removing rows keeps the files on disk.
 - **Retry Failed:** loads only failed files, recognises them again and lets you review formats/destination before another conversion.
 - **Cancel:** stops the current batch. Completed outputs and the partial batch report are retained.
 - **Report:** selects the conversion report in Finder. Open it in a text editor to see per-file outcomes, preservation notes and engine diagnostics. Convert Here keeps reports under `~/Library/Application Support/UltraConvert/Reports/` to avoid cluttering your source folders. Destination batches keep `conversion-report.json` in their batch folder.
@@ -253,4 +255,4 @@ Removal moves only owned app, workflows and runtime into Trash. Shared Homebrew 
 
 ## Native macOS release and Swift roadmap
 
-The interface is Swift/AppKit; the conversion coordinator is currently Python. A full Swift engine port can retain the established native conversion tools. The current binary is ad-hoc signed, with Hardened Runtime, and is not notarized. Developer ID signing, Apple notarization/stapling, Gatekeeper checks and optional DMG packaging are implemented in the release tooling. They require the maintainer’s distribution certificate and Keychain notarization profile; availability of the code is not a claim that Apple has accepted a release. See [the macOS release guide](docs/MACOS-RELEASE.md).
+The interface is Swift/AppKit; the conversion coordinator is currently Python. A full Swift engine port can retain the established native conversion tools. Developer ID signing, Apple notarization/stapling, Gatekeeper checks and optional DMG packaging are implemented in the release tooling. The maintainer can use a notarization Keychain profile or Xcode Organizer's signed-in account and verified export. Each release records its actual signing and app/DMG notarization status in **RELEASE-METADATA.json**; successful signing alone does not establish Apple acceptance. See [the macOS release guide](docs/MACOS-RELEASE.md).

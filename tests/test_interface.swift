@@ -49,7 +49,66 @@ struct InterfaceSmoke {
         precondition(app.presetFormat == nil && !app.busy)
         app.presetFormat = "mp3"
         app.buildSelectors()
-        precondition(app.status.stringValue.contains("unavailable"))
+        precondition(app.status.stringValue.contains("does not suit"))
+
+        // Context presets apply to every selected file. Real video and audio
+        // inspection fixtures share MP3; reviewing them still starts no conversion.
+        let audio = inspected.first { $0["category"] as? String == "audio" }!
+        let video = inspected.first { $0["category"] as? String == "video" }!
+        let mp3Item = app.fileTable.menu!.items[0].submenu!.items[0].submenu!.items.first {
+            $0.representedObject as? String == "mp3"
+        }!
+        precondition(app.fileTable.menu!.items[0].title == "Review Selected Files Here as")
+        app.infos = [video, audio]; app.files = app.infos.compactMap { $0["path"] as? String }
+        app.presetFormat = "mp3"
+        app.buildSelectors()
+        app.fileTable.selectRowIndexes(IndexSet(integersIn: 0..<2), byExtendingSelection: false)
+        precondition(app.validateMenuItem(mp3Item))
+        precondition(Set(app.selectors.keys) == ["video", "audio"])
+        precondition(app.selectors.values.allSatisfy { $0.selectedItem?.representedObject as? String == "mp3" })
+        precondition(app.start.isEnabled && !app.busy && app.process == nil && app.presetFormat == nil)
+
+        // Mixed categories and unsupported items cannot silently fall back to a
+        // second target, even when the handler is invoked without menu validation.
+        let unsupported: [String: Any] = ["path": "/tmp/unsupported.wav", "name": "unsupported.wav",
+            "category": "audio", "targets": ["mp3"], "error": "Unsupported audio"]
+        for selection in [[image, audio], [audio, unsupported]] {
+            app.infos = selection; app.files = selection.compactMap { $0["path"] as? String }
+            app.buildSelectors()
+            app.fileTable.selectRowIndexes(IndexSet(integersIn: 0..<2), byExtendingSelection: false)
+            app.here = false
+            app.outputURL = URL(fileURLWithPath: "/tmp/UltraConvert-context-review")
+            app.location.selectItem(at: 2); app.refreshDestination()
+            let filesBefore = app.files, selectedBefore = app.selectedQueuePaths
+            let queueBefore = try JSONSerialization.data(withJSONObject: app.queueRows, options: .sortedKeys)
+            let targetsBefore = app.selectors.mapValues { $0.selectedItem?.representedObject as? String }
+            let destinationBefore = app.outputURL, destinationText = app.destinationPath.stringValue
+            precondition(!app.validateMenuItem(mp3Item))
+            app.contextConvert(mp3Item)
+            precondition(app.files == filesBefore && app.selectedQueuePaths == selectedBefore)
+            let queueAfter = try JSONSerialization.data(withJSONObject: app.queueRows, options: .sortedKeys)
+            precondition(queueAfter == queueBefore)
+            precondition(app.selectors.mapValues { $0.selectedItem?.representedObject as? String } == targetsBefore)
+            precondition(!app.here && app.outputURL == destinationBefore && app.destinationPath.stringValue == destinationText)
+            precondition(app.presetFormat == nil && !app.busy && app.process == nil)
+            precondition(app.status.stringValue.contains("every selected file"))
+        }
+        app.fileTable.deselectAll(nil)
+        precondition(!app.validateMenuItem(mp3Item))
+        // A Finder preset for a mixed selection must not silently choose other
+        // category defaults. Every conversion entry point stays blocked until
+        // the user explicitly chooses compatible per-category formats.
+        let audioForPreset = inspected.first { $0["category"] as? String == "audio" }!
+        app.infos = [image, audioForPreset]; app.files = app.infos.compactMap { $0["path"] as? String }
+        app.presetFormat = "mp3"; app.buildSelectors()
+        precondition(app.rejectedPreset == "mp3" && app.phase == .attention && !app.start.isEnabled && app.status.stringValue.contains("every selected file"))
+        app.convertFiles(); precondition(!app.busy && app.process == nil)
+        let blockedHere = NSMenuItem(title: "Convert Here", action: #selector(app.convertHere), keyEquivalent: "")
+        precondition(!app.validateMenuItem(blockedHere))
+        app.setBusy(true); app.setBusy(false); precondition(!app.start.isEnabled)
+        let audioSelector = app.selectors["audio"]!; audioSelector.select(audioSelector.itemArray.first { $0.representedObject as? String == "mp3" }!); app.formatChanged(audioSelector)
+        precondition(app.rejectedPreset == nil && app.phase == .ready && app.start.isEnabled && app.formatExplanations["audio"]?.stringValue.contains("MP3") == true)
+
         // Unsupported items must remain inspectable without enabling conversion.
         app.infos = [["path": "/tmp/unknown.bin", "name": "unknown.bin", "error": "Unsupported"]]
         app.files = ["/tmp/unknown.bin"]

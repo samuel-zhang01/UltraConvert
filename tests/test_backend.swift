@@ -86,18 +86,24 @@ struct BackendSmoke {
         settings.finderToggle.state = .off; settings.changeFinderPreference(); settings.refresh()
         precondition(!preferences.bool(forKey: "autoRegisterFinderActions") && settings.finderToggle.state == .off)
         settings.repairFinder()
-        precondition(repairs == 1 && settings.integrationStatus.stringValue.contains("registered"))
+        precondition(repairs == 1 && settings.integrationStatus.stringValue.contains("installed"))
         settings.loginToggle.state = .on; settings.changeLogin()
         precondition(login.enableCount == 1 && settings.loginToggle.state == .on && settings.loginStatus.stringValue.contains("Allow"))
         settings.loginToggle.state = .off; settings.changeLogin()
         precondition(login.disableCount == 1 && settings.loginToggle.state == .off)
         login.fail = true; settings.loginToggle.state = .on; settings.changeLogin()
         precondition(settings.loginToggle.state == .off && settings.loginStatus.stringValue.contains("Could not"))
+        login.state = .unavailable; settings.refresh()
+        precondition(settings.loginToggle.state == .off && settings.loginStatus.stringValue.contains("off") && !settings.loginStatus.stringValue.contains("could not"))
         login.state = .enabled; settings.refresh()
         precondition(settings.loginToggle.state == .on)
         settings.window!.contentView!.layoutSubtreeIfNeeded()
-        let statusBounds = settings.integrationStatus.convert(settings.integrationStatus.bounds, to: settings.window!.contentView)
-        precondition(statusBounds.minY >= 0 && statusBounds.maxX <= settings.window!.contentView!.bounds.width)
+        let scroll = settings.window!.contentView!.subviews.compactMap { $0 as? NSScrollView }.first!
+        let settingsDocument = scroll.documentView!
+        let statusBounds = settings.integrationStatus.convert(settings.integrationStatus.bounds, to: settingsDocument)
+        precondition(scroll.hasVerticalScroller && statusBounds.minY >= 0 && statusBounds.maxY <= settingsDocument.bounds.height && statusBounds.maxX <= settingsDocument.bounds.width)
+        settings.integrationStatus.scrollToVisible(settings.integrationStatus.bounds)
+        precondition(scroll.documentVisibleRect.intersects(statusBounds))
         print("Native backend checks passed: legacy/bundled selection, missing/escaping paths, loader environment, safe Finder dispatch, idempotence and foreign-action preservation.")
     }
 }

@@ -34,6 +34,8 @@ mkdir -p build
 "$UC_PY" src/convert.py --inspect -- examples/* > build/interface-inspection.json
 xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_interface.swift -o build/interface-test
 build/interface-test build/interface-inspection.json
+xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_guidance.swift -o build/guidance-test
+build/guidance-test
 ```
 
 Run native folder-rule tests (uses temporary folders and an injected Trash operation, never user files):

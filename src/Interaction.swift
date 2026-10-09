@@ -81,7 +81,7 @@ extension ConverterApp: NSMenuDelegate {
     func buildQueueMenu() {
         let menu = NSMenu(title: "File actions")
         menu.delegate = self
-        let conversion = NSMenuItem(title: "Convert Here to", action: nil, keyEquivalent: "")
+        let conversion = NSMenuItem(title: "Review Selected Files Here as", action: nil, keyEquivalent: "")
         conversion.submenu = FormatCatalog.menu(target: self, action: #selector(contextConvert(_:)))
         menu.addItem(conversion); menu.addItem(.separator())
         addMenuItem(menu, "Reveal Original in Finder", #selector(revealSources), symbol: "folder")
@@ -103,7 +103,15 @@ extension ConverterApp: NSMenuDelegate {
 
     @objc func contextConvert(_ sender: NSMenuItem) {
         guard !busy, let format = sender.representedObject as? String, !selectedQueuePaths.isEmpty else { return }
-        presetFormat = format; here = true; refreshDestination(); loadFiles(selectedQueuePaths)
+        let selected = selectedQueuePaths
+        guard FormatCatalog.all.contains(format), selected.allSatisfy({ path in
+            guard let row = rowByPath[path], queueRows.indices.contains(row), queueRows[row]["error"] is NSNull else { return false }
+            return (queueRows[row]["targets"] as? [String])?.contains(format) == true
+        }) else {
+            status.stringValue = "That format is not compatible with every selected file. Select compatible files, or choose an output format for each category."
+            return
+        }
+        presetFormat = format; here = true; refreshDestination(); loadFiles(selected)
     }
 
     func contextActionEnabled(_ action: Selector?) -> Bool? {

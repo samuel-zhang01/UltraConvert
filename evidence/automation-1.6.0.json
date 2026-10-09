@@ -1,0 +1,13 @@
+{
+  "assessment": "Local deterministic regressions plus real FSEvents and bundled recognition/conversion. CPU/RSS describes a short fixture process sample, not full GUI or engine peaks.",
+  "checks": 305,
+  "idle_cpu_seconds": 0.005294,
+  "idle_sample_seconds": 5,
+  "native_events": true,
+  "passed": true,
+  "platform": "Apple Silicon/macOS 27",
+  "real_engine": true,
+  "scan_1000_files_seconds": 0.006776094436645508,
+  "test_peak_rss_bytes": 33423360,
+  "version": "1.6.0"
+}

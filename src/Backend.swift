@@ -188,7 +188,7 @@ enum LoginState {
         case .disabled: return "Launch at login is off. Finder conversion works without it."
         case .enabled: return "UltraConvert will open when you log in."
         case .needsApproval: return "Allow UltraConvert in macOS Login Items to finish enabling this option."
-        case .unavailable: return "macOS could not find this app’s login registration. Try enabling it here."
+        case .unavailable: return "Launch at login is off. Enable it to ask macOS to register this app."
         }
     }
 }
@@ -227,7 +227,7 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
     let registerFinder: () throws -> Void
     let loginToggle = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
     let menuBarToggle = NSButton(checkboxWithTitle: "Start in the menu bar when folder rules are enabled", target: nil, action: nil)
-    let finderToggle = NSButton(checkboxWithTitle: "Register Finder actions automatically", target: nil, action: nil)
+    let finderToggle = NSButton(checkboxWithTitle: "Keep Finder Quick Actions installed", target: nil, action: nil)
     let loginStatus = NSTextField(wrappingLabelWithString: "")
     let integrationStatus = NSTextField(wrappingLabelWithString: "")
 
@@ -235,20 +235,17 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
         self.preferences = preferences
         self.login = login
         self.registerFinder = registerFinder
-        let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 590, height: 530), styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: min(690, (NSScreen.main?.visibleFrame.height ?? 900) - 90)), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.title = "UltraConvert Settings"
-        panel.isReleasedWhenClosed = false
+        panel.isReleasedWhenClosed = false; panel.minSize = NSSize(width: 600, height: 520)
         super.init(window: panel)
         panel.delegate = self
-        let stack = NSStackView()
-        stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 14
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        panel.contentView!.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: panel.contentView!.leadingAnchor, constant: 26),
-            stack.trailingAnchor.constraint(equalTo: panel.contentView!.trailingAnchor, constant: -26),
-            stack.topAnchor.constraint(equalTo: panel.contentView!.topAnchor, constant: 24)
-        ])
+        let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.drawsBackground = false
+        pin(scroll, in: panel.contentView!, inset: 24)
+        let canvas = FlippedView(); canvas.translatesAutoresizingMaskIntoConstraints = false; scroll.documentView = canvas
+        let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 14
+        stack.translatesAutoresizingMaskIntoConstraints = false; canvas.addSubview(stack)
+        NSLayoutConstraint.activate([canvas.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor), stack.leadingAnchor.constraint(equalTo: canvas.leadingAnchor), stack.trailingAnchor.constraint(equalTo: canvas.trailingAnchor, constant: -8), stack.topAnchor.constraint(equalTo: canvas.topAnchor), stack.bottomAnchor.constraint(equalTo: canvas.bottomAnchor, constant: -12)])
         func add(_ view: NSView) {
             stack.addArrangedSubview(view)
             view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
@@ -257,6 +254,7 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
         add(uiLabel("Startup & Finder", size: 23, weight: .semibold))
         add(note("Choose how UltraConvert starts and appears in Finder."))
         loginToggle.target = self; loginToggle.action = #selector(changeLogin)
+        add(uiLabel("Startup · optional", size: 15, weight: .semibold))
         add(loginToggle)
         loginStatus.font = .systemFont(ofSize: 12); loginStatus.textColor = .secondaryLabelColor
         add(loginStatus)
@@ -265,20 +263,25 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
         add(note("Enabled folder rules keep running when the converter window closes. Quit UltraConvert from its menu bar icon to stop watching."))
         add(button("Open Login Items Settings…", #selector(openLoginSettings), symbol: "person.crop.circle.badge.checkmark"))
         let divider = NSBox(); divider.boxType = .separator; add(divider)
+        add(uiLabel("Finder Quick Actions · review any batch", size: 15, weight: .semibold))
         finderToggle.target = self; finderToggle.action = #selector(changeFinderPreference)
         add(finderToggle)
-        add(note("Registers or repairs the two Quick Actions when this app opens from Applications. Turning this off keeps existing actions installed."))
-        let buttons = NSStackView(views: [button("Register / Repair Actions", #selector(repairFinder), symbol: "arrow.clockwise"), button("Refresh Format Services", #selector(refreshServices), symbol: "arrow.triangle.2.circlepath")])
-        buttons.spacing = 12; add(buttons)
-        add(note("macOS controls whether actions and format shortcuts are enabled. Use the buttons below to manage their switches."))
-        let settings = NSStackView(views: [button("Finder Settings…", #selector(openFinderSettings), symbol: "folder"), button("Keyboard Settings…", #selector(openServicesSettings), symbol: "keyboard")])
-        settings.spacing = 12; add(settings)
+        add(note("Quick Actions opens a batch for review: right-click files → Quick Actions → Convert Here with UltraConvert, or Convert to Destination with UltraConvert. This option repairs their installation when the app opens from Applications. Turning it off keeps existing actions installed."))
+        add(button("Install or Repair Quick Actions", #selector(repairFinder), symbol: "arrow.clockwise"))
+        add(note("To show these actions: System Settings → General → Login Items & Extensions → Finder (ⓘ). Enable both UltraConvert actions. Installing an action does not enable its macOS switch."))
+        add(button("Enable Quick Actions in macOS…", #selector(openFinderSettings), symbol: "folder"))
+        let servicesDivider = NSBox(); servicesDivider.boxType = .separator; add(servicesDivider)
+        add(uiLabel("Format shortcuts · Finder Services", size: 15, weight: .semibold))
+        add(note("Right-click files → Services → Convert Here with UltraConvert — Choose Format… for a grouped format picker, or use shortcuts such as Convert to MP3. You review the batch before clicking Convert."))
+        add(button("Refresh Format Shortcuts", #selector(refreshServices), symbol: "arrow.triangle.2.circlepath"))
+        add(note("To show these shortcuts: System Settings → Keyboard → Keyboard Shortcuts → Services. macOS filters shortcuts by selected file type; use a general Quick Action if a misnamed file hides a preset."))
+        add(button("Enable Format Shortcuts in macOS…", #selector(openServicesSettings), symbol: "keyboard"))
         integrationStatus.font = .systemFont(ofSize: 12); integrationStatus.textColor = .secondaryLabelColor
         add(integrationStatus)
         panel.center()
         refresh()
         panel.contentView!.layoutSubtreeIfNeeded()
-        panel.setContentSize(NSSize(width: 590, height: max(530, stack.fittingSize.height + 48)))
+
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -322,15 +325,15 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
     @objc func repairFinder() {
         do {
             try registerFinder()
-            integrationStatus.stringValue = "Actions registered. Enable them in Finder Settings if needed."
-        } catch { integrationStatus.stringValue = "Could not register actions: " + error.localizedDescription }
+            integrationStatus.stringValue = "Quick Actions installed. Enable both in System Settings → General → Login Items & Extensions → Finder (ⓘ)."
+        } catch { integrationStatus.stringValue = "Could not install Quick Actions: " + error.localizedDescription }
     }
 
     @objc func refreshServices() {
         do {
             try FormatServices.register(app: Bundle.main.bundleURL)
-            integrationStatus.stringValue = "Format services refreshed. Enable missing shortcuts in Keyboard Shortcuts → Services."
-        } catch { integrationStatus.stringValue = "Could not refresh services: " + error.localizedDescription }
+            integrationStatus.stringValue = "Format shortcuts refreshed. Enable them in System Settings → Keyboard → Keyboard Shortcuts → Services."
+        } catch { integrationStatus.stringValue = "Could not refresh format shortcuts: " + error.localizedDescription }
     }
 
     @objc func openLoginSettings() { SMAppService.openSystemSettingsLoginItems() }

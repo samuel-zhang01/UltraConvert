@@ -4,9 +4,9 @@ The app interface, menus, file pickers, progress and Finder integration are Swif
 
 ## Current release status
 
-The stable v1.3.0 release and v1.4.0 installer preview are Apple Silicon, ad-hoc signed with Hardened Runtime, and **not notarized**. Installation still provisions a separate Homebrew/Python runtime. It is not a self-contained drag-to-Applications app. The Developer ID/notarization branch of the release tooling has tests for its credential and acceptance gates, but requires a real distribution certificate and successful Apple submission to verify end to end.
+Stable v1.3.0 and the v1.5.1 installer preview are ad-hoc signed and not notarized. The v1.6.0 release tooling can use a valid Developer ID Application certificate and either a Keychain notarization profile or an app notarized and exported by Xcode Organizer. Release metadata records the actual verified app and DMG status; successful signing alone does not imply notarization.
 
-The v1.4.0 source adds startup/Finder settings and a separate [standalone development builder](STANDALONE.md). It packages the runtime and engines into the app and produces a drag-to-Applications DMG. Its binaries are for local development until their corresponding-source/notices inventory, distribution signing, notarization and clean-Mac checks are complete. `build_release.py` continues to produce the established installer-source release; it does not publish the new bundled preview.
+Public packages retain the separate Homebrew/Python engine installer. The complete local development app and drag-to-Applications DMG remain unpublished pending corresponding-source/notices review and complete nested-code distribution verification. See [standalone development](STANDALONE.md). Apple enrollment is approved and Developer ID provisioning is available; credentials stay in the maintainer's Keychain.
 
 ## Prepare the signing credentials
 
@@ -52,6 +52,29 @@ Outputs are in `dist/VERSION/`. Existing artifacts are never overwritten: choose
 The optional DMG contains the complete **UltraConvert** installer-source folder. Users must still run its installer; it is not a drag-only installer. Do not advertise a self-contained bundle until the runtime is actually provisioned by the app or packaged inside it.
 
 To build a development release, omit the signing/notarization options. Its metadata explicitly says **ad-hoc** and **not notarized**. `--dmg` alone does not provide Apple approval.
+
+## Use Xcode’s signed-in account
+
+When a separate notarytool profile is unavailable, build an archive for Xcode Organizer:
+
+```sh
+python3 scripts/build_xcode_archive.py \
+  --sign-identity "Developer ID Application: YOUR NAME (TEAMID)" \
+  --output build/UltraConvert-release.xcarchive
+```
+
+Open the archive in Xcode. In Organizer select **Distribute App → Direct Distribution** (or **Developer ID**, depending on Xcode version), choose upload for notarization, and use the enrolled team. Complete any Apple authentication locally. Wait for **Ready to distribute**, then **Export Notarized App** into a new folder. [Apple’s Organizer guide](https://help.apple.com/xcode/mac/current/en.lproj/dev88332a81e.html) describes this flow.
+
+Package that exact export from a clean committed tree:
+
+```sh
+python3 scripts/build_release.py \
+  --sign-identity "Developer ID Application: YOUR NAME (TEAMID)" \
+  --notarized-app /absolute/path/to/UltraConvert.app \
+  --output-dir dist/release-notarized
+```
+
+The builder checks native source provenance, exact signing certificate/team, Hardened Runtime, secure timestamp, the stapled ticket and Gatekeeper acceptance. Source, icon, version or packaging-code edits require a new archive. This route does not read or export Xcode’s private account credentials. An optional `--dmg` produces a signed image containing the notarized app, but explicitly records that the image has no separate notarization ticket. Use the Keychain-profile route to submit and staple both app and DMG.
 
 ## Validate before publishing
 

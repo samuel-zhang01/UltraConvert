@@ -81,6 +81,19 @@ struct AutomationTests {
         let engine = FixtureAutomationEngine(), pipeline = AutomationPipeline(engine: engine, scratch: root.appendingPathComponent("Scratch"))
         let preview = try pipeline.preview(source, rule: rule, cancellation: AutomationCancellation())
         check(preview.contains("No files changed") && engine.count == 0, "Read-only preview")
+        check(preview.contains("Detected: MP3 (Audio)") && preview.contains("After success: Keep the original in its inbox."), "Preview explains detected category and Keep original")
+        let longArchive = archive.appendingPathComponent(String(repeating: "A clear archive folder ", count: 8)).appendingPathComponent("Original files remain recoverable")
+        try fm.createDirectory(at: longArchive, withIntermediateDirectories: true)
+        let originalBytes = try Data(contentsOf: source), inboxBefore = try fm.contentsOfDirectory(atPath: inbox.path).sorted(), outboxBefore = try fm.contentsOfDirectory(atPath: outbox.path).sorted(), archiveBefore = try fm.contentsOfDirectory(atPath: archive.path).sorted()
+        var longArchivePlan = ""
+        for originalPolicy in OriginalPolicy.allCases {
+            var previewRule = rule; previewRule.originalPolicy = originalPolicy; previewRule.archiveFolder = longArchive.path; previewRule.acknowledgedRemoval = true
+            let plan = try pipeline.preview(source, rule: previewRule, cancellation: AutomationCancellation())
+            check(plan.contains("Source: " + source.path) && plan.contains("Save in: " + outbox.path) && plan.contains("No files changed"), "Every preview keeps full source/destination paths and read-only assurance")
+            if originalPolicy == .archive { longArchivePlan = plan; check(plan.contains("After success: Move the original to archive: " + longArchive.path), "Archive preview names the full archive destination") }
+            if originalPolicy == .trash { check(plan.contains("After success: Send the original to Trash (recoverable in Finder)."), "Trash preview describes the original-file consequence") }
+        }
+        check(try Data(contentsOf: source) == originalBytes && fm.contentsOfDirectory(atPath: inbox.path).sorted() == inboxBefore && fm.contentsOfDirectory(atPath: outbox.path).sorted() == outboxBefore && fm.contentsOfDirectory(atPath: archive.path).sorted() == archiveBefore && engine.count == 0 && !fm.fileExists(atPath: pipeline.scratch.path), "Keep/Archive/Trash previews create no outputs, staging, archive moves or conversions")
         let first = try pipeline.run(source, rule: rule, roots: roots, cancellation: AutomationCancellation())
         check(first.output?.lastPathComponent == "Song-wav.wav", "Direct named output")
         check(try Data(contentsOf: source) == Data("ORIGINAL".utf8), "Original preserved")
@@ -173,7 +186,7 @@ struct AutomationTests {
             rulesWindow.window!.appearance = NSAppearance(named: appearance)
             for size in [NSSize(width: 1040, height: 750), NSSize(width: 900, height: 620)] {
                 rulesWindow.window!.setContentSize(size); rulesWindow.window!.contentView!.layoutSubtreeIfNeeded()
-                for view in [rulesWindow.save, rulesWindow.test, rulesWindow.stateLabel, rulesWindow.message] {
+                for view in [rulesWindow.save, rulesWindow.test, rulesWindow.existing, rulesWindow.viewPreviewDetails, rulesWindow.setupGuide, rulesWindow.stateLabel, rulesWindow.message] {
                     let frame = view.convert(view.bounds, to: rulesWindow.window!.contentView)
                     check(frame.minX >= 0 && frame.maxX <= size.width && frame.minY >= 0 && frame.maxY <= size.height, "Rule controls visible in light/dark at minimum size")
                 }
@@ -181,6 +194,17 @@ struct AutomationTests {
         }
         check(rulesWindow.message.frame.height <= 70 && rulesWindow.message.toolTip == rulesWindow.message.stringValue, "Long diagnostics stay bounded and retain their full tooltip")
         check(rulesWindow.conditions.count == rule.conditions.count && rulesWindow.steps.count == rule.steps.count, "Modular editor mirrors model")
+        check(rulesWindow.setupGuide.stringValue.contains("Preview a file; nothing changes") && rulesWindow.setupGuide.stringValue.contains("Enable and Save Rule"), "Setup checklist remains visible after choosing a rule")
+        check(rulesWindow.matching.toolTip?.contains("ALL requires every condition") == true && rulesWindow.settle.toolTip?.contains("wait starts over") == true, "Matching and stable-file wait controls explain their meaning")
+        check(!rulesWindow.viewPreviewDetails.isEnabled && rulesWindow.previewDetails == nil, "Preview details start unavailable")
+        let longDetails = RulePreviewDetails(text: String(repeating: longArchivePlan + "\n\n", count: 20))
+        longDetails.window!.setContentSize(NSSize(width: 540, height: 320)); longDetails.window!.contentView!.layoutSubtreeIfNeeded()
+        longDetails.text.layoutManager?.ensureLayout(for: longDetails.text.textContainer!)
+        check(!longDetails.text.isEditable && longDetails.text.isSelectable && longDetails.scroll.hasVerticalScroller && longDetails.text.string.contains(longArchive.path), "Long preview details retain full paths in a selectable read-only scrolling view")
+        check(longDetails.text.layoutManager!.usedRect(for: longDetails.text.textContainer!).height > longDetails.scroll.contentView.bounds.height, "Long plans can scroll beyond the visible viewport")
+        check(longDetails.text.frame.height >= longDetails.text.layoutManager!.usedRect(for: longDetails.text.textContainer!).height, "The scrolling document reaches the entire long preview instead of clipping its tail")
+        let detailsButtonFrame = longDetails.done.convert(longDetails.done.bounds, to: longDetails.window!.contentView)
+        check(detailsButtonFrame.minY >= 0 && detailsButtonFrame.maxY <= 320 && detailsButtonFrame.maxX <= 540, "Preview details remain closable at minimum size")
         let fallbackCard = RuleBlock(content: NSTextField(labelWithString: "Accessible fallback"), allowGlass: false)
         check(!fallbackCard.usesGlass, "Reduce Transparency fallback has no glass or accent stripes")
         let nativeCard = RuleBlock(content: NSTextField(labelWithString: "Native glass"))
@@ -213,6 +237,17 @@ struct AutomationTests {
         activityCell.configure(nil)
         check(activityCell.reveal.isHidden && activityCell.details.toolTip == activityCell.details.stringValue && activityCell.accessibilityLabel() == "No files processed yet", "Reused empty Activity rows clear old output details")
         runtime.setPaused(true)
+        rulesWindow.refreshStatus(); check(!rulesWindow.existing.isEnabled, "Paused rules cannot run existing files from the editor")
+        runtime.setPaused(false); spin({ runtime.status.hasPrefix("Watching") }); rulesWindow.refreshStatus(); check(rulesWindow.existing.isEnabled, "Saved enabled rules can run existing files when watching resumes")
+        let enabledSavedRules = runtime.rules
+        try runtime.save(enabledSavedRules.map { var value = $0; value.enabled = false; return value })
+        rulesWindow.draft = runtime.rules.first!; rulesWindow.rebuildEditor(); rulesWindow.refreshStatus()
+        check(!rulesWindow.existing.isEnabled && runtime.enabledRules.isEmpty, "Saved disabled drafts cannot run existing files")
+        rulesWindow.enabled.state = .on; rulesWindow.editorControlChanged(rulesWindow.enabled); rulesWindow.refreshStatus()
+        check(!rulesWindow.existing.isEnabled && rulesWindow.editingStatus.stringValue.contains("Unsaved changes"), "An unsaved enable edit does not enable existing-file execution")
+        rulesWindow.runExisting(); check(runtime.pendingCount == 0 && rulesWindow.message.stringValue.contains("Enable and save"), "Existing-file handler also rejects unsaved enabling without queueing work")
+        try runtime.save(enabledSavedRules); spin({ runtime.status.hasPrefix("Watching") }); runtime.setPaused(true)
+        rulesWindow.draft = runtime.rules.first!; rulesWindow.rebuildEditor(); rulesWindow.refreshStatus()
         let savedDraft = runtime.rules.first!
         rulesWindow.name.stringValue = "Unsaved edit"
         check(!rulesWindow.resolveUnsavedChanges(.alertSecondButtonReturn) && rulesWindow.name.stringValue == "Unsaved edit", "Keep Editing preserves unsaved controls")
@@ -228,20 +263,37 @@ struct AutomationTests {
         _ = rulesWindow.resolveUnsavedChanges(.alertThirdButtonReturn)
         rulesWindow.name.stringValue = "Saved from close prompt"
         check(rulesWindow.resolveUnsavedChanges(.alertFirstButtonReturn) && runtime.rules.first?.name == "Saved from close prompt", "Save Changes commits before navigation")
+        rulesWindow.draft.originalPolicy = .archive; rulesWindow.draft.archiveFolder = longArchive.path; rulesWindow.draft.acknowledgedRemoval = true; rulesWindow.rebuildEditor(); rulesWindow.gather()
+        runtime.engine = { engine }; let previewConversions = engine.count
+        rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ rulesWindow.previewWorkCount == 0 })
+        check(rulesWindow.viewPreviewDetails.isEnabled && rulesWindow.previewDetails?.contains(longArchive.path) == true && engine.count == previewConversions && fm.fileExists(atPath: source.path), "Successful preview enables full details without converting or archiving")
+        rulesWindow.showPreviewDetails()
+        let shownDetails = rulesWindow.previewDetailsWindow!
+        check(shownDetails.window!.isVisible && shownDetails.text.string == rulesWindow.previewDetails && !shownDetails.text.isEditable, "Details action opens exactly the current read-only plan")
+        rulesWindow.name.stringValue = "Changed after preview"; rulesWindow.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: rulesWindow.name))
+        check(rulesWindow.previewDetails == nil && !rulesWindow.viewPreviewDetails.isEnabled && !shownDetails.window!.isVisible, "Editing immediately invalidates and closes displayed preview details")
+        _ = rulesWindow.resolveUnsavedChanges(.alertThirdButtonReturn)
+        rulesWindow.gather()
+        check(rulesWindow.draft == runtime.rules.first! && rulesWindow.acknowledge.state == .off, "Discard restores hidden original-action acknowledgement instead of creating phantom edits")
+        rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ rulesWindow.previewWorkCount == 0 })
+        let rulesBeforeNewDraft = runtime.rules
+        rulesWindow.newRule(template: 1)
+        check(rulesWindow.previewDetails == nil && !rulesWindow.viewPreviewDetails.isEnabled && !rulesWindow.draft.enabled, "New rules clear old preview details and remain disabled drafts")
+        try runtime.save(rulesBeforeNewDraft); rulesWindow.selectedID = rulesBeforeNewDraft.first!.id; rulesWindow.draft = rulesBeforeNewDraft.first!; rulesWindow.rebuildEditor(); rulesWindow.reloadList()
         let delayed = ControlledInspectionEngine(); runtime.engine = { delayed }; rulesWindow.gather()
         rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ delayed.started })
-        check(rulesWindow.previewRunning && !rulesWindow.test.isEnabled && !rulesWindow.cancelTest.isHidden, "Read-only tests expose cancellation and disable repeated starts")
+        check(rulesWindow.previewRunning && !rulesWindow.test.isEnabled && !rulesWindow.cancelTest.isHidden && !rulesWindow.viewPreviewDetails.isEnabled, "Read-only previews expose cancellation and disable repeated starts and old details")
         rulesWindow.window!.setContentSize(NSSize(width: 900, height: 620)); rulesWindow.window!.contentView!.layoutSubtreeIfNeeded()
         let cancelFrame = rulesWindow.cancelTest.convert(rulesWindow.cancelTest.bounds, to: rulesWindow.window!.contentView)
         check(cancelFrame.minX >= 0 && cancelFrame.maxX <= 900 && cancelFrame.minY >= 0 && cancelFrame.maxY <= 620, "Cancel Test remains reachable at minimum window size")
         rulesWindow.name.stringValue = "Edited during test"; delayed.release.signal(); spin({ rulesWindow.previewWorkCount == 0 })
-        check(rulesWindow.message.stringValue.contains("changed during its test") && rulesWindow.test.isEnabled, "A late plan cannot describe edited rule controls")
+        check(rulesWindow.message.stringValue.contains("changed during its preview") && rulesWindow.test.isEnabled && !rulesWindow.viewPreviewDetails.isEnabled, "A late plan cannot describe edited rule controls or enable stale details")
         _ = rulesWindow.resolveUnsavedChanges(.alertThirdButtonReturn)
         let cancelledPreview = ControlledInspectionEngine(); runtime.engine = { cancelledPreview }; rulesWindow.gather()
         rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ cancelledPreview.started }); rulesWindow.cancelTest.invoke()
-        check(!rulesWindow.previewRunning && !rulesWindow.test.isEnabled, "Cancelled tests stay serialized until their work finishes")
+        check(!rulesWindow.previewRunning && !rulesWindow.test.isEnabled && !rulesWindow.viewPreviewDetails.isEnabled && rulesWindow.previewDetails == nil, "Cancelled previews stay serialized and clear details until their work finishes")
         cancelledPreview.release.signal(); spin({ rulesWindow.previewWorkCount == 0 })
-        check(rulesWindow.message.stringValue == "Test cancelled. No files changed." && rulesWindow.test.isEnabled, "Cancelled test completion does not overwrite current feedback")
+        check(rulesWindow.message.stringValue == "Preview cancelled. No files changed." && rulesWindow.test.isEnabled && !rulesWindow.viewPreviewDetails.isEnabled, "Cancelled preview completion does not overwrite current feedback or restore stale details")
         let switchedPreview = ControlledInspectionEngine(); runtime.engine = { switchedPreview }; rulesWindow.gather()
         rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ switchedPreview.started })
         rulesWindow.selectedID = fallback.id; rulesWindow.draft = runtime.rules.first { $0.id == fallback.id }!; rulesWindow.rebuildEditor(); rulesWindow.message.stringValue = "Current rule feedback"

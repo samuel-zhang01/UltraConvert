@@ -94,7 +94,8 @@ final class AutomationPipeline {
         let file = try engine.inspect(url, cancellation: cancellation)
         try cancellation.check()
         guard try FileStamp.read(url) == stamp else { throw AutomationIssue("The test file changed during recognition. Test it again. No files changed.") }
-        guard rule.matches(file) else { return "No match: detected \(file.format.uppercased()) / \(file.category). No files changed." }
+        let category = FormatCatalog.groups.first { $0.id == file.category }?.title ?? file.category
+        guard rule.matches(file) else { return "No match for this rule.\nDetected: \(file.format.uppercased()) (\(category))\nSource: \(url.path)\nNo files changed." }
         try validateOriginalActions(file, rule: rule)
         var name = url.deletingPathExtension().lastPathComponent, format = file.format
         for step in rule.steps {
@@ -105,7 +106,24 @@ final class AutomationPipeline {
             }
             else { name = try RuleNaming.render(step.value, name: name, format: format) }
         }
-        return "Matches \(rule.name). Detected \(file.format.uppercased()). Plan: \(name).\(format) → \(rule.destination). Original: \(rule.originalPolicy.rawValue). No files changed."
+        let original: String
+        switch rule.originalPolicy {
+        case .keep: original = "Keep the original in its inbox."
+        case .archive: original = "Move the original to archive: \(rule.archiveFolder)"
+        case .trash: original = "Send the original to Trash (recoverable in Finder)."
+        }
+        return """
+        Matches rule: \(rule.name)
+        Detected: \(file.format.uppercased()) (\(category))
+        Source: \(url.path)
+        Planned output: \(name).\(format)
+        Save in: \(rule.destination)
+        After success: \(original)
+
+        Existing names get a numbered suffix. Companion files may use one folder.
+        This preview recognises the file and checks the plan; it does not run a conversion.
+        No files changed.
+        """
     }
     func run(_ url: URL, rule: WatchRule, roots: [String], cancellation: AutomationCancellation, recognized: (RecognizedFile, FileStamp)? = nil) throws -> AutomationResult {
         try cancellation.check(); try rule.validate(roots: roots)

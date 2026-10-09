@@ -1,3 +1,25 @@
+# First-use crawl — 1.6.0 preview
+
+An independent coding agent assessed first-use learnability on Apple Silicon/macOS 27 on 2026-10-09. The unchanged beginner-weighted rubric improved from **7.85/10 to 9.04/10**, rounded to **9.0/10**. This is a developer heuristic assessment, not a human usability study or a claim of functional perfection.
+
+| Dimension | Weight | Before | After |
+| --- | --- | --- | --- |
+| Discovery and navigation | 25% | 7.0 | 9.2 |
+| First manual conversion | 20% | 9.0 | 9.0 |
+| Destinations and options | 15% | 8.5 | 9.1 |
+| Learning folder automation | 20% | 7.5 | 9.0 |
+| Finder and startup setup clarity | 10% | 6.5 | 9.0 |
+| Safety and recovery | 5% | 9.0 | 9.0 |
+| Native layout and accessibility | 5% | 8.5 | 8.5 |
+
+The baseline crawl identified hidden settings, an unhelpful first-launch alert, unexplained format choices, disappearing rule setup guidance and ambiguous registration/status wording. The revised app has a nonmodal four-topic Getting Started guide with direct task buttons, visible Settings/help controls, numbered conversion stages, advice for all 62 formats, a persistent rule checklist, explicit ALL/ANY and settling explanations, and separate Quick Actions/Services setup instructions. Login opt-out has neutral wording; actual enable failures remain errors.
+
+The grader observed the guide, settings and rule-editor improvements, Add Files/content recognition on a mixed PNG/WAV queue, and disabled incompatible single-target context commands. The baseline actual WAV-to-MP3 task succeeded beside its source with collision-safe naming. macOS ScreenCaptureKit failures interrupted the final revised-candidate Convert/full-preview interactions; those two final UI tasks are still pending and are not represented as independently observed successes.
+
+Regression checks cover the real native AppKit hierarchy, first-use persistence and noninterruption, compact guide bounds, all format advice, mixed/unsupported context selections, Finder presets that require an explicit compatible choice, stale-preview invalidation, selectable full plans and Discard restoring Archive acknowledgement. **305 automation assertions pass**, including real filesystem events and bundled recognition/conversion. [Automation evidence](../evidence/automation-1.6.0.json) records a five-second idle fixture sample and a 1,000-file scan. The unchanged engine bundle also passes the full representative conversion, preservation, security and batch corpus.
+
+Manual VoiceOver, older macOS, actual login activation, long-duration energy use and conversion-engine peak memory remain unverified. Native controls and system animation are retained; no additional custom animation or idle engine process was introduced.
+
 # Refinement crawl — 1.5.1 preview
 
 The 1.5.0 scoped developer assessment remains **9.0/10**; this patch closes additional correctness and keyboard gaps found during a second code/UI review.

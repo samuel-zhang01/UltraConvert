@@ -49,6 +49,8 @@ jobs:
           "$UC_PY" src/convert.py --inspect -- examples/* > /tmp/ultraconvert-interface.json
           xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_interface.swift -o /tmp/ultraconvert-interface-test
           /tmp/ultraconvert-interface-test /tmp/ultraconvert-interface.json
+          xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_guidance.swift -o /tmp/ultraconvert-guidance-test
+          /tmp/ultraconvert-guidance-test
           python3 -c 'import install; from pathlib import Path; [install.workflow(Path("build/FinderActions") / (name + ".workflow"), mode) for mode, name in (("here", "Convert Here with UltraConvert"), ("destination", "Convert to Destination with UltraConvert"))]'
           xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_backend.swift -o /tmp/ultraconvert-backend-test
           /tmp/ultraconvert-backend-test build/FinderActions
