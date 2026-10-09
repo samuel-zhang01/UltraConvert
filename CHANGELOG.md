@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7.0 preview — 2026-10-09
+
+- Colourful native puzzle rule editor with fitted action blocks, drag snapping, keyboard reorder, persistent action palette and stage navigation.
+- Explicit match/no-match paths, labelled live filename illustrations, compact read-only preview summaries and full selectable plans.
+- Preserve custom settling times, unknown draft values and filename text across operator changes. Structural edits retain scroll position; stale controls and drag sessions cannot change replacement blocks.
+- Fix stale table-row crashes, incorrect existing-file queue feedback during scans, incompatible default actions and impossible conversion chains. Bound disabled drafts as well as enabled rules.
+- Align preview eligibility with watched subfolders and skipped hidden/package/linked paths. ALAC automation publishes `.m4a`, matching its container and the live example.
+- Expanded native editing, persistence, source-safety and minimum-layout regressions; event-driven watching and separate conversion engines retain their resource limits.
+
 ## 1.6.0 preview — 2026-10-09
 
 - First-use Getting Started window with task guides and direct routes for manual conversion, Finder, folder rules and startup. Visible Settings and numbered conversion steps.

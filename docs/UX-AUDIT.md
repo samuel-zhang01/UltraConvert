@@ -1,3 +1,34 @@
+# Puzzle rule editor — 1.7.0 preview
+
+The user rejected the earlier form-style editor. This audit treats that feedback as a new requirement; the previous beginner-guidance score does not establish that the rule editor is easy or pleasant to use.
+
+The first actual puzzle candidate scored **8.61/10** against the revised weighted rubric. Matching/nonmatching previews, ALL/ANY and action ordering passed, but disconnected pieces, offscreen route guidance, large inline preview plans and implicit filename illustrations prevented a pass. The second iteration joins adjacent tabs/notches, provides persistent action controls and stage navigation, limits inline plans while retaining full selectable Details, and labels the assumed input in every illustration.
+
+The editor shows the existing execution model: one arrival, an ALL/ANY decision, ordered conversion/rename blocks, one output folder, and an after-success original-file policy. A nonmatch tries later eligible saved rules; a conversion failure keeps the original and does not trigger a fallback. The canvas does not imply arbitrary graph wiring or loops.
+
+Regression work includes actual native button/popup callbacks, active text editors, stale views and drag sessions, custom wait intervals, unknown values, action/condition limits, disabled-draft storage bounds, original preservation, eligibility, source-format examples and minimum-size layouts. Source audit found and repaired an existing-file queue feedback race, a stale table-row crash, lost filename condition text, incompatible default targets, impossible conversion chains and ALAC extension mismatches. Real-engine ALAC now publishes `.m4a` and retains the source.
+
+The independent second review scores **9.04/10**, passing the scoped threshold with no confirmed blocking defect in the checked editor tasks:
+
+| Dimension | Weight | Score |
+|---|---:|---:|
+| Execution and branch understanding | 25% | 9.1 |
+| Editing and ordering | 20% | 9.0 |
+| Preview and validation | 15% | 9.2 |
+| State and original-file safety | 15% | 9.1 |
+| Discovery | 10% | 9.2 |
+| Accessibility and layout | 10% | 8.5 |
+| Playful visual clarity | 5% | 9.0 |
+
+Actual UI observation checked connected pieces, the persistent palette, four jumps, both preview branches, ALL/ANY, full selectable read-only Details and order-dependent filenames. The final native suites pass **310 editor checks and 312 automation checks**, including original-policy acknowledgement, all five jumps, light/dark layouts at the declared 900×620 minimum content size, stale callbacks and new/duplicate/reordered rule identity. [Editor evidence](../evidence/rule-editor-1.7.0.json) and [automation evidence](../evidence/automation-1.7.0.json) record the fixture results. Interface, guidance and 22 release verification tests also pass; a separate real-engine ALAC check confirmed the `.m4a` container and preserved source.
+
+Passing requires ≥9.0 overall, ≥8.5 for execution/editing/safety, and no known blocking defect in the checked tasks. **Limits:** these are scoped developer assessments. Physical mouse dragging was not verified because the UI automation pointer wrapper failed before sending input; native drag/drop callbacks and session isolation were tested. VoiceOver, a novice usability study, older-system coverage and long-duration energy measurements remain unverified. A late Mac lock stopped additional pointer testing.
+
+No conversion subprocess or polling animation was added to the idle editor. The event-driven fixture used 0.0081 CPU seconds during a five-second idle sample; a 1,000-file scan took 0.0053 seconds. The complete UI/history/long-preview stress suite peaked at about **260 MiB RSS**. A separate single idle snapshot of the open preview was about **154 MiB RSS / 0% CPU**; this is not a controlled energy benchmark. The native bundle is about **1.7 MiB**, roughly 44 KiB more than the preceding installed app, with no new runtime dependency.
+
+
+---
+
 # First-use crawl — 1.6.0 preview
 
 An independent coding agent assessed first-use learnability on Apple Silicon/macOS 27 on 2026-10-09. The unchanged beginner-weighted rubric improved from **7.85/10 to 9.04/10**, rounded to **9.0/10**. This is a developer heuristic assessment, not a human usability study or a claim of functional perfection.

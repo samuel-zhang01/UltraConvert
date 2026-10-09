@@ -38,8 +38,12 @@ final class ControlledInspectionEngine: AutomationEngine {
 @main
 struct AutomationTests {
     static var checks = 0
-    static func check(_ value: @autoclosure () throws -> Bool, _ label: String) { precondition(try! value(), label); checks += 1 }
-    static func rejects(_ label: String, _ operation: () throws -> Void) { do { try operation(); preconditionFailure(label) } catch { checks += 1 } }
+    static func fail(_ label: String) -> Never { FileHandle.standardError.write(Data(("FAIL: " + label + "\n").utf8)); exit(1) }
+    static func check(_ value: @autoclosure () throws -> Bool, _ label: String) {
+        do { if try !value() { fail(label) } } catch { fail(label + ": " + error.localizedDescription) }
+        checks += 1
+    }
+    static func rejects(_ label: String, _ operation: () throws -> Void) { do { try operation(); fail(label + " (operation did not reject)") } catch { checks += 1 } }
     static func spin(_ until: () -> Bool, timeout: TimeInterval = 12) {
         let deadline = Date().addingTimeInterval(timeout)
         while !until(), Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.025)) }
@@ -139,19 +143,24 @@ struct AutomationTests {
         rejects("Duplicate IDs", { try store.save([rule, rule]) })
         let persisted = try JSONEncoder().encode(AutomationDocument(schema: 99, rules: [rule])); try store.write(persisted, "rules.json"); rejects("Schema rejected", { _ = try store.load() }); try store.save([rule])
         let runtime = try FolderAutomation(support: support, engine: { engine })
-        rule.enabled = true; try runtime.save([rule]); spin({ runtime.status.hasPrefix("Watching") })
+        rule.enabled = true; try runtime.save([rule])
+        check(!runtime.canRunExisting && runtime.runExisting() == nil && runtime.pendingCount == 0, "Run Existing explicitly rejects the initial baseline scan without claiming or queueing work")
+        spin({ runtime.canRunExisting })
         check(runtime.pendingCount == 0 && engine.count > 0, "Existing baseline ignored")
         var fallback = rule; fallback.id = UUID(); fallback.name = "Lower-priority fallback"; fallback.steps = [.init(kind: .convert, value: "flac")]
-        try runtime.save([rule, fallback]); spin({ runtime.status.hasPrefix("Watching") })
+        try runtime.save([rule, fallback]); spin({ runtime.canRunExisting })
         let count = engine.count
         let arrival = inbox.appendingPathComponent("New.mp3"); try Data("ARRIVAL".utf8).write(to: arrival)
         spin({ runtime.activities.contains { $0.file == "New.mp3" && $0.output != nil } })
         check(engine.count == count + 1 && fm.fileExists(atPath: outbox.appendingPathComponent("New-wav.wav").path), "FSEvents arrival processed once")
         runtime.requestScan(); spin({ runtime.pendingCount == 0 && !runtime.running }); check(engine.count == count + 1, "No unchanged replay")
         let secondRuntime = try FolderAutomation(support: support, engine: { engine }); secondRuntime.configure(); check(secondRuntime.status.contains("already open"), "Single watcher lock")
-        runtime.setPaused(true); let paused = inbox.appendingPathComponent("Paused.mp3"); try Data("paused".utf8).write(to: paused)
+        runtime.setPaused(true); check(!runtime.canRunExisting && runtime.runExisting() == nil, "Paused watchers explicitly reject Run Existing")
+        let paused = inbox.appendingPathComponent("Paused.mp3"); try Data("paused".utf8).write(to: paused)
         let pausedRestart = try FolderAutomation(support: support, engine: { engine }); check(pausedRestart.paused, "Pause survives app restart")
-        runtime.setPaused(false); spin({ runtime.status.hasPrefix("Watching") }); check(runtime.pendingCount == 0, "Resume establishes new baseline")
+        runtime.setPaused(false)
+        check(!runtime.canRunExisting && runtime.runExisting() == nil && runtime.pendingCount == 0, "Resume rejects Run Existing until its replacement baseline is ready")
+        spin({ runtime.canRunExisting }); check(runtime.pendingCount == 0, "Resume establishes new baseline")
         var manual = true; runtime.manualBusy = { manual }
         let blocked = inbox.appendingPathComponent("Manual.mp3"); try Data("manual".utf8).write(to: blocked)
         spin({ runtime.pendingCount > 0 }); check(!runtime.running, "Manual batch priority")
@@ -161,7 +170,7 @@ struct AutomationTests {
         spin({ runtime.activities.contains { $0.file == "Growing.mp3" && $0.output != nil } }); check(try Data(contentsOf: outbox.appendingPathComponent("Growing-wav.wav")) == Data("second and longer".utf8), "Settled content used")
         let movedInbox = root.appendingPathComponent("Moved Inbox")
         try fm.moveItem(at: inbox, to: movedInbox); spin({ runtime.paused }); check(runtime.paused && !runtime.status.hasPrefix("Watching"), "Moved roots pause watching")
-        try fm.moveItem(at: movedInbox, to: inbox); runtime.setPaused(false); spin({ runtime.status.hasPrefix("Watching") })
+        try fm.moveItem(at: movedInbox, to: inbox); runtime.setPaused(false); spin({ runtime.canRunExisting })
         var before = rusage(); getrusage(RUSAGE_SELF, &before)
         let idleStart = Date(), idleCount = engine.count
         while Date().timeIntervalSince(idleStart) < 5 { RunLoop.current.run(until: Date().addingTimeInterval(0.1)) }
@@ -238,7 +247,9 @@ struct AutomationTests {
         check(activityCell.reveal.isHidden && activityCell.details.toolTip == activityCell.details.stringValue && activityCell.accessibilityLabel() == "No files processed yet", "Reused empty Activity rows clear old output details")
         runtime.setPaused(true)
         rulesWindow.refreshStatus(); check(!rulesWindow.existing.isEnabled, "Paused rules cannot run existing files from the editor")
-        runtime.setPaused(false); spin({ runtime.status.hasPrefix("Watching") }); rulesWindow.refreshStatus(); check(rulesWindow.existing.isEnabled, "Saved enabled rules can run existing files when watching resumes")
+        runtime.setPaused(false); rulesWindow.refreshStatus()
+        check(!rulesWindow.existing.isEnabled && rulesWindow.existing.toolTip?.contains("still scanning") == true, "Existing-file UI stays disabled while resume establishes its baseline")
+        spin({ runtime.canRunExisting }); rulesWindow.refreshStatus(); check(rulesWindow.existing.isEnabled, "Saved enabled rules can run existing files when watching resumes")
         let enabledSavedRules = runtime.rules
         try runtime.save(enabledSavedRules.map { var value = $0; value.enabled = false; return value })
         rulesWindow.draft = runtime.rules.first!; rulesWindow.rebuildEditor(); rulesWindow.refreshStatus()
@@ -246,7 +257,7 @@ struct AutomationTests {
         rulesWindow.enabled.state = .on; rulesWindow.editorControlChanged(rulesWindow.enabled); rulesWindow.refreshStatus()
         check(!rulesWindow.existing.isEnabled && rulesWindow.editingStatus.stringValue.contains("Unsaved changes"), "An unsaved enable edit does not enable existing-file execution")
         rulesWindow.runExisting(); check(runtime.pendingCount == 0 && rulesWindow.message.stringValue.contains("Enable and save"), "Existing-file handler also rejects unsaved enabling without queueing work")
-        try runtime.save(enabledSavedRules); spin({ runtime.status.hasPrefix("Watching") }); runtime.setPaused(true)
+        try runtime.save(enabledSavedRules); spin({ runtime.canRunExisting }); runtime.setPaused(true)
         rulesWindow.draft = runtime.rules.first!; rulesWindow.rebuildEditor(); rulesWindow.refreshStatus()
         let savedDraft = runtime.rules.first!
         rulesWindow.name.stringValue = "Unsaved edit"
@@ -278,7 +289,8 @@ struct AutomationTests {
         rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ rulesWindow.previewWorkCount == 0 })
         let rulesBeforeNewDraft = runtime.rules
         rulesWindow.newRule(template: 1)
-        check(rulesWindow.previewDetails == nil && !rulesWindow.viewPreviewDetails.isEnabled && !rulesWindow.draft.enabled, "New rules clear old preview details and remain disabled drafts")
+        check(rulesWindow.previewDetails == nil && !rulesWindow.viewPreviewDetails.isEnabled && !rulesWindow.draft.enabled && rulesWindow.selectedID == runtime.rules.last?.id && rulesWindow.draft.id == runtime.rules.last?.id,
+              "New rules clear old preview details and remain disabled drafts; selectedNew=\(rulesWindow.selectedID == runtime.rules.last?.id), enabled=\(rulesWindow.draft.enabled), details=\(rulesWindow.previewDetails != nil), count=\(runtime.rules.count), result=\(rulesWindow.message.stringValue)")
         try runtime.save(rulesBeforeNewDraft); rulesWindow.selectedID = rulesBeforeNewDraft.first!.id; rulesWindow.draft = rulesBeforeNewDraft.first!; rulesWindow.rebuildEditor(); rulesWindow.reloadList()
         let delayed = ControlledInspectionEngine(); runtime.engine = { delayed }; rulesWindow.gather()
         rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ delayed.started })
@@ -313,6 +325,18 @@ struct AutomationTests {
         quittingPreview.release.signal(); spin({ rulesWindow.previewWorkCount == 0 }); quittingApp.waitingForAutomationQuit = false
         check(quittingApp.applicationShouldTerminate(NSApp) == .terminateNow, "Quit proceeds after file-test cleanup")
         runtime.stop(); secondRuntime.stop()
+        let existingInbox = root.appendingPathComponent("Existing Inbox"), existingOut = root.appendingPathComponent("Existing Out")
+        for directory in [existingInbox, existingOut] { try fm.createDirectory(at: directory, withIntermediateDirectories: false) }
+        let existingSource = existingInbox.appendingPathComponent("Already here.mp3"); try Data("EXISTING".utf8).write(to: existingSource)
+        var existingRule = rule; existingRule.inputFolder = existingInbox.path; existingRule.destination = existingOut.path
+        let existingEngine = FixtureAutomationEngine(), existingRuntime = try FolderAutomation(support: root.appendingPathComponent("Existing Support"), engine: { existingEngine })
+        defer { existingRuntime.stop() }
+        try existingRuntime.save([existingRule]); spin({ existingRuntime.canRunExisting })
+        check(existingEngine.count == 0 && existingRuntime.pendingCount == 0, "Run Existing fixture establishes an ignored startup baseline")
+        check(existingRuntime.runExisting() == 1 && existingRuntime.pendingCount == 1, "Ready Run Existing reports exactly the file it queues from the saved baseline")
+        spin({ existingRuntime.activities.contains { $0.file == existingSource.lastPathComponent && $0.output != nil } })
+        check(try existingEngine.count == 1 && Data(contentsOf: existingOut.appendingPathComponent("Already here-wav.wav")) == Data("EXISTING".utf8) && Data(contentsOf: existingSource) == Data("EXISTING".utf8), "Explicit existing-file execution produces the promised output once and keeps the original")
+        existingRuntime.stop()
         if CommandLine.arguments.count > 1 {
             let contents = URL(fileURLWithPath: CommandLine.arguments[1]).appendingPathComponent("Contents")
             let native = NativeAutomationEngine(backend: try BackendPaths(contents: contents, support: support))
@@ -322,7 +346,8 @@ struct AutomationTests {
             let recognized = try native.inspect(wav, cancellation: AutomationCancellation()); check(recognized.category == "audio" && recognized.format == "wav", "Actual content recognition ignores misleading extension")
             let output = try native.convert(recognized, to: "mp3", staging: root.appendingPathComponent("Real engine"), cancellation: AutomationCancellation()); check(output.pathExtension == "mp3" && fm.fileExists(atPath: output.path), "Real private engine conversion")
         }
-        let evidence: [String: Any] = ["checks": checks, "passed": true, "native_events": true, "real_engine": CommandLine.arguments.count > 1, "idle_sample_seconds": 5, "idle_cpu_seconds": idleCPU, "test_peak_rss_bytes": after.ru_maxrss, "scan_1000_files_seconds": scanSeconds]
+        var finalUsage = rusage(); getrusage(RUSAGE_SELF, &finalUsage)
+        let evidence: [String: Any] = ["checks": checks, "passed": true, "native_events": true, "real_engine": CommandLine.arguments.count > 1, "idle_sample_seconds": 5, "idle_cpu_seconds": idleCPU, "test_peak_rss_bytes": finalUsage.ru_maxrss, "scan_1000_files_seconds": scanSeconds]
         print(String(data: try JSONSerialization.data(withJSONObject: evidence, options: [.prettyPrinted, .sortedKeys]), encoding: .utf8)!)
     }
 }

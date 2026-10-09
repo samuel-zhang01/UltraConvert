@@ -43,6 +43,8 @@ Run native folder-rule tests (uses temporary folders and an injected Trash opera
 ```sh
 xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_automation.swift -o build/automation-test
 build/automation-test
+xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_rule_editor.swift -o build/rule-editor-test
+build/rule-editor-test
 # Optional real-engine recognition/conversion in a standalone development app:
 build/automation-test /Applications/UltraConvert.app
 ```

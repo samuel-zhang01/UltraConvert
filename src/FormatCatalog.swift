@@ -17,6 +17,7 @@ enum FormatCatalog {
         .init(id: "config", title: "Structured data", symbol: "curlybraces", formats: ["json", "yaml", "yml", "plist", "toml"])
     ]
     static let all = Set(groups.flatMap(\.formats))
+    static func outputExtension(_ format: String) -> String { format == "alac" ? "m4a" : format }
     static func advice(_ format: String) -> String {
         let detail: String
         switch format {

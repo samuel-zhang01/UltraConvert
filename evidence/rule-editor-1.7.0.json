@@ -1,0 +1,8 @@
+{
+  "actual_editor_callbacks": true,
+  "checks": 310,
+  "passed": true,
+  "scope": "native temporary fixtures; no user rules or files changed",
+  "source_preserved": true,
+  "version": "1.7.0"
+}
