@@ -95,6 +95,15 @@ extension ConverterApp {
 enum FinderActions {
     static let names = ["Convert Here with UltraConvert", "Convert to Destination with UltraConvert"]
 
+    static func isInstalledLocation(app: URL, home: URL) -> Bool {
+        let app = app.standardizedFileURL.resolvingSymlinksInPath()
+        guard app.pathExtension.lowercased() == "app" else { return false }
+        return [URL(fileURLWithPath: "/Applications"), home.appendingPathComponent("Applications")].contains { root in
+            let root = root.standardizedFileURL.resolvingSymlinksInPath()
+            return app.path.hasPrefix(root.path + "/")
+        }
+    }
+
     static func install(app: URL, home: URL, force: Bool = false) throws {
         let fm = FileManager.default
         let resources = app.appendingPathComponent("Contents/Resources")

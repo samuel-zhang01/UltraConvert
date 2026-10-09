@@ -20,6 +20,8 @@ Regression checks cover the real native AppKit hierarchy, first-use persistence 
 
 A final diagnostic review reproduced a nonfatal macOS 27 IconServices fault when Finder registration converted the 128px PNG into a document icon. Registration now uses the existing canonical ICNS family; the Settings artwork remains PNG. The isolated canonical-icon case and revised backend test produced no fault messages/reports, and native tests verify small, large and Retina icon blocks, unchanged Quick Action artwork, repair/idempotence and preservation of unrelated workflows.
 
+Automatic Finder setup also checks the actual system/user Applications roots and their subfolders. An Xcode archive's `Products/Applications` folder or a download folder with the same name no longer repoints owned workflows. Location-boundary regressions pass; explicit manual setup remains available for other app locations.
+
 Manual VoiceOver, older macOS, actual login activation, long-duration energy use and conversion-engine peak memory remain unverified. Native controls and system animation are retained; no additional custom animation or idle engine process was introduced.
 
 A single idle 1.6 candidate snapshot with two queued files measured about **159 MiB RSS and 0.0% CPU**. The automation fixture used 0.0053 CPU seconds over five seconds and scanned 1,000 small files in 0.0068 seconds. These short local observations are not engine-peak or long-duration energy measurements. The signed native app is about 1.6 MiB on disk; the complete local engine app remains about 1.9 GiB and is dominated by unchanged conversion engines/data.

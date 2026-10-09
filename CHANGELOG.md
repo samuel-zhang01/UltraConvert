@@ -9,6 +9,7 @@
 - Discard resets hidden original-removal acknowledgement; source and cancellation protections remain covered.
 - Developer ID/Xcode archive support with source provenance, strict signed-export/ticket/Gatekeeper gates and truthful per-artifact notarization metadata. Engines remain a separate public installation; the complete bundled development app retains its distribution gates.
 - Canonical ICNS artwork for Finder document icons avoids a reproduced nonfatal macOS 27 IconServices fault during registration; Quick Action artwork stays in place.
+- Automatic Finder setup recognises only the system/user Applications roots, including subfolders; launching Xcode archive candidates cannot repoint installed workflows.
 
 ## 1.5.1 preview — 2026-10-07
 

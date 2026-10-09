@@ -40,6 +40,14 @@ struct BackendSmoke {
         let root = fm.temporaryDirectory.appendingPathComponent("UltraConvert backend \(UUID())")
         defer { try? fm.removeItem(at: root) }
         let home = root.appendingPathComponent("home")
+        // Automatic setup must never repoint the user's actions at an Xcode
+        // archive, download or unrelated folder merely named Applications.
+        for path in ["/Applications/UltraConvert.app", "/Applications/Utilities/UltraConvert.app", home.appendingPathComponent("Applications/UltraConvert.app").path] {
+            precondition(FinderActions.isInstalledLocation(app: URL(fileURLWithPath: path), home: home))
+        }
+        for path in [root.appendingPathComponent("Products/Applications/UltraConvert.app").path, home.appendingPathComponent("Downloads/Applications/UltraConvert.app").path, "/Applications-other/UltraConvert.app", "/Applications/../tmp/UltraConvert.app", "/Applications/not-an-app"] {
+            precondition(!FinderActions.isInstalledLocation(app: URL(fileURLWithPath: path), home: home))
+        }
         let app = root.appendingPathComponent("Applications/UltraConvert's test.app")
         let contents = app.appendingPathComponent("Contents")
         let resources = contents.appendingPathComponent("Resources")

@@ -159,7 +159,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         refreshDestination()
         if preferences.bool(forKey: "autoRegisterFinderActions"),
            FileManager.default.fileExists(atPath: Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/FinderActions").path),
-           Bundle.main.bundleURL.deletingLastPathComponent().lastPathComponent == "Applications" {
+           FinderActions.isInstalledLocation(app: Bundle.main.bundleURL, home: FileManager.default.homeDirectoryForCurrentUser) {
             do { try FinderActions.install(app: Bundle.main.bundleURL, home: FileManager.default.homeDirectoryForCurrentUser); try FormatServices.register(app: Bundle.main.bundleURL) }
             catch { status.stringValue = "The app is ready. Finder actions need attention; use Help → Install Finder Quick Actions." }
         }
