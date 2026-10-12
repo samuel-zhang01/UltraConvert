@@ -249,7 +249,7 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
         self.registerFinder = registerFinder
         let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: min(690, (NSScreen.main?.visibleFrame.height ?? 900) - 90)), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.title = "UltraConvert Settings"
-        panel.isReleasedWhenClosed = false; panel.minSize = NSSize(width: 600, height: 520)
+        panel.isReleasedWhenClosed = false; panel.contentMinSize = NSSize(width: 600, height: 520)
         super.init(window: panel)
         panel.delegate = self
         let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.drawsBackground = false
@@ -303,6 +303,7 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
         button.bezelStyle = .rounded
         button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
         button.imagePosition = .imageLeading
+        button.setAccessibilityLabel(title)
         return button
     }
 

@@ -283,7 +283,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         menu.addItem(item)
     }
 
-    @objc func openGuide() { NSWorkspace.shared.open(URL(string: "https://github.com/samuel-zhang01/UltraConvert#readme")!) }
+    @objc func openGuide() { NSWorkspace.shared.open(URL(string: "https://github.com/samuel-zhang01/UltraConvert/blob/main/docs/USAGE.md")!) }
 
     @objc func openFinderSettings() {
         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension")!)

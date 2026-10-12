@@ -30,6 +30,19 @@ struct WatchCandidate {
     var stamp: FileStamp
     var unchangedSince: Date
 }
+enum WatchExistingBatch {
+    static func paths(files: [String: FileStamp], queued: Set<String>, handled: [String: FileStamp], running: String?) -> [String] {
+        let capacity = max(0, 1000 - queued.count)
+        guard capacity > 0 else { return [] }
+        // Continue toward files not handled during this watching session before
+        // explicitly replaying completed ones. Pending waits are never reset,
+        // and the currently running file cannot be queued behind itself.
+        return Array(files.keys.filter { !queued.contains($0) && $0 != running }.sorted { first, second in
+            let firstHandled = handled[first] == files[first], secondHandled = handled[second] == files[second]
+            return firstHandled == secondHandled ? first < second : !firstHandled
+        }.prefix(capacity))
+    }
+}
 struct WatchScan {
     var files: [String: FileStamp] = [:]
     var issue: String?
@@ -85,6 +98,7 @@ final class FolderAutomation {
     private var known: [String: FileStamp] = [:]
     private var candidates: [String: WatchCandidate] = [:]
     private var handled: [String: FileStamp] = [:]
+    private var skippedArrivals: Set<String> = []
     private var debounce: DispatchWorkItem?
     private var settle: DispatchWorkItem?
     private var scanRunning = false
@@ -92,6 +106,7 @@ final class FolderAutomation {
     private var epoch = 0
     private var lockFD: Int32 = -1
     private var cancellation: AutomationCancellation?
+    private var currentPath: String?
     private var stopping = false
     private(set) var paused = false
     private(set) var running = false
@@ -136,8 +151,8 @@ final class FolderAutomation {
         stopping = false
         epoch += 1; cancellation?.cancel(); stream?.stop(); stream = nil
         debounce?.cancel(); debounce = nil; settle?.cancel(); settle = nil
-        known = [:]; candidates = [:]; handled = [:]; scanAgain = false
-        guard !enabledRules.isEmpty else { status = "No folders watched"; releaseLock(); onChange?(); return }
+        known = [:]; candidates = [:]; handled = [:]; skippedArrivals = []; scanAgain = false
+        guard !enabledRules.isEmpty else { status = "No folders watched"; if !running { releaseLock() }; onChange?(); return }
         do {
             try acquireLock()
             if paused { status = "Paused · incoming files will be ignored until resumed"; onChange?(); return }
@@ -193,13 +208,15 @@ final class FolderAutomation {
                 else {
                     let now = Date()
                     for (path, stamp) in result.files where self.known[path] != stamp && self.handled[path] != stamp {
-                        if self.candidates.count >= 1000 && self.candidates[path] == nil { self.status = "Queue full (1,000 files). Extra arrivals were skipped; use Run Existing Files after the queue drains."; continue }
+                        if self.candidates.count >= 1000 && self.candidates[path] == nil { self.skippedArrivals.insert(path); continue }
                         self.candidates[path] = .init(stamp: stamp, unchangedSince: now)
+                        self.skippedArrivals.remove(path)
                     }
                     self.candidates = self.candidates.filter { result.files[$0.key] != nil }
                     self.known = result.files
                 }
                 self.handled = self.handled.filter { result.files[$0.key] != nil }
+                self.skippedArrivals = self.skippedArrivals.filter { result.files[$0] != nil }
                 self.updateStatus(); self.schedule()
                 if self.scanAgain { self.scanAgain = false; self.requestScan() }
             }
@@ -210,8 +227,8 @@ final class FolderAutomation {
         // Explicit invocation processes the current baseline, without changing
         // the default of ignoring files already present at startup. Reject a
         // scan-time request explicitly so the UI cannot claim it queued work.
-        let snapshot = known.sorted(by: { $0.key < $1.key }).prefix(1000), requestedAt = Date()
-        for (path, stamp) in snapshot { candidates[path] = .init(stamp: stamp, unchangedSince: requestedAt) }
+        let snapshot = WatchExistingBatch.paths(files: known, queued: Set(candidates.keys), handled: handled, running: currentPath), requestedAt = Date()
+        for path in snapshot { if let stamp = known[path] { candidates[path] = .init(stamp: stamp, unchangedSince: requestedAt); skippedArrivals.remove(path) } }
         schedule(); updateStatus()
         return snapshot.count
     }
@@ -243,7 +260,7 @@ final class FolderAutomation {
     private func start(_ path: String) {
         guard let candidate = candidates.removeValue(forKey: path) else { return }
         handled[path] = candidate.stamp
-        running = true; currentFile = URL(fileURLWithPath: path).lastPathComponent
+        running = true; currentPath = path; currentFile = URL(fileURLWithPath: path).lastPathComponent
         let token = AutomationCancellation(); cancellation = token
         let choices = eligibleRules(for: path), roots = enabledRules.map(\.inputFolder), scratch = store.url("Staging"), createEngine = engine
         updateStatus()
@@ -260,7 +277,7 @@ final class FolderAutomation {
             } catch { activity = .init(rule: ruleName, file: URL(fileURLWithPath: path).lastPathComponent, message: String(error.localizedDescription.prefix(2000))) }
             DispatchQueue.main.async {
                 guard let self else { return }
-                self.running = false; self.currentFile = nil; self.cancellation = nil
+                self.running = false; self.currentPath = nil; self.currentFile = nil; self.cancellation = nil
                 if self.stopping || self.enabledRules.isEmpty { self.releaseLock() }
                 self.activities.append(activity); self.activities = Array(self.activities.suffix(200))
                 while let data = try? JSONEncoder().encode(self.activities) {
@@ -275,6 +292,7 @@ final class FolderAutomation {
         if paused { status = "Paused · incoming files will be ignored until resumed" }
         else if running { status = "Processing \(currentFile ?? "file") · \(pendingCount) waiting" }
         else if !enabledRules.isEmpty && stream != nil { status = "Watching \(Set(enabledRules.map(\.inputFolder)).count) folder(s) · \(pendingCount) waiting" }
+        if !paused && stream != nil && !skippedArrivals.isEmpty { status += " · \(skippedArrivals.count) arrival(s) skipped while full; Run Existing Files after the queue drains" }
         onChange?()
     }
 }

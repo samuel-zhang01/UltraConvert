@@ -10,11 +10,15 @@ import uuid
 from pathlib import Path
 
 
-def main(home_dir=None):
+def main(home_dir=None, system_app=None):
     home_dir = Path(home_dir) if home_dir is not None else Path.home()
+    from install import installed_app_destination
+
+    runtime = home_dir / "Library/Application Support/UltraConvert"
+    app = installed_app_destination(home_dir, runtime, system_app)
     targets = [
         (
-            home_dir / "Applications/UltraConvert.app",
+            app,
             "Contents/Resources/ultraconvert-managed.json",
         ),
         (
@@ -40,31 +44,40 @@ def main(home_dir=None):
             data = json.loads((path / marker).read_text())
         except (OSError, ValueError):
             data = {}
-        owned = data.get("owner") == "UltraConvert" or (
-            path == runtime and data.get("app") == str(targets[0][0])
+        owned = isinstance(data, dict) and (
+            data.get("owner") == "UltraConvert"
+            or (
+                path == runtime
+                and data.get("owner") is None
+                and data.get("app") == str(targets[0][0])
+            )
         )
         if path.is_symlink() or not owned:
             raise RuntimeError(f"Unmanaged path; not removed: {path}")
     if runtime.exists() and not runtime.is_symlink():
         lock = (runtime / "install.lock").open("a")
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    trash = (
-        home_dir
-        / ".Trash"
-        / (
-            "UltraConvert "
-            + datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S ")
-            + uuid.uuid4().hex[:6]
+    try:
+        trash = (
+            home_dir
+            / ".Trash"
+            / (
+                "UltraConvert "
+                + datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S ")
+                + uuid.uuid4().hex[:6]
+            )
         )
-    )
-    trash.mkdir(parents=True)
-    for path, _marker in targets:
-        if path.exists():
-            shutil.move(path, trash / ("Runtime" if path.name == "UltraConvert" else path.name))
-    subprocess.run(["/System/Library/CoreServices/pbs", "-update"], check=True)
-    print(
-        f"Moved managed installation to {trash}. Shared Homebrew tools and converted files were retained."
-    )
+        trash.mkdir(parents=True)
+        for path, _marker in targets:
+            if path.exists():
+                shutil.move(path, trash / ("Runtime" if path.name == "UltraConvert" else path.name))
+        subprocess.run(["/System/Library/CoreServices/pbs", "-update"], check=True)
+        print(
+            f"Moved managed installation to {trash}. Shared Homebrew tools and converted files were retained."
+        )
+    finally:
+        if lock is not None:
+            lock.close()
 
 
 if __name__ == "__main__":

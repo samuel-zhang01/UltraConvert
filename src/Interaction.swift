@@ -81,7 +81,8 @@ extension ConverterApp: NSMenuDelegate {
     func buildQueueMenu() {
         let menu = NSMenu(title: "File actions")
         menu.delegate = self
-        let conversion = NSMenuItem(title: "Review Selected Files Here as", action: nil, keyEquivalent: "")
+        let conversion = NSMenuItem(title: "Review Only Selected Files Here as", action: nil, keyEquivalent: "")
+        conversion.toolTip = "Loads only the selected files into a new review. Click Convert to create outputs beside the originals."
         conversion.submenu = FormatCatalog.menu(target: self, action: #selector(contextConvert(_:)))
         menu.addItem(conversion); menu.addItem(.separator())
         addMenuItem(menu, "Reveal Original in Finder", #selector(revealSources), symbol: "folder")

@@ -1,5 +1,6 @@
 {
   "actual_editor_callbacks": true,
+  "audit_date": "2026-10-12",
   "checks": 310,
   "passed": true,
   "scope": "native temporary fixtures; no user rules or files changed",

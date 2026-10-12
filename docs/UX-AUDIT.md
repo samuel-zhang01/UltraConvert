@@ -1,4 +1,29 @@
-# Puzzle rule editor — 1.7.0 preview
+# Installation and usability crawl — 2026-10-12
+
+Three coding agents independently reviewed runtime correctness, installation/distribution and first-use usability. The renewed usability assessment is **9.0/10** (weighted **9.035**), passing the scoped ≥9.0 threshold. It is a developer heuristic review, not a novice-user study or a claim of functional perfection.
+
+| Dimension | Weight | Score |
+| --- | --- | --- |
+| Discovery and navigation | 25% | 9.2 |
+| First manual conversion | 20% | 9.2 |
+| Destinations and recovery | 20% | 9.0 |
+| Folder automation comprehension | 20% | 9.0 |
+| Finder and startup clarity | 10% | 8.7 |
+| Layout and accessibility | 5% | 8.5 |
+
+The crawl corrected stale Service names and THEN terminology, an order-dependent rename explanation, ambiguous selected-only queue review, Settings button accessibility labels and window/content minimum-size mismatches. The README now leads with installation and the three manual conversion stages; real current-interface screenshots use public fixtures and neutral demo paths. Detailed settings, rule safety, limits and recovery remain in the [usage guide](USAGE.md).
+
+Actual native UI checks covered WAV→MP3 and PNG→WebP in one batch, unchanged original hashes, connected rule pieces, the action palette, section jumps, keyboard action ordering, matching previews, selectable read-only Details, preview invalidation and Settings labels. Screenshots use the current AppKit classes in an isolated helper; no user's rules or startup settings were changed. [Usability evidence](../evidence/usability-1.7.0.json) records tasks and limits.
+
+The runtime audit reproduced and fixed queue overflow, repeated existing-file starvation, settling-wait resets, early single-watcher lock release during cancellation and hidden skipped-arrival feedback. Paused saves now describe the actual watcher state. **330 automation checks and 310 editor checks pass**, including real filesystem events, cancellation/lock contention and source preservation. Guidance, interface, backend, 20 installer/removal and 28 release checks also pass. Installation now reuses the owned system/user Applications copy and rejects unowned, ambiguous or linked destinations; removal handles the same resolved app.
+
+The universal native app contains verified arm64 and x86_64 slices. Developer ID signature, secure timestamp, Hardened Runtime, sealed source/architecture provenance, Apple acceptance, the stapled ticket and Gatekeeper assessment pass. Engines remain separately installed. [Artifact evidence](../evidence/releases/1.7.0.json) records the status.
+
+The event-driven fixture used **0.00439 CPU seconds over five seconds** and scanned 1,000 small files in **0.00717 seconds**. The complete temporary stress suite peaked at about **257 MiB RSS**; this is not the normal idle app or conversion-engine peak. Physical dragging through the UI automation wrapper did not visibly reorder and remains unverified; native drop callbacks and Move Up/Down have separate passing tests. VoiceOver, novice participants, actual login activation, Intel hardware/engine operation, older macOS and long-duration energy use remain unchecked.
+
+---
+
+# Puzzle rule editor — earlier 1.7.0 candidate
 
 The user rejected the earlier form-style editor. This audit treats that feedback as a new requirement; the previous beginner-guidance score does not establish that the rule editor is easy or pleasant to use.
 

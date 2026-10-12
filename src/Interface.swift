@@ -12,7 +12,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         window.title = "UltraConvert"
         window.titlebarAppearsTransparent = true
         window.delegate = self
-        window.minSize = NSSize(width: 760, height: 570)
+        window.contentMinSize = NSSize(width: 760, height: 570)
         window.center()
         let content = window.contentView!
         let body = NSScrollView()

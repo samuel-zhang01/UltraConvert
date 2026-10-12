@@ -2,8 +2,10 @@
 
 import ast
 import importlib.util
+import json
 import os
 import plistlib
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -21,6 +23,179 @@ APP_FIXTURE = Path(os.environ.get("ULTRACONVERT_TEST_APP", str(installer.APP)))
 
 
 class InstallerTests(unittest.TestCase):
+    def owned_app(self, path):
+        marker = path / "Contents/Resources/ultraconvert-managed.json"
+        marker.parent.mkdir(parents=True)
+        marker.write_text('{"owner":"UltraConvert"}')
+        (path / "retained.txt").write_text("keep the existing app")
+        return path
+
+    def test_existing_owned_system_app_is_reused_instead_of_creating_second_app(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            home, support = base / "home", base / "support"
+            shared = self.owned_app(base / "Applications/UltraConvert.app")
+            support.mkdir()
+            (support / "installation.json").write_text(
+                json.dumps({"owner": "UltraConvert", "app": str(shared)})
+            )
+            self.assertEqual(installer.installed_app_destination(home, support, shared), shared)
+            self.assertFalse((home / "Applications/UltraConvert.app").exists())
+            self.assertEqual((shared / "retained.txt").read_text(), "keep the existing app")
+
+    def test_existing_owned_app_is_found_when_install_record_is_missing(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            shared = self.owned_app(base / "Applications/UltraConvert.app")
+            self.assertEqual(
+                installer.installed_app_destination(base / "home", base / "support", shared), shared
+            )
+
+    def test_first_install_uses_user_applications(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            self.assertEqual(
+                installer.installed_app_destination(
+                    base / "home", base / "support", base / "Applications/UltraConvert.app"
+                ),
+                base / "home/Applications/UltraConvert.app",
+            )
+            self.assertEqual(list(base.iterdir()), [])
+
+    def test_unsupported_recorded_location_is_never_used_even_if_marked_owned(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            outside = self.owned_app(base / "outside/UltraConvert.app")
+            support = base / "support"
+            support.mkdir()
+            (support / "installation.json").write_text(
+                json.dumps({"owner": "UltraConvert", "app": str(outside)})
+            )
+            with self.assertRaisesRegex(RuntimeError, "outside the supported"):
+                installer.installed_app_destination(
+                    base / "home", support, base / "Applications/UltraConvert.app"
+                )
+            self.assertTrue((outside / "retained.txt").exists())
+
+    def test_unowned_or_ambiguous_apps_abort_without_modifying_either_location(self):
+        for unowned in (True, False):
+            with tempfile.TemporaryDirectory() as temp, self.subTest(unowned=unowned):
+                base = Path(temp)
+                shared = self.owned_app(base / "Applications/UltraConvert.app")
+                user = self.owned_app(base / "home/Applications/UltraConvert.app")
+                if unowned:
+                    (shared / "Contents/Resources/ultraconvert-managed.json").write_text(
+                        '{"owner":"Another app"}'
+                    )
+                with self.assertRaisesRegex(RuntimeError, "Unmanaged|Multiple"):
+                    installer.installed_app_destination(base / "home", base / "support", shared)
+                self.assertTrue((shared / "retained.txt").exists())
+                self.assertTrue((user / "retained.txt").exists())
+
+    def test_app_and_applications_symlinks_are_not_followed(self):
+        for parent_link in (True, False):
+            with tempfile.TemporaryDirectory() as temp, self.subTest(parent_link=parent_link):
+                base = Path(temp)
+                owned = self.owned_app(base / "outside/UltraConvert.app")
+                home = base / "home"
+                home.mkdir()
+                if parent_link:
+                    (home / "Applications").symlink_to(owned.parent)
+                else:
+                    (home / "Applications").mkdir()
+                    (home / "Applications/UltraConvert.app").symlink_to(owned)
+                with self.assertRaisesRegex(RuntimeError, "Unmanaged"):
+                    installer.installed_app_destination(
+                        home, base / "support", base / "Applications/UltraConvert.app"
+                    )
+                self.assertTrue((owned / "retained.txt").exists())
+
+    def test_empty_symlinked_applications_folder_is_not_a_first_install_destination(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            outside = base / "outside"
+            outside.mkdir()
+            home = base / "home"
+            home.mkdir()
+            (home / "Applications").symlink_to(outside)
+            with self.assertRaisesRegex(RuntimeError, "Unmanaged Applications"):
+                installer.installed_app_destination(
+                    home, base / "support", base / "Applications/UltraConvert.app"
+                )
+            self.assertEqual(list(outside.iterdir()), [])
+
+    def test_workflow_dispatches_to_exact_app_path_with_safe_quoting(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            app = base / "Applications/Sam's $(touch nope) app.app"
+            path = base / "Convert Here.workflow"
+            installer.workflow(path, "here", app_path=app)
+            document = plistlib.loads((path / "Contents/document.wflow").read_bytes())
+            command = document["actions"][0]["action"]["ActionParameters"]["COMMAND_STRING"]
+            self.assertEqual(shlex.split(command)[3], str(app))
+            self.assertIn('--mode here -- "$@"', command)
+            self.assertEqual(
+                json.loads((path / "Contents/ultraconvert-managed.json").read_text())["app"],
+                str(app),
+            )
+
+    def test_uninstall_moves_owned_system_app_and_runtime_together(self):
+        spec = importlib.util.spec_from_file_location("uninstaller", ROOT / "uninstall.py")
+        uninstaller = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(uninstaller)
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            home = base / "home"
+            shared = self.owned_app(base / "Applications/UltraConvert.app")
+            runtime = home / "Library/Application Support/UltraConvert"
+            runtime.mkdir(parents=True)
+            (runtime / "installation.json").write_text(
+                json.dumps({"owner": "UltraConvert", "app": str(shared)})
+            )
+            (runtime / "data.txt").write_text("retained runtime")
+            with patch.object(uninstaller.subprocess, "run"):
+                uninstaller.main(home, system_app=shared)
+            self.assertFalse(shared.exists())
+            self.assertFalse(runtime.exists())
+            trash = list((home / ".Trash").iterdir())
+            self.assertEqual(len(trash), 1)
+            self.assertTrue((trash[0] / "UltraConvert.app/retained.txt").exists())
+            self.assertEqual((trash[0] / "Runtime/data.txt").read_text(), "retained runtime")
+
+    def test_uninstall_rejects_unowned_system_app_before_creating_trash(self):
+        spec = importlib.util.spec_from_file_location("uninstaller", ROOT / "uninstall.py")
+        uninstaller = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(uninstaller)
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            shared = self.owned_app(base / "Applications/UltraConvert.app")
+            (shared / "Contents/Resources/ultraconvert-managed.json").write_text(
+                '{"owner":"Another app"}'
+            )
+            with self.assertRaisesRegex(RuntimeError, "Unmanaged"):
+                uninstaller.main(base / "home", system_app=shared)
+            self.assertTrue((shared / "retained.txt").exists())
+            self.assertFalse((base / "home/.Trash").exists())
+
+    def test_uninstall_rejects_foreign_runtime_even_when_it_names_owned_app(self):
+        spec = importlib.util.spec_from_file_location("uninstaller", ROOT / "uninstall.py")
+        uninstaller = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(uninstaller)
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            shared = self.owned_app(base / "Applications/UltraConvert.app")
+            home = base / "home"
+            runtime = home / "Library/Application Support/UltraConvert"
+            runtime.mkdir(parents=True)
+            (runtime / "installation.json").write_text(
+                json.dumps({"owner": "Another app", "app": str(shared)})
+            )
+            with self.assertRaisesRegex(RuntimeError, "Unmanaged"):
+                uninstaller.main(home, system_app=shared)
+            self.assertTrue((shared / "retained.txt").exists())
+            self.assertTrue((runtime / "installation.json").exists())
+            self.assertFalse((home / ".Trash").exists())
+
     @unittest.skipUnless(sys.platform == "darwin", "App bundle metadata requires macOS")
     def test_app_staging_preserves_metadata_and_valid_signature(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -156,6 +331,16 @@ class InstallerTests(unittest.TestCase):
             link.symlink_to(folder)
             self.assertFalse(installer.managed(link, "marker.json"))
             self.assertTrue(installer.managed(folder, "marker.json"))
+
+    def test_explicit_foreign_owner_cannot_claim_legacy_runtime_by_app_path(self):
+        with tempfile.TemporaryDirectory() as temp:
+            runtime = Path(temp)
+            (runtime / "installation.json").write_text(
+                json.dumps({"owner": "Another app", "app": str(installer.APP)})
+            )
+            self.assertFalse(installer.managed(runtime, "installation.json", legacy_runtime=True))
+            (runtime / "installation.json").write_text("[]")
+            self.assertFalse(installer.managed(runtime, "installation.json", legacy_runtime=True))
 
 
 if __name__ == "__main__":

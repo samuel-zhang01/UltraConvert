@@ -4,7 +4,7 @@ The app interface, menus, file pickers, progress and Finder integration are Swif
 
 ## Current release status
 
-Stable v1.3.0 and the v1.5.1 installer preview are ad-hoc signed and not notarized. The v1.6.0 installer preview contains a Developer ID Application signed app accepted by Apple on 2026-10-09, with its ticket stapled and Gatekeeper assessment verified. Authentication used Xcode's existing signed-in account without a separate notarytool profile. Release metadata records the verified artifact status. The ZIP installs conversion engines separately; no standalone bundled-engine app or DMG is included in this release.
+Stable v1.3.0 and the v1.5.1 installer preview are ad-hoc signed and not notarized. The v1.7.0 installer preview contains a universal Developer ID Application signed app accepted by Apple on 2026-10-12, with its ticket stapled and Gatekeeper assessment verified. The previous v1.6.0 preview was also notarized. Authentication used Xcode's existing signed-in account without a separate notarytool profile. Release metadata records the verified artifact status. The ZIP installs conversion engines separately; no standalone bundled-engine app or DMG is included in this release.
 
 Public packages retain the separate Homebrew/Python engine installer. The complete local development app and drag-to-Applications DMG remain unpublished pending corresponding-source/notices review and complete nested-code distribution verification. See [standalone development](STANDALONE.md). Apple enrollment is approved and Developer ID provisioning is available; credentials stay in the maintainer's Keychain.
 
@@ -34,6 +34,7 @@ Run all checks in CONTRIBUTING.md, commit the public tree, and use the exact val
 ```sh
 python3 scripts/build_release.py \
   --sign-identity "Developer ID Application: YOUR NAME (TEAMID)" \
+  --architecture universal \
   --notary-profile UltraConvert \
   --dmg
 ```
@@ -41,7 +42,7 @@ python3 scripts/build_release.py \
 Use Homebrew Python 3.14 for the packaging script. The app itself still targets macOS 13. The builder:
 
 1. Refuses a dirty public tree or a development certificate in place of Developer ID.
-2. Compiles the current architecture, signs with a secure timestamp and Hardened Runtime, and verifies the signature.
+2. Compiles the requested CPU target (`native`, `arm64`, `x86_64` or `universal`), signs with a secure timestamp and Hardened Runtime, and verifies the signature. Universal builds contain both CPU slices; engines are installed separately for the user's Mac.
 3. Sends an app ZIP to Apple with `notarytool`, requires **Accepted**, staples the ticket to the app, validates it and runs Gatekeeper assessment.
 4. Packages the matching committed source and app into a ZIP, preserving macOS metadata with `ditto`.
 5. Optionally creates and verifies a DMG, signs it, submits it separately, staples it and checks its Gatekeeper assessment.
@@ -60,6 +61,7 @@ When a separate notarytool profile is unavailable, build an archive for Xcode Or
 ```sh
 python3 scripts/build_xcode_archive.py \
   --sign-identity "Developer ID Application: YOUR NAME (TEAMID)" \
+  --architecture universal \
   --output build/UltraConvert-release.xcarchive
 ```
 
@@ -93,7 +95,7 @@ The builder checks native source provenance, exact signing certificate/team, Har
 
 Test a freshly downloaded signed artifact with quarantine intact on a clean Mac: first launch, setup, Finder action enablement, every representative format, cancellation, reports, update and removal. Confirm the stapled ticket works offline. A valid signature or successful notarization is not a converter correctness test, engine licence audit, or OS parser sandbox.
 
-Local packaging can compile arm64 or x86_64. A universal app also needs matching engine/runtime availability for both architectures; the current release pipeline does not claim universal support. Intel remains unverified.
+Local packaging can compile arm64, x86_64 or a universal native app. Architecture lists are sealed in native provenance, checked against the executable, and recorded in release metadata. Both native slices compile locally; the installer provisions conversion engines for the user's architecture. Intel hardware, Intel engine installation and older-system operation remain unverified. See [Apple's universal binary guide](https://developer.apple.com/documentation/apple-silicon/building-a-universal-macos-binary).
 
 ## Swift engine migration
 

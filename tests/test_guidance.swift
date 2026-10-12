@@ -16,7 +16,9 @@ struct GuidanceSmoke {
         precondition(preferences.bool(forKey: "hasSeenGettingStarted"))
         precondition(preferences.object(forKey: "outputMode") == nil && preferences.object(forKey: "startInMenuBar") == nil)
         let guide = app.guideController!
-        guide.window!.setContentSize(NSSize(width: 680, height: 520))
+        precondition(guide.window!.contentMinSize == NSSize(width: 680, height: 520))
+        guide.window!.setFrame(NSRect(origin: guide.window!.frame.origin, size: guide.window!.minSize), display: false)
+        precondition(guide.window!.contentView!.bounds.width >= 680 && guide.window!.contentView!.bounds.height >= 520)
         for topic in 0..<4 {
             guide.openTopic(topic); guide.window!.contentView!.layoutSubtreeIfNeeded()
             precondition(guide.body.arrangedSubviews.count >= 3)

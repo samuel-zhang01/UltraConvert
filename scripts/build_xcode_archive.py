@@ -5,17 +5,21 @@ import datetime
 import plistlib
 from pathlib import Path
 
-from package_app import build_app, developer_id_details, native_provenance
+from package_app import app_architectures, build_app, developer_id_details, native_provenance
 
 
-def build_archive(destination, sign_identity):
+def build_archive(destination, sign_identity, architecture=None):
     destination = Path(destination).resolve()
     if destination.suffix != ".xcarchive":
         raise RuntimeError("Choose an output path ending in .xcarchive")
     if destination.exists():
         raise RuntimeError("Choose a new archive path; existing archives are never replaced")
     identity = developer_id_details(sign_identity)
-    app = build_app(destination / "Products/Applications", sign_identity=sign_identity)
+    app = build_app(
+        destination / "Products/Applications",
+        sign_identity=sign_identity,
+        architecture=architecture,
+    )
     info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
     metadata = {
         "ArchiveVersion": 2,
@@ -38,7 +42,8 @@ def build_archive(destination, sign_identity):
         "archive": str(destination),
         "app": str(app),
         "team": identity["team"],
-        "native_source_fingerprint": native_provenance()["source_fingerprint"],
+        "architectures": app_architectures(app),
+        "native_source_fingerprint": native_provenance(architecture)["source_fingerprint"],
     }
 
 
@@ -48,10 +53,16 @@ def main():
     parser.add_argument(
         "--sign-identity", required=True, help="Exact Developer ID Application name or SHA-1"
     )
+    parser.add_argument(
+        "--architecture",
+        choices=("native", "arm64", "x86_64", "universal"),
+        default="native",
+        help="Native app CPU target; engines are installed separately",
+    )
     args = parser.parse_args()
     import json
 
-    print(json.dumps(build_archive(args.output, args.sign_identity), indent=2))
+    print(json.dumps(build_archive(args.output, args.sign_identity, args.architecture), indent=2))
 
 
 if __name__ == "__main__":

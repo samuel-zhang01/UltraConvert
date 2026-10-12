@@ -1,0 +1,16 @@
+{
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "audit_date": "2026-10-12",
+  "developer_id_signature_verified": true,
+  "gatekeeper_accepted": true,
+  "hardened_runtime_and_timestamp_verified": true,
+  "intel_engine_runtime_tested": false,
+  "intel_hardware_tested": false,
+  "scope": "Native public installer app; external conversion engines required.",
+  "source_fingerprint": "c1d88d856ee3dc2e1a9e0ce2463ec3fe65ac5695a0d20f551253a64b376fe1a6",
+  "stapled_ticket_verified": true,
+  "version": "1.7.0"
+}

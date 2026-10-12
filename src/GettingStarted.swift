@@ -13,7 +13,7 @@ final class GettingStarted: NSWindowController {
         self.route = route
         let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 720, height: 640), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.title = "Getting Started — UltraConvert"; panel.titlebarAppearsTransparent = true
-        panel.minSize = NSSize(width: 680, height: 520); panel.isReleasedWhenClosed = false
+        panel.contentMinSize = NSSize(width: 680, height: 520); panel.isReleasedWhenClosed = false
         super.init(window: panel)
         let main = NSStackView(); main.orientation = .vertical; main.alignment = .leading; main.spacing = 16
         pin(main, in: panel.contentView!, inset: 24)
@@ -53,12 +53,12 @@ final class GettingStarted: NSWindowController {
         switch topics.selectedSegment {
         case 1:
             card("Quick Actions · convert any supported batch", "In Finder, select one or more files, right-click → Quick Actions → Convert Here with UltraConvert. The app opens for review. ‘Here’ saves single-file results beside each original. Convert to Destination with UltraConvert uses your saved output folder.")
-            card("Services · choose a format first", "Right-click files → Services → Convert Here with UltraConvert — Choose Format… Select a category and format, then Review Conversion. Convert Here with UltraConvert — MP3 is a preset shortcut. Click Convert in the app to start; choosing a shortcut starts no conversion.")
+            card("Services · choose a format first", "Right-click files → Services → Convert Here with UltraConvert — Choose Format… Select a category and format, then Review Conversion. Convert to MP3 with UltraConvert is a preset shortcut. Click Convert in the app to start; choosing a shortcut starts no conversion.")
             card("If an action is missing", "Open Settings and use Install or Repair Quick Actions. Enable them in System Settings → General → Login Items & Extensions → Finder (ⓘ). For format shortcuts, use System Settings → Keyboard → Keyboard Shortcuts → Services. macOS chooses which Services suit your selected file types; use the general Quick Action for a misnamed file.")
             action("Open Finder Setup…", .settings)
         case 2:
             card("1. Choose a template and two folders", "Open Folder Rules → New Rule → Audio → MP3, Images → WebP or Data → YAML. WHEN is the inbox to watch; SAVE is a separate output folder outside every watched inbox. Templates start off. Files already present are ignored when watching starts.")
-            card("2. Match files and order the actions", "IF checks the detected file format, category or filename. ALL means every condition must match; ANY means at least one. THEN actions run from top to bottom. Rename changes the output name: {name}-{format} makes Recording-mp3.mp3. The wait time lets a file finish copying before inspection.")
+            card("2. Match files and order the actions", "IF checks the detected file format, category or filename. ALL means every condition must match; ANY means at least one. DO actions run from top to bottom. Convert sets the current format; Rename changes the output name. After Convert to MP3, {name}-{format} makes Recording-mp3.mp3. Move Rename before Convert and {format} uses the input format instead. The wait time lets a file finish copying before inspection.")
             card("3. Preview, then enable and save", "Preview a File shows a plan without changing files. Check the output and AFTER SUCCESS policy. Keep the original is the default; Archive or Trash only applies after successful output and your acknowledgement. Enable this rule, then Save Rule. Unsaved edits do not change a running rule.")
             card("Pause, existing files and activity", "Pause All stops new work. Run Existing Files explicitly queues files already in the inbox using saved enabled rules. Activity shows results and errors. Closing the converter keeps enabled rules running; Quit UltraConvert stops watching. Launch at login is optional in Settings.")
             action("Open Folder Rules…", .rules)
@@ -69,7 +69,7 @@ final class GettingStarted: NSWindowController {
             action("Open Settings…", .settings); action("Check Setup…", .setup)
         default:
             card("1. Add files", "Drop one or more files into the converter or use Add Files (⌘O). UltraConvert recognises the contents, even when an extension is misleading. Add Files keeps the current queue. Remove Selected and Clear only remove queue entries.")
-            card("2. Choose formats and a save location", "Pick an output format for each detected category. The advice under each choice explains common uses and tradeoffs. Mixed batches can have different targets, such as images → PNG and audio → MP3. Review each file’s source → target preview and the Save to explanation.")
+            card("2. Choose formats and a save location", "Pick an output format for each detected category. The advice under each choice explains common uses and tradeoffs. Mixed batches can have different targets, such as images → PNG and audio → MP3. Review each file’s source → target preview and the Save to explanation. A queue’s right-click format shortcut loads only the selected files for review; click Convert to start.")
             card("3. Convert and find the results", "Click Convert. Show Results reveals the new files; Report explains failures or skipped files. You can cancel; completed outputs remain. Manual conversions always keep originals and never replace existing files. Folder rules have their own explicit original-file policy.")
             action("Add Files…", .addFiles)
         }

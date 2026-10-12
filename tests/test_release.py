@@ -3,11 +3,13 @@
 import io
 import json
 import plistlib
+import shutil
 import subprocess
 import sys
 import tarfile
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -26,6 +28,170 @@ class ReleaseTests(unittest.TestCase):
             "name": "Developer ID Application: Example (TEAM)",
             "team": "TEAM",
         }
+        self.read_architectures = package_app.app_architectures
+        patcher = patch.object(
+            package_app, "app_architectures", return_value=package_app.build_architectures()
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_supported_architectures_are_explicit_and_deterministic(self):
+        self.assertEqual(package_app.build_architectures("universal"), ["arm64", "x86_64"])
+        self.assertEqual(package_app.architecture_label(["x86_64", "arm64"]), "universal")
+        self.assertEqual(package_app.build_architectures("x86_64"), ["x86_64"])
+        self.assertEqual(package_app.architecture_label(["arm64"]), "arm64")
+        for invalid in ("i386", [], ["arm64", "arm64"], ["arm64", "unknown"]):
+            with (
+                self.subTest(invalid=invalid),
+                self.assertRaisesRegex(RuntimeError, "architecture"),
+            ):
+                package_app.build_architectures(invalid)
+
+    def test_actual_binary_architectures_are_read_and_validated(self):
+        with patch.object(
+            package_app.subprocess, "check_output", return_value="x86_64 arm64\n"
+        ) as read:
+            self.assertEqual(self.read_architectures(Path("Example.app")), ["arm64", "x86_64"])
+        self.assertEqual(
+            read.call_args.args[0],
+            ["/usr/bin/lipo", "-archs", Path("Example.app/Contents/MacOS/UltraConvert")],
+        )
+
+    def test_universal_compiles_both_slices_before_combining_stripping_and_signing(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(package_app, "run") as run:
+            app = package_app.build_app(Path(temp), architecture="universal")
+            provenance = json.loads((app / "Contents/Resources/native-provenance.json").read_text())
+        commands = [call.args[0] for call in run.call_args_list]
+        compilers = [command for command in commands if command[:2] == ["/usr/bin/xcrun", "swiftc"]]
+        self.assertEqual(
+            [command[command.index("-target") + 1] for command in compilers],
+            ["arm64-apple-macosx13.0", "x86_64-apple-macosx13.0"],
+        )
+        combine = next(command for command in commands if command[0] == "/usr/bin/lipo")
+        self.assertEqual(combine[1], "-create")
+        self.assertEqual(combine[-1], app / "Contents/MacOS/UltraConvert")
+        self.assertLess(
+            commands.index(combine),
+            next(i for i, command in enumerate(commands) if command[0] == "/usr/bin/strip"),
+        )
+        self.assertLess(
+            commands.index(combine),
+            next(i for i, command in enumerate(commands) if command[0] == "/usr/bin/codesign"),
+        )
+        self.assertEqual(provenance["schema"], 2)
+        self.assertEqual(provenance["architectures"], ["arm64", "x86_64"])
+
+    def test_notarized_export_rejects_forged_architectures_before_identity_validation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            app = self.exported_app(temp)
+            resource = app / "Contents/Resources/native-provenance.json"
+            proof = json.loads(resource.read_text())
+            proof["architectures"] = ["arm64", "x86_64"]
+            resource.write_text(json.dumps(proof))
+            with (
+                patch.object(package_app, "validate_prebuilt", return_value=app),
+                patch.object(package_app, "app_architectures", return_value=["arm64"]),
+                patch.object(package_app, "developer_id_details") as identity,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "source"):
+                    package_app.validate_notarized_app(app, self.identity["sha1"])
+            identity.assert_not_called()
+
+    def test_installer_rejects_wrong_host_but_release_can_validate_cross_compiled_app(self):
+        with tempfile.TemporaryDirectory() as temp:
+            app = Path(temp) / "UltraConvert.app"
+            resources = app / "Contents/Resources"
+            resources.mkdir(parents=True)
+            (app / "Contents/Info.plist").write_bytes(
+                plistlib.dumps(
+                    {
+                        "CFBundleIdentifier": "local.ultraconvert",
+                        "CFBundleShortVersionString": (package_app.ROOT / "VERSION")
+                        .read_text()
+                        .strip(),
+                    }
+                )
+            )
+            (resources / "ultraconvert-managed.json").write_text('{"owner":"UltraConvert"}')
+            (resources / "UltraConvert.icns").write_bytes(
+                (package_app.ROOT / "assets/UltraConvert.icns").read_bytes()
+            )
+            with (
+                patch.object(package_app.platform, "machine", return_value="arm64"),
+                patch.object(package_app, "app_architectures", return_value=["x86_64"]),
+                patch.object(package_app, "run") as verify,
+            ):
+                with self.assertRaisesRegex(RuntimeError, "does not support this Mac"):
+                    package_app.validate_prebuilt(app)
+                verify.assert_not_called()
+                self.assertEqual(
+                    package_app.validate_prebuilt(app, require_host=False, architecture="x86_64"),
+                    app,
+                )
+                with self.assertRaisesRegex(RuntimeError, "architectures do not match"):
+                    package_app.validate_prebuilt(app, require_host=False, architecture="universal")
+
+    def test_universal_release_names_and_metadata_use_payload_architectures(self):
+        source = io.BytesIO()
+        with tarfile.open(fileobj=source, mode="w"):
+            pass
+
+        def git_output(command, **kwargs):
+            if command == ["git", "status", "--porcelain"]:
+                return b""
+            if command == ["git", "archive", "HEAD"]:
+                return source.getvalue()
+            if command == ["git", "rev-parse", "HEAD"]:
+                return "test-release-commit\n"
+            raise AssertionError(f"Unexpected command: {command}")
+
+        def create_artifact(command, **kwargs):
+            command = list(map(str, command))
+            if command[0] == "/usr/bin/ditto":
+                if "-c" in command:
+                    with zipfile.ZipFile(command[-1], "w") as archive:
+                        archive.writestr("UltraConvert/INSTALL-FIRST.txt", "fixture")
+                else:
+                    shutil.copytree(command[1], command[2])
+            elif command[:2] == ["git", "archive"]:
+                Path(command[command.index("-o") + 1]).write_bytes(b"source fixture")
+            else:
+                raise AssertionError(f"Unexpected command: {command}")
+
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            exported = self.exported_app(base / "exported")
+            out = base / "release"
+            args = [
+                "build_release.py",
+                "--sign-identity",
+                self.identity["sha1"],
+                "--notarized-app",
+                str(exported),
+                "--output-dir",
+                str(out),
+            ]
+            with (
+                patch.object(sys, "argv", args),
+                patch.object(
+                    build_release, "developer_id_identity", return_value=self.identity["sha1"]
+                ),
+                patch.object(build_release.subprocess, "check_output", side_effect=git_output),
+                patch.object(build_release.subprocess, "run", side_effect=create_artifact),
+                patch.object(build_release, "validate_notarized_app"),
+                patch.object(build_release, "validate_prebuilt"),
+                patch.object(build_release, "app_architectures", return_value=["arm64", "x86_64"]),
+                patch.object(package_app.platform, "machine", return_value="arm64"),
+            ):
+                build_release.main()
+            metadata = json.loads((out / "RELEASE-METADATA.json").read_text())
+            self.assertEqual(metadata["architecture"], "universal")
+            self.assertEqual(metadata["architectures"], ["arm64", "x86_64"])
+            self.assertFalse(metadata["intel_hardware_tested"])
+            self.assertFalse(metadata["conversion_engines_bundled"])
+            self.assertTrue(metadata["engine_runtime_installer_required"])
+            self.assertEqual(len(list(out.glob("UltraConvert-*-macos-universal.zip"))), 1)
+            self.assertFalse(list(out.glob("UltraConvert-*-macos-arm64.zip")))
 
     def exported_app(self, destination):
         app = Path(destination) / "UltraConvert.app"
@@ -204,7 +370,9 @@ class ReleaseTests(unittest.TestCase):
                 "VERSION",
                 "LICENSE",
                 "assets/UltraConvert.icns",
+                "assets/logo.png",
                 "install.py",
+                "uninstall.py",
                 "scripts/package_app.py",
                 "scripts/build_release.py",
                 "scripts/build_xcode_archive.py",
@@ -401,7 +569,7 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(list(out.iterdir()), [])
 
     def test_archive_contains_only_native_app_and_correct_organizer_metadata(self):
-        def build(destination, sign_identity):
+        def build(destination, sign_identity, architecture=None):
             app = destination / "UltraConvert.app"
             (app / "Contents").mkdir(parents=True)
             (app / "Contents/Info.plist").write_bytes(
@@ -422,8 +590,15 @@ class ReleaseTests(unittest.TestCase):
                     build_xcode_archive, "developer_id_details", return_value=self.identity
                 ),
                 patch.object(build_xcode_archive, "build_app", side_effect=build) as build_app,
+                patch.object(
+                    build_xcode_archive,
+                    "app_architectures",
+                    return_value=["arm64", "x86_64"],
+                ),
             ):
-                result = build_xcode_archive.build_archive(archive, self.identity["sha1"])
+                result = build_xcode_archive.build_archive(
+                    archive, self.identity["sha1"], architecture="universal"
+                )
             info = plistlib.loads((archive / "Info.plist").read_bytes())
             self.assertEqual(info["ArchiveVersion"], 2)
             self.assertEqual(info["ApplicationProperties"]["Team"], "TEAM")
@@ -436,8 +611,11 @@ class ReleaseTests(unittest.TestCase):
             self.assertEqual(
                 Path(result["app"]), archive / "Products/Applications/UltraConvert.app"
             )
+            self.assertEqual(result["architectures"], ["arm64", "x86_64"])
             build_app.assert_called_once_with(
-                archive / "Products/Applications", sign_identity=self.identity["sha1"]
+                archive / "Products/Applications",
+                sign_identity=self.identity["sha1"],
+                architecture="universal",
             )
             with self.assertRaisesRegex(RuntimeError, "never replaced"):
                 build_xcode_archive.build_archive(archive, self.identity["sha1"])

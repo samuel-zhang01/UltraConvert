@@ -381,7 +381,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     }
     func refreshEditingStatus() {
         guard let saved = runtime.rules.first(where: { $0.id == selectedID }) else { editingStatus.stringValue = ""; return }
-        editingStatus.stringValue = saved != draft ? "Unsaved changes. Preview uses your edits; watching uses saved rules until you save." : (saved.enabled ? "Saved rule is enabled. Only new or changed arrivals run automatically." : "Saved draft is off. Enable and Save Rule to start watching.")
+        editingStatus.stringValue = saved != draft ? "Unsaved changes. Preview uses your edits; watching uses saved rules until you save." : (saved.enabled ? (runtime.paused ? "Saved rule is enabled, but watching is paused. Resume All when ready." : "Saved rule is enabled. Only new or changed arrivals run automatically.") : "Saved draft is off. Enable and Save Rule to start watching.")
     }
     @objc func editorControlChanged(_ sender: NSControl) { gather(); cancelPreview() }
     func controlTextDidChange(_ notification: Notification) { gather(); cancelPreview() }
@@ -397,7 +397,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     @discardableResult func saveRule() -> Bool {
         gather(); guard let index = runtime.rules.firstIndex(where: { $0.id == selectedID }) else { return false }
         var next = runtime.rules; next[index] = draft
-        do { try runtime.save(next); cancelPreview(); message.textColor = .secondaryLabelColor; message.stringValue = draft.enabled ? "Saved and watching. Only new or changed files arriving from now on will run." : "Draft saved. Turn on Enable this rule, then save to start watching."; reloadList(); return true }
+        do { try runtime.save(next); cancelPreview(); message.textColor = .secondaryLabelColor; message.stringValue = draft.enabled ? (runtime.paused ? "Saved, but folder rules are paused. Review the watcher status, then choose Resume All when ready." : "Saved and watching. Only new or changed files arriving from now on will run.") : "Draft saved. Turn on Enable this rule, then save to start watching."; reloadList(); return true }
         catch { message.textColor = .systemRed; message.stringValue = error.localizedDescription; return false }
     }
     func newRule(template: Int) {
@@ -487,9 +487,9 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     }
     func runExisting() {
         guard !runtime.enabledRules.isEmpty, !runtime.paused else { message.stringValue = "Enable and save a rule first, then resume watching."; return }
-        let alert = NSAlert(); alert.messageText = "Run enabled rules on existing files?"; alert.informativeText = "This queues up to 1,000 files already in your inboxes. Saved original-file actions also apply. Normal watching only handles new or changed arrivals."; alert.addButton(withTitle: "Cancel"); alert.addButton(withTitle: "Run Existing Files")
+        let alert = NSAlert(); alert.messageText = "Run enabled rules on existing files?"; alert.informativeText = "This adds files until the waiting queue reaches 1,000. Files already queued or running are skipped; files not yet handled this watching session come first. Completed files may run again on a later request. Saved original-file actions also apply. Normal watching only handles new or changed arrivals."; alert.addButton(withTitle: "Cancel"); alert.addButton(withTitle: "Run Existing Files")
         if alert.runModal() == .alertSecondButtonReturn {
-            if let count = runtime.runExisting() { message.stringValue = "Queued \(count) existing file(s) using saved rules." }
+            if let count = runtime.runExisting() { message.stringValue = count == 0 ? "No additional files queued. The waiting queue may be full, or all inbox files are already queued or running." : "Queued \(count) additional existing file(s) using saved rules." }
             else { message.stringValue = "The watcher is busy scanning or paused. Wait for it to be ready, then try again." }
         }
     }
@@ -497,7 +497,8 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     func refreshStatus() {
         stateLabel.stringValue = runtime.status; pause.title = runtime.paused ? "Resume All" : "Pause All"; pause.isEnabled = !runtime.enabledRules.isEmpty
         existing.isEnabled = runtime.canRunExisting
-        existing.toolTip = runtime.enabledRules.isEmpty ? "Enable and save a rule first. This action uses saved enabled rules." : (runtime.paused ? "Resume watching before running existing files." : (!runtime.canRunExisting ? "The watcher is still scanning. Wait until it is ready." : "Queues up to 1,000 inbox files using saved enabled rules, including their original-file actions."))
+        existing.toolTip = runtime.enabledRules.isEmpty ? "Enable and save a rule first. This action uses saved enabled rules." : (runtime.paused ? "Resume watching before running existing files." : (!runtime.canRunExisting ? "The watcher is still scanning. Wait until it is ready." : "Adds inbox files up to the 1,000-file waiting limit using saved rules. Skips queued/running files and prioritises files not handled this watching session. Original-file actions apply."))
+        refreshEditingStatus()
         if !activityScroll.isHidden { refreshActivity() }
     }
     func refreshActivity() {

@@ -138,6 +138,14 @@ struct BackendSmoke {
         let login = TestLoginService()
         var repairs = 0
         let settings = IntegrationSettings(preferences: preferences, login: login, registerFinder: { repairs += 1 })
+        precondition(settings.window!.contentMinSize == NSSize(width: 600, height: 520))
+        func settingsButtons(_ view: NSView) -> [NSButton] {
+            (view as? NSButton).map { [$0] } ?? [] + view.subviews.flatMap(settingsButtons)
+        }
+        let integrationTitles: Set<String> = ["Open Login Items Settings…", "Install or Repair Quick Actions", "Enable Quick Actions in macOS…", "Refresh Format Shortcuts", "Enable Format Shortcuts in macOS…"]
+        let integrationButtons = settingsButtons(settings.window!.contentView!).filter { integrationTitles.contains($0.title) }
+        precondition(integrationButtons.count == 5)
+        precondition(integrationButtons.allSatisfy { $0.accessibilityLabel() == $0.title })
         precondition(settings.loginToggle.state == .off && login.enableCount == 0)
         precondition(settings.finderToggle.state == .on)
         settings.finderToggle.state = .off; settings.changeFinderPreference(); settings.refresh()
