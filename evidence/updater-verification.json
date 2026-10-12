@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-12",
+  "test_app_bundle_identifier": "local.ultraconvert.update-qa",
+  "test_support_isolated": true,
+  "fixture_signing": "Developer ID Application",
+  "fixture_notarized": false,
+  "feed": "Loopback HTTP only in an explicit test compile configuration; production uses HTTPS GitHub",
+  "modified_feed_rejected_in_actual_update_ui": true,
+  "modified_archive_rejected_before_extraction": true,
+  "rejected_updates_left_old_version_unchanged": "1.7.99",
+  "manual_install_and_automatic_relaunch": "1.7.99 -> 1.8.0",
+  "queued_file_restored": "Tone.wav",
+  "selected_format_restored": "MP3",
+  "repeat_check_reported_up_to_date": true,
+  "background_download_and_install_on_normal_quit": "1.8.0 -> 1.8.1 (test fixture only)",
+  "canonical_install_untouched_during_fixture_test": "1.7.0",
+  "updater_policy_and_settings_checks": 36,
+  "release_and_sealed_payload_tests": 32,
+  "dependency_and_update_packaging_tests": 4,
+  "remaining_validation_limits": [
+    "Intel physical hardware and older macOS versions were not available",
+    "Fixture update is signed but not notarized; the public artifact undergoes separate Apple notarization and Gatekeeper checks"
+  ]
+}

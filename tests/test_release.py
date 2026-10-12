@@ -1,5 +1,6 @@
 """Release gates distinguish development signing from public notarized distribution."""
 
+import contextlib
 import io
 import json
 import plistlib
@@ -23,6 +24,21 @@ import package_app
 
 class ReleaseTests(unittest.TestCase):
     def setUp(self):
+        fixture = tempfile.TemporaryDirectory()
+        self.addCleanup(fixture.cleanup)
+        sdk = Path(fixture.name)
+        (sdk / "LICENSE").write_text("Sparkle test licence")
+
+        @contextlib.contextmanager
+        def distribution():
+            yield sdk
+
+        sdk_patch = patch.object(package_app.sparkle, "distribution", distribution)
+        sdk_patch.start()
+        self.addCleanup(sdk_patch.stop)
+        embed_patch = patch.object(package_app.sparkle, "embed")
+        embed_patch.start()
+        self.addCleanup(embed_patch.stop)
         self.identity = {
             "sha1": "E" * 40,
             "name": "Developer ID Application: Example (TEAM)",
@@ -200,6 +216,28 @@ class ReleaseTests(unittest.TestCase):
         (resources / "native-provenance.json").write_text(
             json.dumps(package_app.native_provenance())
         )
+        (app / "Contents/Info.plist").write_bytes(
+            plistlib.dumps(
+                {
+                    "SUFeedURL": package_app.sparkle.FEED_URL,
+                    "SUPublicEDKey": package_app.sparkle.PUBLIC_KEY,
+                    "SUVerifyUpdateBeforeExtraction": True,
+                    "SURequireSignedFeed": True,
+                    "SUSignedFeedFailureExpirationInterval": 0,
+                    "SUEnableSystemProfiling": False,
+                }
+            )
+        )
+        source = resources / "Source"
+        source.mkdir()
+        for path in package_app.conversion_sources():
+            shutil.copyfile(path, source / path.name)
+        shutil.copyfile(package_app.ROOT / "requirements.txt", resources / "requirements.txt")
+        sdk_resources = app / "Contents/Frameworks/Sparkle.framework/Resources"
+        sdk_resources.mkdir(parents=True)
+        (sdk_resources / "Info.plist").write_bytes(
+            plistlib.dumps({"CFBundleShortVersionString": package_app.sparkle.VERSION})
+        )
         return app
 
     def export_display(self, **changes):
@@ -211,6 +249,47 @@ class ReleaseTests(unittest.TestCase):
         }
         fields.update(changes)
         return "\n".join(f"{key}={value}" for key, value in fields.items() if value is not None)
+
+    def test_changed_updater_key_feed_or_policy_rejects_public_payload(self):
+        for key, value in (
+            ("SUPublicEDKey", "wrong"),
+            ("SUFeedURL", "https://example.invalid/feed.xml"),
+            ("SURequireSignedFeed", False),
+            ("SUVerifyUpdateBeforeExtraction", False),
+            ("SUSignedFeedFailureExpirationInterval", 1),
+            ("SUEnableSystemProfiling", True),
+        ):
+            with self.subTest(key=key), tempfile.TemporaryDirectory() as temp:
+                app = self.exported_app(temp)
+                path = app / "Contents/Info.plist"
+                info = plistlib.loads(path.read_bytes())
+                info[key] = value
+                path.write_bytes(plistlib.dumps(info))
+                with self.assertRaisesRegex(RuntimeError, "security configuration"):
+                    package_app.validate_update_payload(app)
+
+    def test_modified_or_missing_sealed_conversion_code_rejects_update(self):
+        for remove in (False, True):
+            with self.subTest(remove=remove), tempfile.TemporaryDirectory() as temp:
+                app = self.exported_app(temp)
+                path = app / "Contents/Resources/Source/convert.py"
+                if remove:
+                    path.unlink()
+                else:
+                    path.write_text("modified")
+                with self.assertRaisesRegex(RuntimeError, "conversion source"):
+                    package_app.validate_update_payload(app)
+
+    def test_test_build_provenance_cannot_pass_public_release_gate(self):
+        with tempfile.TemporaryDirectory() as temp:
+            app = self.exported_app(temp)
+            path = app / "Contents/Resources/native-provenance.json"
+            proof = json.loads(path.read_text())
+            proof["update_test_build"] = True
+            path.write_text(json.dumps(proof))
+            with patch.object(package_app, "validate_prebuilt", return_value=app):
+                with self.assertRaisesRegex(RuntimeError, "different native source"):
+                    package_app.validate_notarized_app(app, "unused-identity")
 
     def test_development_certificate_is_not_a_public_distribution_identity(self):
         digest = "A" * 40
@@ -279,6 +358,29 @@ class ReleaseTests(unittest.TestCase):
             if command[0] == "/usr/bin/codesign" and "--sign" in command:
                 self.assertNotIn("--deep", command)
                 self.assertNotIn("--timestamp=none", command)
+                self.assertNotIn("--entitlements", command)
+
+    def test_debug_entitlements_cannot_pass_public_notarized_validation(self):
+        with tempfile.TemporaryDirectory() as temp:
+            app = self.exported_app(temp)
+            with (
+                patch.object(package_app, "validate_prebuilt", return_value=app),
+                patch.object(package_app, "developer_id_details", return_value=self.identity),
+                patch.object(
+                    package_app.subprocess,
+                    "run",
+                    return_value=SimpleNamespace(
+                        stderr=self.export_display(),
+                        stdout=plistlib.dumps(
+                            {"com.apple.security.cs.disable-library-validation": True}
+                        ).decode(),
+                    ),
+                ),
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError, "unexpected development/security entitlements"
+                ):
+                    package_app.validate_notarized_app(app, self.identity["sha1"])
 
     def test_rejected_notarization_stops_the_release(self):
         with patch.object(
@@ -377,6 +479,11 @@ class ReleaseTests(unittest.TestCase):
                 "scripts/build_release.py",
                 "scripts/build_xcode_archive.py",
                 "scripts/notarize.py",
+                "scripts/sparkle.py",
+                "scripts/build_updates.py",
+                "requirements.txt",
+                "src/convert.py",
+                "src/policy.xml",
             ]
             for name in names:
                 path = root / name

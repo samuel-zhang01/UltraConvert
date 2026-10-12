@@ -5,13 +5,20 @@ import json
 import platform
 import plistlib
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
+import sparkle
+
 ROOT = Path(__file__).resolve().parents[1]
 APP_SOURCES = sorted((ROOT / "src").glob("*.swift"))
+
+
+def conversion_sources():
+    return sorted([*(ROOT / "src").glob("*.py"), ROOT / "src/policy.xml"])
 
 
 def run(args):
@@ -66,6 +73,10 @@ def native_provenance(architecture=None):
     """Fingerprint every input that generates the native app or release container."""
     inputs = [
         *APP_SOURCES,
+        *conversion_sources(),
+        ROOT / "requirements.txt",
+        ROOT / "scripts/sparkle.py",
+        ROOT / "scripts/build_updates.py",
         ROOT / "VERSION",
         ROOT / "LICENSE",
         ROOT / "assets/UltraConvert.icns",
@@ -98,7 +109,7 @@ def native_provenance(architecture=None):
     }
 
 
-def build_app(destination, sign_identity=None, architecture=None):
+def build_app(destination, sign_identity=None, architecture=None, update_test_config=None):
     architectures = build_architectures(architecture)
     provenance = native_provenance(architectures)
     version = (ROOT / "VERSION").read_text().strip()
@@ -109,7 +120,10 @@ def build_app(destination, sign_identity=None, architecture=None):
     contents = app / "Contents"
     (contents / "MacOS").mkdir(parents=True)
     (contents / "Resources").mkdir()
-    with tempfile.TemporaryDirectory(prefix="ultraconvert-native-slices-") as temp:
+    with (
+        sparkle.distribution() as dependency,
+        tempfile.TemporaryDirectory(prefix="ultraconvert-native-slices-") as temp,
+    ):
         slices = []
         for arch in architectures:
             binary = (
@@ -125,6 +139,15 @@ def build_app(destination, sign_identity=None, architecture=None):
                     f"{arch}-apple-macosx13.0",
                     "-framework",
                     "AppKit",
+                    *(["-D", "ULTRACONVERT_UPDATE_TESTS"] if update_test_config else []),
+                    "-F",
+                    dependency,
+                    "-framework",
+                    "Sparkle",
+                    "-Xlinker",
+                    "-rpath",
+                    "-Xlinker",
+                    "@executable_path/../Frameworks",
                     *APP_SOURCES,
                     "-o",
                     binary,
@@ -133,6 +156,11 @@ def build_app(destination, sign_identity=None, architecture=None):
             slices.append(binary)
         if len(slices) > 1:
             run(["/usr/bin/lipo", "-create", *slices, "-output", contents / "MacOS/UltraConvert"])
+        identity = developer_id_identity(sign_identity) if sign_identity else "-"
+        sparkle.embed(
+            dependency, contents, identity, "--timestamp" if sign_identity else "--timestamp=none"
+        )
+        shutil.copyfile(dependency / "LICENSE", contents / "Resources/Sparkle-LICENSE")
     # Keep runtime/exported symbols; discard local/debug names before signing.
     run(["/usr/bin/strip", "-S", "-x", contents / "MacOS/UltraConvert"])
     info = {
@@ -145,6 +173,15 @@ def build_app(destination, sign_identity=None, architecture=None):
         "CFBundleShortVersionString": version,
         "CFBundleIconFile": "UltraConvert",
         "NSHighResolutionCapable": True,
+        "SUFeedURL": sparkle.FEED_URL,
+        "SUPublicEDKey": sparkle.PUBLIC_KEY,
+        "SUEnableAutomaticChecks": True,
+        "SUAutomaticallyUpdate": False,
+        "SUEnableSystemProfiling": False,
+        "SUVerifyUpdateBeforeExtraction": True,
+        "SURequireSignedFeed": True,
+        "SUSignedFeedFailureExpirationInterval": 0,
+        "UCUpdateChannel": "stable",
         "LSMinimumSystemVersion": "13.0",
         "NSHumanReadableCopyright": "© 2026 UltraConvert contributors. MIT licence.",
         "NSServices": format_services(),
@@ -157,9 +194,18 @@ def build_app(destination, sign_identity=None, architecture=None):
             }
         ],
     }
+    if update_test_config:
+        # Test builds cannot pass the public source-provenance release gate.
+        info.update(update_test_config)
+        provenance["update_test_build"] = True
     (contents / "Info.plist").write_bytes(plistlib.dumps(info))
     (contents / "Resources/UltraConvert.icns").write_bytes(icon.read_bytes())
     (contents / "Resources/LICENSE").write_bytes((ROOT / "LICENSE").read_bytes())
+    source = contents / "Resources/Source"
+    source.mkdir()
+    for path in conversion_sources():
+        shutil.copyfile(path, source / path.name)
+    shutil.copyfile(ROOT / "requirements.txt", contents / "Resources/requirements.txt")
     (contents / "Resources/ultraconvert-managed.json").write_text(
         json.dumps({"owner": "UltraConvert", "version": version}) + "\n"
     )
@@ -173,24 +219,32 @@ def build_app(destination, sign_identity=None, architecture=None):
         ("destination", "Convert to Destination with UltraConvert"),
     ):
         workflow(contents / "Resources/FinderActions" / (name + ".workflow"), mode)
-    if provenance != native_provenance(architectures):
+    expected = native_provenance(architectures)
+    if update_test_config:
+        expected["update_test_build"] = True
+    if provenance != expected:
         raise RuntimeError("Native source inputs changed while compiling the app")
     (contents / "Resources/native-provenance.json").write_text(
         json.dumps(provenance, indent=2, sort_keys=True) + "\n"
     )
-    identity = developer_id_identity(sign_identity) if sign_identity else "-"
-    run(
-        [
-            "/usr/bin/codesign",
-            "--force",
-            "--sign",
-            identity,
-            "--options",
-            "runtime",
-            "--timestamp" if sign_identity else "--timestamp=none",
-            app,
-        ]
-    )
+    signing = [
+        "/usr/bin/codesign",
+        "--force",
+        "--sign",
+        identity,
+        "--options",
+        "runtime",
+        "--timestamp" if sign_identity else "--timestamp=none",
+    ]
+    if not sign_identity:
+        # Ad-hoc development builds have no Team ID for library validation.
+        # Developer ID distributions never receive this debug-only exception.
+        entitlements = contents / "Resources/development-entitlements.plist"
+        entitlements.write_bytes(
+            plistlib.dumps({"com.apple.security.cs.disable-library-validation": True})
+        )
+        signing.extend(["--entitlements", entitlements])
+    run([*signing, app])
     run(["/usr/bin/codesign", "--verify", "--deep", "--strict", app])
     return app
 
@@ -266,6 +320,7 @@ def validate_notarized_app(app, sign_identity, architecture=None):
         raise RuntimeError("Notarized app has no valid native source provenance") from error
     if provenance != native_provenance(app_architectures(app)):
         raise RuntimeError("Notarized app was built from different native source inputs")
+    validate_update_payload(app)
     if (app / "Contents/Resources/runtime-manifest.json").exists():
         raise RuntimeError("This public installer cannot reuse a bundled-engine development app")
     identity = developer_id_details(sign_identity)
@@ -274,12 +329,16 @@ def validate_notarized_app(app, sign_identity, architecture=None):
         f'and certificate leaf[subject.OU] = "{identity["team"]}"'
     )
     run(["/usr/bin/codesign", "--verify", "--deep", "--strict", "-R=" + requirement, app])
-    display = subprocess.run(
-        ["/usr/bin/codesign", "--display", "--verbose=4", str(app)],
+    description = subprocess.run(
+        ["/usr/bin/codesign", "--display", "--verbose=4", "--entitlements", ":-", str(app)],
         check=True,
         text=True,
         capture_output=True,
-    ).stderr
+    )
+    display = description.stderr
+    entitlements = getattr(description, "stdout", "") or ""
+    if entitlements.strip() and plistlib.loads(entitlements.encode()):
+        raise RuntimeError("Public app has unexpected development/security entitlements")
     flags = re.search(r"^.*flags=.*\(([^)]*)\)", display, re.M)
     if (
         f"Authority={identity['name']}" not in display.splitlines()
@@ -294,3 +353,32 @@ def validate_notarized_app(app, sign_identity, architecture=None):
     run(["/usr/bin/xcrun", "stapler", "validate", app])
     run(["/usr/sbin/spctl", "--assess", "--type", "execute", "--verbose=2", app])
     return app
+
+
+def validate_update_payload(app):
+    """Bind the feed, signing key and conversion code to this exact source tree."""
+    contents = Path(app) / "Contents"
+    info = plistlib.loads((contents / "Info.plist").read_bytes())
+    expected = {
+        "SUFeedURL": sparkle.FEED_URL,
+        "SUPublicEDKey": sparkle.PUBLIC_KEY,
+        "SUVerifyUpdateBeforeExtraction": True,
+        "SURequireSignedFeed": True,
+        "SUSignedFeedFailureExpirationInterval": 0,
+        "SUEnableSystemProfiling": False,
+    }
+    if any(info.get(key) != value for key, value in expected.items()):
+        raise RuntimeError("App update security configuration does not match this release")
+    for path in conversion_sources():
+        sealed = contents / "Resources/Source" / path.name
+        if sealed.is_symlink() or not sealed.is_file() or sealed.read_bytes() != path.read_bytes():
+            raise RuntimeError("Sealed conversion source does not match this release")
+    if (contents / "Resources/requirements.txt").read_bytes() != (
+        ROOT / "requirements.txt"
+    ).read_bytes():
+        raise RuntimeError("Sealed engine requirements do not match this release")
+    sdk_info = plistlib.loads(
+        (contents / "Frameworks/Sparkle.framework/Resources/Info.plist").read_bytes()
+    )
+    if sdk_info.get("CFBundleShortVersionString") != sparkle.VERSION:
+        raise RuntimeError("App embeds a different Sparkle version")

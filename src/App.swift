@@ -66,6 +66,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     var here = true
     var lastSummary = ""
     let preferences: UserDefaults
+    lazy var updater = AppUpdater(preferences: preferences)
     init(preferences: UserDefaults = .standard) { self.preferences = preferences; super.init() }
     var guideController: GettingStarted?
     var settingsController: IntegrationSettings?
@@ -75,7 +76,11 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     var watcherStatusItem: NSStatusItem?
     var formatPicker: FormatPicker?
     var waitingForAutomationQuit = false
+#if ULTRACONVERT_UPDATE_TESTS
+    let support = URL(fileURLWithPath: Bundle.main.object(forInfoDictionaryKey: "UCUpdateTestSupport") as! String)
+#else
     let support = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/UltraConvert")
+#endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         preferences.register(defaults: ["autoRegisterFinderActions": true])
@@ -89,6 +94,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         settingsItem.target = self
         appMenu.addItem(settingsItem)
         addMenuItem(appMenu, "Folder Rules…", #selector(showFolderRules), symbol: "square.stack.3d.up")
+        addMenuItem(appMenu, "Check for Updates…", #selector(checkForUpdates), symbol: "arrow.down.circle")
         appMenu.addItem(.separator())
         let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
         servicesItem.submenu = NSMenu(title: "Services")
@@ -155,7 +161,12 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             args.removeFirst(2)
         }
         if args.first == "--" { args.removeFirst() }
+        let restored = preferences.stringArray(forKey: "updateRestoreFiles") ?? []
+        preferences.removeObject(forKey: "updateRestoreFiles")
+        if args.isEmpty { args = restored.filter { FileManager.default.fileExists(atPath: $0) } }
         outputURL = defaultFolder()
+        if let path = preferences.string(forKey: "updateRestoreDestination"), FileManager.default.fileExists(atPath: path) { outputURL = URL(fileURLWithPath: path) }
+        preferences.removeObject(forKey: "updateRestoreDestination")
         refreshDestination()
         if preferences.bool(forKey: "autoRegisterFinderActions"),
            FileManager.default.fileExists(atPath: Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/FinderActions").path),
@@ -167,6 +178,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         if args.isEmpty && preferences.bool(forKey: "startInMenuBar") && automation?.keepsRunning == true { window.orderOut(nil); NSApp.setActivationPolicy(.accessory) }
         if !args.isEmpty { loadFiles(args) }
         else if !files.isEmpty { loadFiles(files) }
+        startUpdater()
         DispatchQueue.main.async { [weak self] in if let self, self.shouldOfferGettingStarted { self.showQuickStart() } }
     }
 
@@ -258,6 +270,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     @objc func convertToFolder() { guard !busy else { return }; if chooseFolder() { convertFiles() } }
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(checkForUpdates) { return updater.canCheck }
         if menuItem.action == #selector(contextConvert(_:)) {
             guard !busy, !selectedQueuePaths.isEmpty, let target = menuItem.representedObject as? String, FormatCatalog.all.contains(target) else { return false }
             return selectedQueuePaths.allSatisfy { path in
@@ -379,6 +392,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         saveDefault.isEnabled = !value && !here
         refreshPresentation()
         if !value { automation?.manualBatchFinished() }
+        if !value { updater.workDidFinish() }
     }
 
     func launch(_ args: [String], script: String = "convert.py", completion: @escaping (Int32, String, String) -> Void) {
@@ -547,13 +561,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         syncLocationSelection()
         var plan: [String: String] = [:]
         for (key, popup) in selectors { plan[key] = popup.selectedItem?.representedObject as? String }
-        var remembered = preferences.dictionary(forKey: "formats") as? [String: String] ?? [:]
-        remembered.merge(plan) { _, new in new }
-        preferences.set(remembered, forKey: "formats")
-        preferences.set(here ? "here" : "destination", forKey: "outputMode")
-        preferences.set(skipSame.state == .on, forKey: "skipSame")
-        preferences.set(openAfter.state == .on, forKey: "openAfter")
-        preferences.set(jobs.indexOfSelectedItem + 1, forKey: "jobs")
+        rememberConversionOptions()
         let planURL = FileManager.default.temporaryDirectory.appendingPathComponent("ultraconvert-plan-\(UUID().uuidString).json")
         do { try JSONSerialization.data(withJSONObject: plan).write(to: planURL) }
         catch { status.stringValue = error.localizedDescription; return }
@@ -653,6 +661,8 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         NSApp.terminate(nil); return true
     }
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // An update must never cancel a conversion to get the app out of its way.
+        if updater.isRelaunching && busy { return .terminateCancel }
         if rulesController?.window?.isVisible == true && rulesController?.mayDiscard() == false { return .terminateCancel }
         if busy { cancelConversion(); return .terminateCancel }
         rulesController?.cancelPreview()

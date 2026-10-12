@@ -36,6 +36,9 @@ xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit
 build/interface-test build/interface-inspection.json
 xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_guidance.swift -o build/guidance-test
 build/guidance-test
+xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_updates.swift -o build/updates-test
+build/updates-test
+python3 -m unittest discover -s tests -p 'test_update_packaging.py' -v
 ```
 
 Run native folder-rule tests (uses temporary folders and an injected Trash operation, never user files):

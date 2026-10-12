@@ -52,11 +52,21 @@ struct BackendSmoke {
         let contents = app.appendingPathComponent("Contents")
         let resources = contents.appendingPathComponent("Resources")
         let support = home.appendingPathComponent("Library/Application Support/UltraConvert")
-        try fm.createDirectory(at: resources.appendingPathComponent("Source"), withIntermediateDirectories: true)
+        try fm.createDirectory(at: resources, withIntermediateDirectories: true)
         try fm.createDirectory(at: contents.appendingPathComponent("Helpers"), withIntermediateDirectories: true)
         try Data().write(to: contents.appendingPathComponent("Helpers/python"))
         let legacy = try BackendPaths(contents: contents, support: support)
         precondition(!legacy.bundled && legacy.python == support.appendingPathComponent(".venv/bin/python"))
+        let sealed = resources.appendingPathComponent("Source")
+        try fm.createDirectory(at: sealed, withIntermediateDirectories: true)
+        do { _ = try BackendPaths(contents: contents, support: support); preconditionFailure("Incomplete sealed source fell back to legacy code") } catch {}
+        for name in ["convert.py", "diagnostics.py", "runtime_tools.py", "structured.py", "geospatial.py", "guards.py", "policy.xml"] { try Data(name.utf8).write(to: sealed.appendingPathComponent(name)) }
+        let sourceUpdate = try BackendPaths(contents: contents, support: support)
+        precondition(sourceUpdate.source.path == sealed.resolvingSymlinksInPath().standardizedFileURL.path && !sourceUpdate.bundled && sourceUpdate.python == legacy.python)
+        try fm.removeItem(at: sealed.appendingPathComponent("convert.py"))
+        try fm.createSymbolicLink(at: sealed.appendingPathComponent("convert.py"), withDestinationURL: contents.appendingPathComponent("Helpers/python"))
+        do { _ = try BackendPaths(contents: contents, support: support); preconditionFailure("Escaped sealed script accepted") } catch {}
+        try fm.removeItem(at: sealed.appendingPathComponent("convert.py")); try Data().write(to: sealed.appendingPathComponent("convert.py"))
         let manifest = resources.appendingPathComponent("runtime-manifest.json")
         var metadata: [String: Any] = ["schema": 1, "python": "Helpers/python", "source": "Resources/Source", "environment_paths": [:]]
         try JSONSerialization.data(withJSONObject: metadata).write(to: manifest)

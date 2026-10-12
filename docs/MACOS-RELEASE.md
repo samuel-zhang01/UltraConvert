@@ -4,7 +4,7 @@ The app interface, menus, file pickers, progress and Finder integration are Swif
 
 ## Current release status
 
-Stable v1.3.0 and the v1.5.1 installer preview are ad-hoc signed and not notarized. The v1.7.0 installer preview contains a universal Developer ID Application signed app accepted by Apple on 2026-10-12, with its ticket stapled and Gatekeeper assessment verified. The previous v1.6.0 preview was also notarized. Authentication used Xcode's existing signed-in account without a separate notarytool profile. Release metadata records the verified artifact status. The ZIP installs conversion engines separately; no standalone bundled-engine app or DMG is included in this release.
+The v1.8.0 full release adds Sparkle in-app updates to the universal Developer ID signed, Apple-notarized app. The complete download set includes installer ZIP and signed DMG, source archive, metadata, checksums, an app-only update ZIP and a signed update feed. The app’s ticket is stapled and Gatekeeper acceptance is verified; the DMG container is signed but not separately notarized when using Xcode’s account route. Conversion engines still require the full installer on first installation. Earlier v1.6.0 and v1.7.0 previews were also notarized; v1.3.0 and v1.5.1 were not. Metadata records each artifact’s status.
 
 Public packages retain the separate Homebrew/Python engine installer. The complete local development app and drag-to-Applications DMG remain unpublished pending corresponding-source/notices review and complete nested-code distribution verification. See [standalone development](STANDALONE.md). Apple enrollment is approved and Developer ID provisioning is available; credentials stay in the maintainer's Keychain.
 
@@ -86,12 +86,28 @@ Package that exact export from a clean committed tree:
 python3 scripts/build_release.py \
   --sign-identity "Developer ID Application: YOUR NAME (TEAMID)" \
   --notarized-app /absolute/path/to/UltraConvert.app \
-  --output-dir dist/release-notarized
+  --output-dir dist/release-notarized \
+  --dmg --update-assets
 ```
 
 The builder checks native source provenance, exact signing certificate/team, Hardened Runtime, secure timestamp, the stapled ticket and Gatekeeper acceptance. Source, icon, version or packaging-code edits require a new archive. This route does not read or export Xcode’s private account credentials. An optional `--dmg` produces a signed image containing the notarized app, but explicitly records that the image has no separate notarization ticket. Use the Keychain-profile route to submit and staple both app and DMG.
 
 ## Validate before publishing
+
+### In-app update signing and publication
+
+The dependency version and SHA-256 are pinned in `scripts/sparkle.py`. The app includes its Python conversion source inside its signed resources and reuses the existing external engine environment. The framework’s unused sandbox XPC services are removed before signing; its installer, progress app and framework are signed from the inside out, then notarized with the host app.
+
+The update signing key lives in this Mac’s login Keychain under the Sparkle account `UltraConvert`. Only its public key is committed. For a fresh maintainer setup, use the pinned distribution’s `bin/generate_keys --account UltraConvert` locally, then put its **public** key into `scripts/sparkle.py`; changing the key for existing clients requires Sparkle’s documented key-rotation procedure. Never export or upload the private key to GitHub. `--update-assets` checks that the local public key matches the key embedded in the app, signs the update archive and feed, and verifies the feed signature.
+
+1. Finish CI, sign/notarize the exact committed universal app, then build the complete release with `--dmg --update-assets`.
+2. Publish the GitHub release **with every asset first**. Download the assets and verify their SHA-256 against the local artifacts and checksums.
+3. Copy the exact generated `appcast.xml` into `updates/appcast.xml`, commit and push it. This makes the update visible only after its download exists. The feed is signed: do not edit it without re-signing. Keep a previous signed feed copy to recover publication errors.
+4. Verify the public feed signature, asset URL, version and size, then use Check for Updates in the installed app. For preview releases, generate the new entry with channel `preview`; stable entries have no channel.
+
+Future app-only updates must remain compatible with the external engine requirements installed by the previous full installer. If requirements change, provide clear repair/migration instructions and test that path before advertising the update. The current release leaves engine requirements unchanged.
+
+`scripts/prepare_update_test.py` creates a **separate bundle identifier and support directory**, builds old/new signed app copies and a local signed feed, and marks their sealed provenance as test builds so they cannot pass the public release gate. It enables local HTTP only in that explicit compile configuration. Serve its `feed` directory on port 8768 and test feed tampering, archive tampering, Install and Relaunch, queued-file/format restoration and a repeat check. Its fixture is Developer ID signed, not notarized; separately verify the exact public notarized app. See [Sparkle’s setup and testing guidance](https://sparkle-project.org/documentation/).
 
 Test a freshly downloaded signed artifact with quarantine intact on a clean Mac: first launch, setup, Finder action enablement, every representative format, cancellation, reports, update and removal. Confirm the stapled ticket works offline. A valid signature or successful notarization is not a converter correctness test, engine licence audit, or OS parser sandbox.
 

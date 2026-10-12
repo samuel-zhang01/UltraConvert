@@ -5,7 +5,7 @@ extension ConverterApp {
         do {
             let contents = Bundle.main.bundleURL.appendingPathComponent("Contents"), support = self.support
             let runtime = try FolderAutomation(support: support, engine: { NativeAutomationEngine(backend: try BackendPaths(contents: contents, support: support)) })
-            runtime.manualBusy = { [weak self] in self?.busy ?? false }
+            runtime.manualBusy = { [weak self] in (self?.busy ?? false) || (self?.updater.isRelaunching ?? false) }
             runtime.onChange = { [weak self] in self?.updateAutomationPresentation() }
             automation = runtime; runtime.configure()
         } catch { automationError = error.localizedDescription }
@@ -27,6 +27,7 @@ extension ConverterApp {
         NSApp.setActivationPolicy(.regular); InterfaceMotion.present(window); NSApp.activate(ignoringOtherApps: true)
     }
     func updateAutomationPresentation() {
+        updater.workDidFinish()
         if waitingForAutomationQuit && automation?.running != true && (rulesController?.previewWorkCount ?? 0) == 0 { waitingForAutomationQuit = false; NSApp.reply(toApplicationShouldTerminate: true); return }
         rulesController?.refreshStatus()
         guard let automation else { return }
@@ -43,7 +44,8 @@ extension ConverterApp {
             addMenuItem(menu, "Open Converter", #selector(showConverter), symbol: "arrow.triangle.2.circlepath")
             addMenuItem(menu, "Folder Rules…", #selector(showFolderRules), symbol: "square.stack.3d.up")
             addMenuItem(menu, automation.paused ? "Resume Folder Rules" : "Pause Folder Rules", #selector(toggleFolderWatching), symbol: automation.paused ? "play" : "pause")
-            addMenuItem(menu, "Startup & Finder Settings…", #selector(showSettings), symbol: "gearshape")
+            addMenuItem(menu, "Settings…", #selector(showSettings), symbol: "gearshape")
+            addMenuItem(menu, "Check for Updates…", #selector(checkForUpdates), symbol: "arrow.down.circle")
             menu.addItem(.separator()); menu.addItem(withTitle: "Quit UltraConvert", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
             watcherStatusItem?.menu = menu
         } else if let item = watcherStatusItem { NSStatusBar.system.removeStatusItem(item); watcherStatusItem = nil }

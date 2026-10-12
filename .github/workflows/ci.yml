@@ -29,6 +29,7 @@ jobs:
       - run: python -m unittest discover -s tests -p 'test_release.py' -v
       - run: python -m unittest discover -s tests -p 'test_runtime.py' -v
       - run: python -m unittest discover -s tests -p 'test_source_collection.py' -v
+      - run: python -m unittest discover -s tests -p 'test_update_packaging.py' -v
   macos:
     runs-on: macos-26
     timeout-minutes: 60
@@ -58,6 +59,8 @@ jobs:
           /tmp/ultraconvert-automation-test
           xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_rule_editor.swift -o /tmp/ultraconvert-rule-editor-test
           /tmp/ultraconvert-rule-editor-test
+          xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_updates.swift -o /tmp/ultraconvert-updates-test
+          /tmp/ultraconvert-updates-test
       - name: Security, batch workflow and rollback checks
         run: |
           UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
