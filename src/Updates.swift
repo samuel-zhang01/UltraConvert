@@ -16,9 +16,9 @@ protocol UpdateManaging: AnyObject {
 }
 
 struct UpdateSafety {
-    static func reason(manualBusy: Bool, automationBusy: Bool, previewCount: Int, unsavedRule: Bool) -> String? {
+    static func reason(manualBusy: Bool, automationBusy: Bool, previewCount: Int, unsavedRule: Bool, pendingJobs: Int = 0) -> String? {
         if manualBusy { return "A conversion or file check is still running. The update will wait for it to finish." }
-        if automationBusy { return "A folder rule is still running. The update will wait for it to finish." }
+        if automationBusy || pendingJobs > 0 { return "Folder-rule work is running or queued. The update will wait for it to finish." }
         if previewCount > 0 { return "A rule preview is still running. The update will wait for it to finish." }
         if unsavedRule { return "Save your rule changes or discard them before installing an update." }
         return nil
@@ -162,7 +162,7 @@ extension ConverterApp {
     func startUpdater() {
         updater.blockedReason = { [weak self] in
             guard let self else { return "UltraConvert is closing." }
-            return UpdateSafety.reason(manualBusy: self.busy, automationBusy: self.automation?.running == true, previewCount: self.rulesController?.previewWorkCount ?? 0, unsavedRule: self.rulesController?.hasUnsavedChanges ?? false)
+            return UpdateSafety.reason(manualBusy: self.busy, automationBusy: self.automation?.running == true, previewCount: self.rulesController?.previewWorkCount ?? 0, unsavedRule: self.rulesController?.hasUnsavedChanges ?? false, pendingJobs: self.automation?.pendingCount ?? 0)
         }
         updater.beforeRelaunch = { [weak self] in
             guard let self else { return }

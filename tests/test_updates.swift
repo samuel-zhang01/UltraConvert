@@ -23,6 +23,7 @@ final class FakeUpdates: UpdateManaging {
             let reason = UpdateSafety.reason(manualBusy: bits & 1 != 0, automationBusy: bits & 2 != 0, previewCount: bits & 4 != 0 ? 1 : 0, unsavedRule: bits & 8 != 0)
             expect((reason == nil) == (bits == 0))
         }
+        expect(UpdateSafety.reason(manualBusy: false, automationBusy: false, previewCount: 0, unsavedRule: false, pendingJobs: 1) != nil)
         let updater = AppUpdater(preferences: preferences)
         var blocker: String? = "Working"
         var installations = 0

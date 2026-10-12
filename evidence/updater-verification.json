@@ -14,7 +14,7 @@
   "repeat_check_reported_up_to_date": true,
   "background_download_and_install_on_normal_quit": "1.8.0 -> 1.8.1 (test fixture only)",
   "canonical_install_untouched_during_fixture_test": "1.7.0",
-  "updater_policy_and_settings_checks": 36,
+  "updater_policy_and_settings_checks": 37,
   "release_and_sealed_payload_tests": 32,
   "dependency_and_update_packaging_tests": 4,
   "remaining_validation_limits": [
