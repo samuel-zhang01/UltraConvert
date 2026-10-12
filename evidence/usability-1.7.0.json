@@ -1,0 +1,117 @@
+{
+  "candidate_source_fingerprint": "faefdca179f1c330da83616976f551d7993bc431074c9bf11050eb587c639dc7",
+  "components": [
+    {
+      "evidence": "Actual final WHEN/IF and Convert/Rename raw screenshots show flush seams; native editor checks compare seam, tip and notch points within 0.01 pt. Central geometry removes the prior 1 pt defect.",
+      "name": "Puzzle geometry and joins",
+      "score": 9.8,
+      "weight": 0.2
+    },
+    {
+      "evidence": "Actual light/dark compact/normal puzzle and guide layouts preserve a clear content inset. Native checks cover 13 pt clearance beneath the deepest notch, 14 pt lower body clearance and equal 20 pt side insets. Branch panel is deliberately separated from puzzle tab.",
+      "name": "Padding and spacing",
+      "score": 9.6,
+      "weight": 0.2
+    },
+    {
+      "evidence": "Essential plan, safety and Settings explanations are readable in actual light/dark views. Selected rule words render black on this Mac's yellow accent; actual AX confirms editable rule controls and Preview/Save enabled while Run Existing is disabled. Secondary filename illustrations and queue metadata remain less prominent by design; this is not a universal text-contrast certification.",
+      "name": "Readability",
+      "score": 9.5,
+      "weight": 0.2
+    },
+    {
+      "evidence": "Final actual normal-dark and compact-light action views align Convert/Rename field ends and each Up/Down/Remove toolbar control. Long mixed category/filename condition rows share a value column. Settings icon/title pairs now have intrinsic cohesive spacing. Native geometry checks compare every action button x and condition value start within 0.01 pt.",
+      "name": "Control alignment",
+      "score": 9.6,
+      "weight": 0.15
+    },
+    {
+      "evidence": "Actual stage jumps reach Inbox/Match/Actions/Original, Activity returns to the unsaved long-value draft, guide topic changes reset to first instructions, and physical grip drag changes DO1/DO2 order. Move Down restores the original order and the saved-draft status. Archive/Trash policies show explicit unchecked acknowledgement and after-success copy; no destructive policy was saved or run.",
+      "name": "Navigation and state",
+      "score": 9.5,
+      "weight": 0.1
+    },
+    {
+      "evidence": "Actual four-view matrix uses coherent native controls, readable task-based headings and shared restrained transitions. Main numbering explains Add files, formats and save location; guide accurately distinguishes Quick Actions/Services and manual/rule original policies. Settings labels distinguish installing actions from enabling macOS switches.",
+      "name": "Converter, guide and Settings consistency",
+      "score": 9.6,
+      "weight": 0.1
+    },
+    {
+      "evidence": "All four views were captured at their real minimum and normal sizes in light/dark. Primary actions remain visible; long summary wraps, path truncates without colliding with Change, and final Settings/Batch options controls are reachable by scrolling. Compact converter Save to and later guide/rule instructions require scrolling, so this component remains lower.",
+      "name": "Compact and appearance behaviour",
+      "score": 9.1,
+      "weight": 0.05
+    }
+  ],
+  "date": "2026-10-12",
+  "decision": "pass within the inspected scope",
+  "limits": [
+    "This is a scoped developer heuristic score, not a novice participant study, global product quality score or promise of functional perfection.",
+    "No VoiceOver session, older macOS hardware matrix, real Intel hardware run, sustained rendering/frame-pacing benchmark or real system Reduce Motion toggle was performed by this reviewer.",
+    "The helper uses current production AppKit view classes and neutral disabled fixtures. Some guide footer route closures are safe fixture stubs; full-guide/add-files navigation is not an end-to-end claim from this helper.",
+    "Actual final installed signed application launch, system service registration and conversion smoke checks belong to root's release/install verification.",
+    "Native semantic-colour contrast ratios were resolved separately; they do not measure all rendered glass backdrops or certify every secondary label."
+  ],
+  "minimum_component": 9.1,
+  "native_test_evidence": {
+    "editor_checks": 399,
+    "editor_passed": true,
+    "editor_proof": "evidence/rule-editor-1.7.0.json",
+    "other_reported_suites": "Automation 330 checks, guide topic-reset, converter six-category geometry/appearance and Backend 600x520 checks were reported passing by implementation/root; their full logs should accompany release validation separately.",
+    "source_inspected": "tests/test_rule_editor.swift contains actual NSApplication.run animation interruption tests, a 25 ms presentation-opacity check, 300 ms stable endpoint checks, reduced-motion snap and toolbar/condition geometry checks. The proof file was independently read; the implementation agent ran the suite before GUI handoff."
+  },
+  "release_gates": {
+    "actual_raw_screenshot_matrix": "pass: 4 views x 2 sizes x 2 appearances, final-* files in cua/",
+    "animation_state_regression": "pass with bounded evidence: actual CUA navigation/disclosure/topic endpoints plus the production InterfaceMotion source and 399-check native suite proof",
+    "motion_frame_pacing": "not measured: screenshots and endpoint checks cannot establish perceived smoothness or frame-time distributions",
+    "no_checked_control_overlap_or_safety_blocker": "pass",
+    "physical_drag_reorder": "pass: focused grip, dragged Convert below Rename, verified changed DO order in AX and raw screenshot, restored using Move Down",
+    "reduced_motion": "source and live native event-loop regression pass; actual system Reduce Motion preference was not changed"
+  },
+  "reviewer": "ux_docs_grader (independent of UI implementation)",
+  "rounded_score": 9.6,
+  "scope": "Developer heuristic assessment of the current native AppKit converter, folder puzzle editor, Getting Started and Settings on this Mac. Isolated disabled public fixtures; no watcher, login registration, rule save or conversion execution enabled in this final visual crawl.",
+  "screenshots": {
+    "additional_evidence": [
+      "final-physical-drag-reordered-dark.png",
+      "final-rules-actions-compact-light.png",
+      "final-rules-match-compact-light.png",
+      "final-rules-archive-compact-light.png",
+      "final-rules-trash-compact-light.png",
+      "final-rules-long-inbox-compact-light.png",
+      "final-rules-long-match-compact-light.png",
+      "final-rules-long-match-compact-dark.png",
+      "final-rules-activity-compact-light.png",
+      "final-rules-navigation-endpoint-compact-light.png",
+      "final-guide-folder-rules-compact-dark.png",
+      "final-guide-options-compact-dark.png",
+      "final-guide-topic-reset-compact-dark.png",
+      "final-converter-options-compact-dark.png",
+      "final-converter-options-bottom-compact-dark.png"
+    ],
+    "cached_render_matrix_excluded": true,
+    "directory": "build/pixel-ui-20261012/cua",
+    "local_matrix_note": "The complete raw CUA matrix was inspected locally; selected unchanged captures are committed under docs/images. The ignored cached bitmap matrix was excluded from grading.",
+    "published_representatives": [
+      "docs/images/converter.png",
+      "docs/images/folder-rules.png",
+      "docs/images/folder-actions.png",
+      "docs/images/getting-started.png",
+      "docs/images/settings.png",
+      "docs/images/compact-original-policy.png"
+    ],
+    "raw_only": true,
+    "recommended_readme": [
+      "final-converter-normal-light.png",
+      "final-rules-inbox-normal-light.png",
+      "final-rules-actions-normal-dark.png",
+      "final-guide-normal-light.png",
+      "final-settings-normal-light.png",
+      "final-settings-services-compact-dark.png"
+    ]
+  },
+  "threshold": 9.5,
+  "version": "1.7.0",
+  "weighted_score": 9.585
+}

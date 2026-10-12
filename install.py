@@ -7,6 +7,7 @@ import fcntl
 import hashlib
 import json
 import plistlib
+import shlex
 import shutil
 import subprocess
 import sys
@@ -33,16 +34,56 @@ def run(args):
     subprocess.run(list(map(str, args)), check=True)
 
 
-def workflow(path, mode="destination"):
+def installed_app_destination(home_dir=None, support_dir=None, system_app=None):
+    """Reuse one owned installation in the supported roots; never create a duplicate."""
+    home = Path(home_dir) if home_dir is not None else HOME_DIR
+    support = Path(support_dir) if support_dir is not None else SUPPORT
+    user_app = home / "Applications/UltraConvert.app"
+    shared_app = (
+        Path(system_app) if system_app is not None else Path("/Applications/UltraConvert.app")
+    )
+    candidates = (user_app, shared_app)
+    for path in candidates:
+        if path.parent.is_symlink():
+            raise RuntimeError(f"Unmanaged Applications folder; left in place: {path.parent}")
+    if support.is_symlink():
+        raise RuntimeError(f"Unmanaged runtime; left in place: {support}")
+    try:
+        record = json.loads((support / "installation.json").read_text())
+    except (OSError, ValueError):
+        record = {}
+    if not isinstance(record, dict):
+        record = {}
+    recorded = record.get("app")
+    if record.get("owner") == "UltraConvert" and recorded:
+        if not isinstance(recorded, str) or Path(recorded) not in candidates:
+            raise RuntimeError(
+                "The recorded app location is outside the supported Applications folders; no files were changed"
+            )
+    existing = [path for path in candidates if path.exists() or path.is_symlink()]
+    for path in existing:
+        if not managed(path, "Contents/Resources/ultraconvert-managed.json"):
+            raise RuntimeError(f"Unmanaged installation; left in place: {path}")
+    if len(existing) > 1:
+        raise RuntimeError(
+            "Multiple UltraConvert apps exist in Applications. Keep one owned installation before updating; no files were changed"
+        )
+    return existing[0] if existing else user_app
+
+
+def workflow(path, mode="destination", app_path=None):
     contents = path / "Contents"
     contents.mkdir(parents=True)
     resources = contents / "Resources"
     resources.mkdir()
     icon = (ROOT / "assets/logo.png").read_bytes()
     (resources / "workflowCustomImage.png").write_bytes(icon)
-    command = (
-        f'/usr/bin/open -n -a "$HOME/Applications/UltraConvert.app" --args --mode {mode} -- "$@"'
+    target = (
+        shlex.quote(str(app_path))
+        if app_path is not None
+        else '"$HOME/Applications/UltraConvert.app"'
     )
+    command = f'/usr/bin/open -n -a {target} --args --mode {mode} -- "$@"'
     action = {
         "ActionBundlePath": "/System/Library/Automator/Run Shell Script.action",
         "ActionName": "Run Shell Script",
@@ -121,7 +162,10 @@ def workflow(path, mode="destination"):
         ],
     }
     (contents / "Info.plist").write_bytes(plistlib.dumps(service_info))
-    (contents / "ultraconvert-managed.json").write_text('{"owner":"UltraConvert"}\n')
+    marker = {"owner": "UltraConvert"}
+    if app_path is not None:
+        marker["app"] = str(app_path)
+    (contents / "ultraconvert-managed.json").write_text(json.dumps(marker) + "\n")
 
 
 def managed(path, marker, legacy_runtime=False):
@@ -129,8 +173,9 @@ def managed(path, marker, legacy_runtime=False):
         return False
     try:
         data = json.loads((path / marker).read_text())
-        return data.get("owner") == "UltraConvert" or (
-            legacy_runtime and data.get("app") == str(APP)
+        return isinstance(data, dict) and (
+            data.get("owner") == "UltraConvert"
+            or (legacy_runtime and data.get("owner") is None and data.get("app") == str(APP))
         )
     except (OSError, ValueError):
         return False
@@ -203,6 +248,7 @@ def install_payload(payload):
 
 
 def main():
+    global APP
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--skip-deps", action="store_true", help="Dependencies were already installed"
@@ -215,6 +261,7 @@ def main():
     args = parser.parse_args()
     if sys.platform != "darwin":
         raise RuntimeError("The native app and Finder actions require macOS")
+    APP = installed_app_destination()
     for path, marker in [
         (APP, "Contents/Resources/ultraconvert-managed.json"),
         *[(p, "Contents/ultraconvert-managed.json") for p in [SERVICE, *SERVICES.values()]],
@@ -285,7 +332,7 @@ def main():
         prepared_services = {}
         for mode, path in SERVICES.items():
             service = build / path.name
-            workflow(service, mode)
+            workflow(service, mode, app_path=APP)
             prepared_services[path] = service
         run([app / "Contents/MacOS/UltraConvert", "--brand-workflows", *prepared_services.values()])
         # Compile/validate and stage everything before replacing a working installation.
@@ -329,7 +376,7 @@ def main():
         + "1. Open System Settings → General → Login Items & Extensions.\n"
         + "2. Open Finder (the info button), enable both UltraConvert actions, then click Done.\n"
         + "3. Select files in Finder → right-click → Quick Actions → Convert Here with UltraConvert.\n"
-        + "4. Choose a format and click Convert. Use Help → Quick Start in the app for guidance.\n"
+        + "4. Choose a format and click Convert. Use Help → Getting Started in the app for guidance.\n"
         + "\nGuide: https://github.com/samuel-zhang01/UltraConvert#readme"
     )
 

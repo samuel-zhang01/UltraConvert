@@ -12,7 +12,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         window.title = "UltraConvert"
         window.titlebarAppearsTransparent = true
         window.delegate = self
-        window.minSize = NSSize(width: 760, height: 570)
+        window.contentMinSize = NSSize(width: 760, height: 570)
         window.center()
         let content = window.contentView!
         let body = NSScrollView()
@@ -31,7 +31,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         canvas.addSubview(stack)
 
         let title = uiLabel("UltraConvert", size: 26, weight: .semibold)
-        let subtitle = uiLabel("Convert your files. Keep your originals.", size: 12, color: .secondaryLabelColor)
+        let subtitle = uiLabel("Convert your files. Keep your originals.", size: 13, color: .secondaryLabelColor)
         let titles = NSStackView(views: [title, subtitle])
         titles.orientation = .vertical; titles.alignment = .leading; titles.spacing = 3
         let icon = NSImageView(image: NSApp.applicationIconImage)
@@ -49,8 +49,13 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         rules.toolTip = "Watch an inbox and convert new files with saved rules"
         let settings = NSButton(title: "Settings…", target: self, action: #selector(showSettings)); settings.bezelStyle = .rounded
         settings.setAccessibilityLabel("Settings"); settings.toolTip = "Launch at login and Finder Quick Actions"
-        let heading = NSStackView(views: [icon, titles, NSView(), rules, settings, helpButton])
-        heading.spacing = 12
+        // A separate task row preserves full labels at the smallest window size.
+        let brand = NSStackView(views: [icon, titles, NSView(), settings]); brand.spacing = 12
+        let shortcuts = NSStackView(views: [rules, helpButton, NSView()]); shortcuts.spacing = 10
+        let heading = NSStackView(views: [brand, shortcuts])
+        heading.orientation = .vertical; heading.alignment = .leading; heading.spacing = 12
+        brand.widthAnchor.constraint(equalTo: heading.widthAnchor).isActive = true
+        shortcuts.widthAnchor.constraint(equalTo: heading.widthAnchor).isActive = true
         addFullWidth(heading)
 
         let columns = NSStackView()
@@ -65,7 +70,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         addFullWidth(columns)
         addFullWidth(buildDestinationCard())
         addFullWidth(buildOptionsCard())
-        summary.font = .systemFont(ofSize: 11)
+        summary.font = .systemFont(ofSize: 12)
         summary.textColor = .secondaryLabelColor
         summary.isSelectable = true
         summary.isHidden = true
@@ -101,7 +106,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         let card = RoundedCard()
         let contents = card.contents
         let title = uiLabel("1. Add files", size: 15, weight: .semibold)
-        queueCount.font = .monospacedDigitSystemFont(ofSize: 11, weight: .medium)
+        queueCount.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         queueCount.textColor = .secondaryLabelColor
         choose.title = "Add Files…"
         styleButton(choose, symbol: "plus", action: #selector(pickFiles))
@@ -117,7 +122,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         queueSurface.heightAnchor.constraint(greaterThanOrEqualToConstant: 230).isActive = true
         let empty = NSStackView(views: [uiSymbol("square.and.arrow.down", size: 32),
                                       uiLabel("Drop files here", size: 17, weight: .medium),
-                                      uiLabel("or use Add Files to choose a batch", size: 12, color: .secondaryLabelColor)])
+                                      uiLabel("or use Add Files to choose a batch", size: 13, color: .secondaryLabelColor)])
         empty.orientation = .vertical; empty.spacing = 10
         empty.translatesAutoresizingMaskIntoConstraints = false
         queueSurface.addSubview(empty)
@@ -186,7 +191,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         formatHint.font = .systemFont(ofSize: 16, weight: .medium)
         formatEmpty = NSStackView(views: [uiSymbol("slider.horizontal.3", size: 28),
                                         formatHint,
-                                        uiLabel("Compatible formats appear for each type of file.", size: 12, color: .secondaryLabelColor)])
+                                        uiLabel("Compatible formats appear for each type of file.", size: 13, color: .secondaryLabelColor)])
         formatEmpty.orientation = .vertical; formatEmpty.spacing = 10
         let holder = NSView()
         holder.translatesAutoresizingMaskIntoConstraints = false
@@ -207,7 +212,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         crs.isHidden = true
         card.contents.addArrangedSubview(crs)
         crs.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
-        card.contents.addArrangedSubview(uiLabel("Formats are detected from file contents where possible.", size: 11, color: .secondaryLabelColor))
+        card.contents.addArrangedSubview(uiLabel("Formats are detected from file contents where possible.", size: 12))
         return card
     }
 
@@ -223,8 +228,8 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         row.spacing = 10
         card.contents.addArrangedSubview(row)
         row.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
-        destinationPath.font = .systemFont(ofSize: 11)
-        destinationPath.textColor = .secondaryLabelColor
+        destinationPath.font = .systemFont(ofSize: 13)
+        destinationPath.textColor = .labelColor
         destinationPath.isSelectable = true
         card.contents.addArrangedSubview(destinationPath)
         destinationPath.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
@@ -241,13 +246,13 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         optionsDisclosure.imagePosition = .imageLeading
         optionsDisclosure.target = self; optionsDisclosure.action = #selector(toggleOptions)
         optionsDisclosure.setAccessibilityLabel("Show conversion options")
-        let heading = NSStackView(views: [optionsDisclosure, NSView(), uiLabel("Originals are always kept", size: 11, color: .secondaryLabelColor)])
+        let heading = NSStackView(views: [optionsDisclosure, NSView(), uiLabel("Originals are always kept", size: 12)])
         heading.spacing = 8
         card.contents.addArrangedSubview(heading)
         heading.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
         optionsBody.orientation = .vertical; optionsBody.alignment = .leading; optionsBody.spacing = 10
         optionsBody.isHidden = true
-        optionsBody.addArrangedSubview(uiLabel("These options apply to this conversion batch. Folder rules use their own settings.", size: 11, color: .secondaryLabelColor))
+        optionsBody.addArrangedSubview(uiLabel("These options apply to this conversion batch. Folder rules use their own settings.", size: 13, color: .secondaryLabelColor))
         skipSame.toolTip = "Matching files are recorded as skipped and remain in their original folder."
         skipSame.state = preferences.bool(forKey: "skipSame") ? .on : .off
         openAfter.state = preferences.bool(forKey: "openAfter") ? .on : .off
@@ -257,9 +262,9 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         jobs.setAccessibilityLabel("Batch concurrency")
         optionsBody.addArrangedSubview(skipSame)
         optionsBody.addArrangedSubview(openAfter)
-        let concurrency = NSStackView(views: [uiLabel("Convert", size: 12, color: .secondaryLabelColor), jobs]); concurrency.spacing = 10
+        let concurrency = NSStackView(views: [uiLabel("Convert", size: 13, color: .secondaryLabelColor), jobs]); concurrency.spacing = 10
         optionsBody.addArrangedSubview(concurrency)
-        optionsBody.addArrangedSubview(uiLabel("2 files suits most batches. Use 1 for large media or geospatial files to reduce peak resource use.", size: 11, color: .secondaryLabelColor))
+        optionsBody.addArrangedSubview(uiLabel("2 files suits most batches. Use 1 for large media or geospatial files to reduce peak resource use.", size: 13))
         card.contents.addArrangedSubview(optionsBody)
         optionsBody.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
         return card
@@ -268,7 +273,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
     func buildConversionBar() -> NSView {
         let contents = NSStackView()
         contents.orientation = .vertical; contents.alignment = .leading; contents.spacing = 10
-        status.font = .systemFont(ofSize: 12, weight: .medium)
+        status.font = .systemFont(ofSize: 13, weight: .medium)
         status.maximumNumberOfLines = 3
         status.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         statusIcon.widthAnchor.constraint(equalToConstant: 18).isActive = true
@@ -301,7 +306,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         progress.widthAnchor.constraint(equalTo: contents.widthAnchor).isActive = true
         var background: NSView
         #if compiler(>=6.2)
-        if #available(macOS 26.0, *) {
+        if #available(macOS 26.0, *), !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency {
             let glass = NSGlassEffectView()
             glass.style = .regular; glass.cornerRadius = 20
             let host = NSView()
@@ -319,6 +324,9 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
     }
 
     func legacyActionBar(_ contents: NSView) -> NSView {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency {
+            let card = RoundedCard(); pin(contents, in: card, inset: 16); return card
+        }
         let background = NSVisualEffectView()
         background.material = .headerView
         background.blendingMode = .withinWindow
@@ -387,9 +395,9 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         let color: NSColor
         if let outcome = outcomes[path] {
             detail = outcome.failed ? "Failed · right-click for error details" : outcome.text
-            color = outcome.failed ? .systemRed : .secondaryLabelColor
+            color = outcome.failed ? .labelColor : .secondaryLabelColor
         } else if item["error"] is String {
-            detail = "Unsupported · right-click for error details"; color = .systemRed
+            detail = "Unsupported · right-click for error details"; color = .labelColor
         } else {
             let category = item["category"] as? String ?? ""
             let target = (selectors[category]?.selectedItem?.representedObject as? String)?.uppercased()
@@ -445,9 +453,12 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
     }
 
     @objc func toggleOptions() {
-        optionsBody.isHidden = optionsDisclosure.state != .on
-        optionsDisclosure.image = NSImage(systemSymbolName: optionsBody.isHidden ? "chevron.right" : "chevron.down", accessibilityDescription: nil)
-        optionsDisclosure.setAccessibilityLabel(optionsBody.isHidden ? "Show conversion options" : "Hide conversion options")
+        InterfaceMotion.layout(window.contentView!) {
+            optionsBody.isHidden = optionsDisclosure.state != .on
+            optionsDisclosure.image = NSImage(systemSymbolName: optionsBody.isHidden ? "chevron.right" : "chevron.down", accessibilityDescription: nil)
+            optionsDisclosure.setAccessibilityLabel(optionsBody.isHidden ? "Show conversion options" : "Hide conversion options")
+        }
+        if !optionsBody.isHidden { InterfaceMotion.reveal(optionsBody) }
     }
 
     @objc func formatChanged(_ sender: NSPopUpButton) {
@@ -565,9 +576,9 @@ final class QueueCell: NSTableCellView {
     let icon = NSImageView()
     override init(frame: NSRect) {
         super.init(frame: frame)
-        name.font = .systemFont(ofSize: 12, weight: .medium)
+        name.font = .systemFont(ofSize: 13, weight: .medium)
         name.lineBreakMode = .byTruncatingMiddle
-        detail.font = .systemFont(ofSize: 10)
+        detail.font = .systemFont(ofSize: 12)
         detail.lineBreakMode = .byTruncatingTail
         name.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         detail.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)

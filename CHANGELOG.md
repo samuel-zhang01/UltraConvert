@@ -1,13 +1,23 @@
 # Changelog
 
-## 1.7.0 preview — 2026-10-09
+## 1.7.0 preview — 2026-10-12
 
+- Cohesive 180 ms native transitions for rule navigation, Builder/Activity, guidance, window presentation and batch options. Rapid clicks cancel obsolete scroll transitions; Reduce Motion switches to immediate updates. No idle animation timer.
+- Precisely matched puzzle seams, consistent 20 pt side padding, aligned condition/action controls, larger essential text and adaptive selected-rule contrast. Settings icons stay beside their titles at every checked window size.
+- Return to the Builder when adding an action or switching rules from Activity, and reset guide scrolling when changing topics.
 - Colourful native puzzle rule editor with fitted action blocks, drag snapping, keyboard reorder, persistent action palette and stage navigation.
 - Explicit match/no-match paths, labelled live filename illustrations, compact read-only preview summaries and full selectable plans.
 - Preserve custom settling times, unknown draft values and filename text across operator changes. Structural edits retain scroll position; stale controls and drag sessions cannot change replacement blocks.
 - Fix stale table-row crashes, incorrect existing-file queue feedback during scans, incompatible default actions and impossible conversion chains. Bound disabled drafts as well as enabled rules.
 - Align preview eligibility with watched subfolders and skipped hidden/package/linked paths. ALAC automation publishes `.m4a`, matching its container and the live example.
 - Expanded native editing, persistence, source-safety and minimum-layout regressions; event-driven watching and separate conversion engines retain their resource limits.
+- Bound Run Existing Files against the current waiting queue, skip queued/running sources, preserve settling waits and prioritise unhandled files. Queue-full warnings remain visible; paused saves correctly describe watcher state.
+- Retain the single-watcher lock until cancelled work has completed cleanup.
+- Reuse the owned app in either Applications location during updates and removal, preventing an accidental second install or stranded global app. Refuse unowned, linked or ambiguous destinations.
+- Universal native app packaging for Apple Silicon and Intel, with sealed architecture provenance and matching release metadata. Intel compilation is verified; Intel hardware and engine operation remain untested.
+- Clearer offline guide, exact Service names, ordered rename examples, selected-only queue review wording and accessible Settings button labels. Content-size minimums now match native layout checks.
+- Shorter illustrated README with a separate detailed usage guide.
+- Developer ID signed universal app accepted by Apple, with stapled notarization and Gatekeeper checks verified; conversion engines remain separately installed.
 
 ## 1.6.0 preview — 2026-10-09
 

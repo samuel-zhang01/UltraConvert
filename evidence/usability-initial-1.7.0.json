@@ -1,0 +1,98 @@
+{
+  "date": "2026-10-12",
+  "version": "1.7.0",
+  "assessment": "Independent coding-agent scoped heuristic review; not a novice-user study or functional-perfection claim",
+  "raw_weighted_score": 9.035,
+  "display_score": "9.0/10",
+  "rubric": [
+    {
+      "dimension": "Discovery and navigation",
+      "weight": 0.25,
+      "score": 9.2,
+      "evidence": "Visible Getting Started, Settings and Folder Rules; native task guide routes observed; README now starts with manual conversion and optional integrations."
+    },
+    {
+      "dimension": "First manual conversion",
+      "weight": 0.2,
+      "score": 9.2,
+      "evidence": "Latest native AppKit views recognised a public WAV and PNG as a mixed batch, showed per-category advice and source-to-target previews, and completed WAV\u2192MP3 and PNG\u2192WebP through Convert."
+    },
+    {
+      "dimension": "Destinations and recovery",
+      "weight": 0.2,
+      "score": 9.0,
+      "evidence": "Beside-original explanation and original preservation observed; outputs were direct files in the demo inbox and original SHA256 values stayed identical. Native interface tests cover result guards, mixed rejection, retries and clear without deletion."
+    },
+    {
+      "dimension": "Folder automation comprehension",
+      "weight": 0.2,
+      "score": 9.0,
+      "evidence": "Connected WHEN/IF/DO/SAVE/AFTER SUCCESS pieces, disabled saved state, palette, stage jumps, live order-aware filename illustrations and real matching preview observed. Native Move Up/Down reordered actions and reversing the order changed the illustration as described."
+    },
+    {
+      "dimension": "Finder and startup clarity",
+      "weight": 0.1,
+      "score": 8.7,
+      "evidence": "Quick Action versus Service routes and optional startup states are explicit. Exact MP3 shortcut name corrected in Getting Started. Current Settings accessibility labels show purpose instead of SF Symbol names; actual enable/login not exercised."
+    },
+    {
+      "dimension": "Layout and accessibility",
+      "weight": 0.05,
+      "score": 8.5,
+      "evidence": "Converter and guide now declare content minimum sizes and tests exercise the actual outer minimum frame including the titlebar. Native controls and read-only selectable preview tested; VoiceOver and older systems not checked."
+    }
+  ],
+  "source_fixes": [
+    "Correct exact MP3 Service label",
+    "Align THEN guidance to DO puzzle blocks",
+    "Explain rename token evaluation depends on action order",
+    "Explicit Only Selected context review label",
+    "Set converter and guide content minimum sizes and test actual minimum frame"
+  ],
+  "actual_ui_checks": [
+    "Installed 1.6 baseline empty/main/help/settings crawl",
+    "Current-source native AppKit helper with isolated preferences and disabled temporary rule",
+    "Mixed WAV/PNG recognition and actual MP3/WebP conversion",
+    "Keep-original SHA256 integrity",
+    "Palette and connected pieces",
+    "Inbox and Actions jumps",
+    "Move action up/down and order-dependent examples",
+    "Read-only matching preview and full selectable Details",
+    "Close/reopen invalidates preview",
+    "Settings purpose-based AX labels"
+  ],
+  "native_suites": {
+    "guidance": "passed",
+    "interface": "passed"
+  },
+  "fixtures": {
+    "root": "/tmp/UltraConvert Demo",
+    "inputs": [
+      "Recording.wav",
+      "Photo.png"
+    ],
+    "outputs": [
+      "Recording.mp3",
+      "Photo.webp"
+    ],
+    "original_sha256_before_after_identical": true,
+    "rule_enabled": false,
+    "watcher_configured": false
+  },
+  "screenshots": {
+    "converter": "converter-current.png",
+    "conversion_complete": "converter-complete.png",
+    "guide": "getting-started-current.png",
+    "inbox_match_branch": "folder-inbox-verified.png",
+    "ordered_actions": "folder-rules-current.png",
+    "preview_summary": "folder-preview-current.png",
+    "settings": "settings-current.png",
+    "settings_services": "settings-services-current.png"
+  },
+  "limits": [
+    "Physical mouse drag did not visibly reorder through CUA; not verified. Native drag/drop callback tests and Move Up/Down remain separate evidence.",
+    "No manual VoiceOver, novice participants, Intel hardware runtime or older macOS crawl.",
+    "No actual launch-at-login or macOS Finder enable-switch change performed.",
+    "Screenshots use real current AppKit classes in an isolated fixture helper; the final installed signed package still requires root verification."
+  ]
+}

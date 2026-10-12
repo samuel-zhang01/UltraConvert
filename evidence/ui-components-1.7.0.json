@@ -1,0 +1,55 @@
+{
+  "accent_foreground_contrast_minimum": 4.5,
+  "action_toolbar_cross_row_alignment_tolerance_points": 0.01,
+  "actual_compact_archive_trash_acknowledgement_and_long_conditions_passed": true,
+  "actual_physical_action_drag_passed": true,
+  "audit_date": "2026-10-12",
+  "automation_checks": 330,
+  "automation_fixture_idle_cpu_seconds": 0.006523,
+  "automation_fixture_idle_sample_seconds": 5,
+  "automation_fixture_scan_1000_files_seconds": 0.0062739849,
+  "automation_passed": true,
+  "automation_proof_scope": "Runtime unchanged: exact 330-check proof predates final action-toolbar and Settings-only layout refinements.",
+  "automation_stress_peak_rss_bytes": 267386880,
+  "compact_archive_trash_acknowledgement_passed": true,
+  "condition_value_column_alignment_tolerance_points": 0.01,
+  "guide_minimum_topics_rapid_navigation_scroll_reset_passed": true,
+  "independent_ui_grade": {
+    "pass_mark": 9.5,
+    "passed": true,
+    "rounded_score": 9.6,
+    "scope": "Actual AppKit CUA light/dark compact/normal checked scenes and interactions; rubric judgment, not universal certification.",
+    "weighted_score": 9.585
+  },
+  "interface_and_guide_proof_scope": "Passed before final action-toolbar and Settings-only layout refinements; those refinements do not touch Converter or Getting Started.",
+  "interface_six_category_compact_normal_light_dark_passed": true,
+  "live_appkit_event_loop_motion_interruption_passed": true,
+  "minimum_rule_window_content_points": [
+    900,
+    620
+  ],
+  "native_editor_checks": 399,
+  "native_editor_passed": true,
+  "opaque_accessibility_surface_passed": true,
+  "puzzle_connector_coordinate_tolerance_points": 0.01,
+  "puzzle_content_clearance_points": {
+    "bottom_body": 14,
+    "side": 20,
+    "top_notch": 13
+  },
+  "raw_cua_screenshots": {
+    "compact-original-policy.png": "docs/images/compact-original-policy.png",
+    "converter.png": "docs/images/converter.png",
+    "folder-actions.png": "docs/images/folder-actions.png",
+    "folder-rules.png": "docs/images/folder-rules.png",
+    "getting-started.png": "docs/images/getting-started.png",
+    "settings.png": "docs/images/settings.png"
+  },
+  "reduced_motion_25ms_opacity_presentation_check_passed": true,
+  "screenshot_scope": "Selected raw native CUA captures from final-source isolated AppKit helper; no bitmap rendering or image edits. Full 16-scene matrix inspected locally.",
+  "source_fingerprint": "faefdca179f1c330da83616976f551d7993bc431074c9bf11050eb587c639dc7",
+  "transition_curve": "easeInEaseOut",
+  "transition_seconds": 0.18,
+  "user_rules_and_preferences_modified": false,
+  "version": "1.7.0"
+}

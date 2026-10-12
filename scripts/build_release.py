@@ -4,7 +4,6 @@ import argparse
 import hashlib
 import io
 import json
-import platform
 import subprocess
 import tarfile
 import tempfile
@@ -14,6 +13,8 @@ from pathlib import Path
 from notarize import notarize, staple
 from package_app import (
     ROOT,
+    app_architectures,
+    architecture_label,
     build_app,
     developer_id_identity,
     native_provenance,
@@ -68,6 +69,11 @@ def main():
     parser.add_argument(
         "--output-dir", type=Path, help="New artifact directory; defaults to dist/VERSION"
     )
+    parser.add_argument(
+        "--architecture",
+        choices=("native", "arm64", "x86_64", "universal"),
+        help="Native app CPU target; inferred from --notarized-app when omitted",
+    )
     args = parser.parse_args()
     if args.notary_profile and not args.sign_identity:
         parser.error("--notary-profile requires --sign-identity")
@@ -80,7 +86,6 @@ def main():
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT).strip():
         raise RuntimeError("Commit the public working tree before building a release")
     version = (ROOT / "VERSION").read_text().strip()
-    arch = platform.machine()
     out = args.output_dir or ROOT / "dist" / version
     out.mkdir(parents=True, exist_ok=True)
     if any(out.glob("UltraConvert-*")):
@@ -102,7 +107,8 @@ def main():
             "1. Install Homebrew from https://brew.sh if needed.\n"
             "2. In Terminal, type cd followed by a space, drag this UltraConvert folder into Terminal, and press Return.\n"
             "3. Run: python3 install.py\n"
-            "4. Open the installed app in ~/Applications. Enable its Quick Actions in macOS Finder Settings.\n\n"
+            "4. Open the app at the path printed by the installer. Enable its Quick Actions in macOS Finder Settings.\n\n"
+            "Updates reuse your owned app in /Applications or ~/Applications; first installs use ~/Applications.\n"
             "The prebuilt app alone does not install its runtime. The DMG is an installer folder, not a drag-only installer.\n"
             + notarization_note(args.notary_profile, args.notarized_app, args.dmg)
             + "\nRead README.md for complete instructions, usage and tested system limits.\n"
@@ -111,9 +117,11 @@ def main():
         if args.notarized_app:
             app = base / "native/UltraConvert.app"
             subprocess.run(["/usr/bin/ditto", args.notarized_app, app], check=True)
-            validate_notarized_app(app, args.sign_identity)
+            validate_notarized_app(app, args.sign_identity, architecture=args.architecture)
         else:
-            app = build_app(base / "native", sign_identity=args.sign_identity)
+            app = build_app(
+                base / "native", sign_identity=args.sign_identity, architecture=args.architecture
+            )
         if args.notary_profile:
             submission = base / "notary-app.zip"
             subprocess.run(
@@ -124,7 +132,9 @@ def main():
             subprocess.run(
                 ["/usr/sbin/spctl", "--assess", "--type", "execute", "--verbose=2", app], check=True
             )
-        validate_prebuilt(app)
+        validate_prebuilt(app, require_host=False, architecture=args.architecture)
+        architectures = app_architectures(app)
+        arch = architecture_label(architectures)
         (folder / "prebuilt").mkdir()
         subprocess.run(["/usr/bin/ditto", app, folder / "prebuilt/UltraConvert.app"], check=True)
         bundle = out / f"UltraConvert-{version}-macos-{arch}.zip"
@@ -209,11 +219,14 @@ def main():
                     ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
                 ).strip(),
                 "architecture": arch,
+                "architectures": architectures,
+                "intel_hardware_tested": False,
+                "intel_engine_runtime_tested": False,
                 "signing": "Developer ID Application" if args.sign_identity else "ad-hoc",
                 "hardened_runtime": True,
                 **notarization_status(args.notary_profile, args.notarized_app, args.dmg),
                 "notarization_submission_ids": submission_ids,
-                "native_source_fingerprint": native_provenance()["source_fingerprint"],
+                "native_source_fingerprint": native_provenance(architectures)["source_fingerprint"],
                 "engine_runtime_installer_required": True,
                 "artifact_kind": "native_app_and_source_installer",
                 "standalone_runtime": False,

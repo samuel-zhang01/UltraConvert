@@ -12,6 +12,7 @@ struct InterfaceSmoke {
         precondition(inspected.count == 6 && inspected.allSatisfy { $0["error"] is NSNull })
         let app = ConverterApp()
         app.buildInterface()
+        precondition(app.window.contentMinSize == NSSize(width: 760, height: 570))
         precondition(app.fileTable.numberOfRows == 0)
         for selection in [Array(inspected.prefix(1)), inspected, Array(inspected.suffix(2)), inspected] {
             app.infos = selection
@@ -24,10 +25,33 @@ struct InterfaceSmoke {
             precondition(app.start.isEnabled && app.queueEmpty.isHidden)
             precondition(app.selectors.values.allSatisfy { $0.numberOfItems > 0 })
         }
+        // Real six-category advice remains legible and within the scrolling
+        // format column at the exact minimum; the primary header has room for
+        // complete Settings, Folder Rules and Getting Started labels.
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            app.window.appearance = NSAppearance(named: appearance)
+            for size in [NSSize(width: 760, height: 570), NSSize(width: 880, height: 750)] {
+                app.window.setContentSize(size); app.window.contentView!.layoutSubtreeIfNeeded()
+                precondition(app.formatExplanations.count == 6)
+                for field in app.formatExplanations.values {
+                    let frame = field.convert(field.alignmentRect(forFrame: field.bounds), to: app.formats)
+                    precondition(field.font!.pointSize == 13 && field.textColor == .labelColor)
+                    precondition(frame.minX >= -1 && frame.maxX <= app.formats.bounds.width + 1 && frame.height > 0)
+                }
+                for popup in app.selectors.values {
+                    let frame = popup.convert(popup.bounds, to: app.formats)
+                    precondition(frame.minX >= -1 && frame.maxX <= app.formats.bounds.width + 1 && frame.height > 0)
+                }
+                let help = app.helpButton.convert(app.helpButton.bounds, to: app.window.contentView)
+                precondition(help.minX >= 0 && help.maxX <= size.width && help.width >= app.helpButton.intrinsicContentSize.width)
+                precondition(app.destinationPath.font!.pointSize == 13 && app.destinationPath.textColor == .labelColor)
+            }
+        }
         app.optionsDisclosure.state = .on
         app.toggleOptions()
-        app.window.setContentSize(NSSize(width: 760, height: 570))
+        app.window.setFrame(NSRect(origin: app.window.frame.origin, size: app.window.minSize), display: false)
         app.window.contentView!.layoutSubtreeIfNeeded()
+        precondition(app.window.contentView!.bounds.width >= 760 && app.window.contentView!.bounds.height >= 570)
         precondition(!app.optionsBody.isHidden && app.queueSurface.frame.width > 0)
         precondition(app.start.frame.width >= 155)
         app.failedPaths = ["/tmp/failed.png"]
@@ -58,7 +82,8 @@ struct InterfaceSmoke {
         let mp3Item = app.fileTable.menu!.items[0].submenu!.items[0].submenu!.items.first {
             $0.representedObject as? String == "mp3"
         }!
-        precondition(app.fileTable.menu!.items[0].title == "Review Selected Files Here as")
+        precondition(app.fileTable.menu!.items[0].title == "Review Only Selected Files Here as")
+        precondition(app.fileTable.menu!.items[0].toolTip?.contains("only the selected files") == true)
         app.infos = [video, audio]; app.files = app.infos.compactMap { $0["path"] as? String }
         app.presetFormat = "mp3"
         app.buildSelectors()

@@ -1,8 +1,12 @@
 {
   "actual_editor_callbacks": true,
-  "checks": 310,
+  "audit_date": "2026-10-12",
+  "checks": 399,
+  "live_appkit_event_loop_motion_interruption_passed": true,
   "passed": true,
-  "scope": "native temporary fixtures; no user rules or files changed",
+  "puzzle_and_toolbar_alignment_tolerance_points": 0.01,
+  "scope": "Final native source, temporary fixtures; no user rules or files changed",
+  "source_fingerprint": "faefdca179f1c330da83616976f551d7993bc431074c9bf11050eb587c639dc7",
   "source_preserved": true,
   "version": "1.7.0"
 }

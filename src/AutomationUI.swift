@@ -57,7 +57,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     let cancelTest = RuleButton()
     let viewPreviewDetails = RuleButton()
     let existing = RuleButton()
-    let setupGuide = NSTextField(wrappingLabelWithString: "1. Choose a template.\n2. Pick an inbox and a separate output folder.\n3. Preview a file; nothing changes.\n4. Enable and Save Rule.")
+    let setupGuide = NSTextField(wrappingLabelWithString: "Choose inbox and output folders.\nPreview a file; nothing changes.\nEnable and Save Rule to watch.")
     let editingStatus = NSTextField(wrappingLabelWithString: "")
     let name = NSTextField()
     let enabled = NSButton(checkboxWithTitle: "Enable this rule after saving", target: nil, action: nil)
@@ -104,57 +104,58 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         let main = NSStackView(); main.orientation = .vertical; main.alignment = .leading; main.spacing = 16
         main.translatesAutoresizingMaskIntoConstraints = false; window.contentView!.addSubview(main)
         NSLayoutConstraint.activate([main.leadingAnchor.constraint(equalTo: window.contentView!.leadingAnchor, constant: 22), main.trailingAnchor.constraint(equalTo: window.contentView!.trailingAnchor, constant: -22), main.topAnchor.constraint(equalTo: window.contentView!.topAnchor, constant: 18), main.bottomAnchor.constraint(equalTo: window.contentView!.bottomAnchor, constant: -18)])
-        let titles = vertical([uiLabel("Folder Rules", size: 25, weight: .semibold), uiLabel("Snap together a flow. Let new files do the rest.", size: 12, color: .secondaryLabelColor)])
+        let titles = vertical([uiLabel("Folder Rules", size: 25, weight: .semibold), uiLabel("Snap together a flow. Let new files do the rest.", size: 13, color: .secondaryLabelColor)])
         pause.title = "Pause All"; pause.bezelStyle = .rounded; pause.target = pause; pause.action = #selector(RuleButton.performAction)
         pause.invoke = { [weak self] in guard let self else { return }; self.runtime.setPaused(!self.runtime.paused); self.refreshStatus() }
         let settings = RuleButton("Startup & Finder…", symbol: "gearshape", action: { (NSApp.delegate as? ConverterApp)?.showSettings() })
         let header = horizontal([titles, NSView(), settings, pause]); full(header, in: main)
-        stateLabel.font = .systemFont(ofSize: 12, weight: .medium); stateLabel.setAccessibilityLabel("Folder watcher status"); full(stateLabel, in: main)
+        stateLabel.font = .systemFont(ofSize: 13, weight: .medium); stateLabel.setAccessibilityLabel("Folder watcher status"); full(stateLabel, in: main)
         let area = NSStackView(); area.orientation = .horizontal; area.alignment = .top; area.spacing = 20; full(area, in: main)
         area.setContentHuggingPriority(.defaultLow, for: .vertical)
-        let sidebar = vertical([]); sidebar.spacing = 10; sidebar.widthAnchor.constraint(equalToConstant: 220).isActive = true
-        full(uiLabel("RULES · FIRST MATCH WINS", size: 10, weight: .semibold, color: .secondaryLabelColor), in: sidebar)
+        let sidebar = vertical([]); sidebar.spacing = 10; sidebar.widthAnchor.constraint(equalToConstant: 240).isActive = true
+        full(uiLabel("RULES · FIRST MATCH WINS", size: 12, weight: .semibold, color: .secondaryLabelColor), in: sidebar)
         let new = RulePopup(); new.addItem(withTitle: "＋ New Rule…")
         for title in ["Blank rule", "Audio → MP3", "Images → WebP", "Data → YAML"] { new.addItem(withTitle: title) }
         new.changed { [weak self, weak new] in guard let self, let new, new.indexOfSelectedItem > 0 else { return }; self.newRule(template: new.indexOfSelectedItem); new.selectItem(at: 0) }
         full(new, in: sidebar)
-        setupGuide.font = .systemFont(ofSize: 11); setupGuide.textColor = .secondaryLabelColor; setupGuide.setAccessibilityLabel("Folder rule setup checklist")
+        setupGuide.font = .systemFont(ofSize: 12); setupGuide.textColor = .labelColor; setupGuide.setAccessibilityLabel("Folder rule setup checklist")
         full(setupGuide, in: sidebar)
         let palette = horizontal([RuleButton("Convert", symbol: "plus", action: { [weak self] in self?.addStep(.convert) }), RuleButton("Rename", symbol: "plus", action: { [weak self] in self?.addStep(.rename) })])
         actionPaletteButtons = palette.arrangedSubviews.compactMap { $0 as? NSButton }
         for button in actionPaletteButtons { button.setAccessibilityLabel("Add " + button.title + " action") }
-        full(uiLabel("ADD AN ACTION BLOCK", size: 10, weight: .semibold, color: .secondaryLabelColor), in: sidebar); full(palette, in: sidebar)
+        full(uiLabel("ADD AN ACTION BLOCK", size: 12, weight: .semibold, color: .secondaryLabelColor), in: sidebar); full(palette, in: sidebar)
         let list = NSScrollView(); list.hasVerticalScroller = true; list.autohidesScrollers = true; list.borderType = .noBorder
-        let column = NSTableColumn(identifier: .init("rules")); column.width = 215; table.addTableColumn(column); table.headerView = nil; table.rowHeight = 49
+        let column = NSTableColumn(identifier: .init("rules")); column.width = 235; table.addTableColumn(column); table.headerView = nil; table.rowHeight = 52
         table.dataSource = self; table.delegate = self; table.style = .sourceList; table.allowsEmptySelection = false; table.setAccessibilityLabel("Folder rule priority list")
         list.documentView = table; full(list, in: sidebar)
-        list.heightAnchor.constraint(greaterThanOrEqualToConstant: 145).isActive = true
+        list.heightAnchor.constraint(greaterThanOrEqualToConstant: 90).isActive = true
         let tools = horizontal([RuleButton("Duplicate", action: { [weak self] in self?.duplicate() }), RuleButton("Remove", action: { [weak self] in self?.remove() })]); full(tools, in: sidebar)
         let order = horizontal([RuleButton("Move Up", symbol: "arrow.up", action: { [weak self] in self?.reorder(-1) }), RuleButton("Move Down", symbol: "arrow.down", action: { [weak self] in self?.reorder(1) })]); full(order, in: sidebar)
         ruleTools = (tools.arrangedSubviews + order.arrangedSubviews).compactMap { $0 as? NSButton }
-        full(uiLabel("Closing the converter keeps enabled rules running. Quit UltraConvert to stop them. Files already present when watching starts are ignored.", size: 11, color: .secondaryLabelColor), in: sidebar)
+        let lifetime = uiLabel("Close a window to keep rules running. Quit UltraConvert to stop them.", size: 12)
+        lifetime.setAccessibilityLabel("Folder watcher lifetime"); lifetime.toolTip = "Closing the converter keeps enabled rules running. Quit UltraConvert to stop them. Files already present when watching starts are ignored."; full(lifetime, in: sidebar)
         area.addArrangedSubview(sidebar)
         let right = vertical([]); right.spacing = 12; area.addArrangedSubview(right)
-        right.widthAnchor.constraint(equalTo: area.widthAnchor, constant: -240).isActive = true
+        right.widthAnchor.constraint(equalTo: area.widthAnchor, constant: -260).isActive = true
         let tabs = NSSegmentedControl(labels: ["Rule Builder", "Activity"], trackingMode: .selectOne, target: self, action: #selector(changeTab(_:))); tabs.selectedSegment = 0; tabs.setAccessibilityLabel("Folder rules view"); viewTabs = tabs
         full(tabs, in: right)
-        flowSummary.font = .systemFont(ofSize: 12, weight: .medium); flowSummary.maximumNumberOfLines = 3
+        flowSummary.font = .systemFont(ofSize: 13, weight: .medium); flowSummary.maximumNumberOfLines = 3
         flowSummary.setAccessibilityLabel("Live flow summary"); full(flowSummary, in: right)
         let navigation = horizontal([])
         for (key, title) in [("WHEN", "Inbox"), ("IF", "Match"), ("DO", "Actions"), ("SAVE", "Output"), ("AFTER", "Original")] {
-            if !navigation.arrangedSubviews.isEmpty { navigation.addArrangedSubview(uiLabel("→", size: 11, color: .secondaryLabelColor)) }
+            if !navigation.arrangedSubviews.isEmpty { navigation.addArrangedSubview(uiLabel("→", size: 12, color: .secondaryLabelColor)) }
             let button = RuleButton(title, action: { [weak self] in self?.jumpToBlock(key) }); button.identifier = .init(key); button.setAccessibilityLabel("Jump to " + title + " block"); navigationButtons.append(button); navigation.addArrangedSubview(button)
         }
         navigation.addArrangedSubview(NSView()); full(navigation, in: right)
         setupScroll(editorScroll, stack: body)
         activityScroll.hasVerticalScroller = true; activityScroll.autohidesScrollers = true; activityScroll.drawsBackground = false
         let activityColumn = NSTableColumn(identifier: .init("activity")); activityColumn.width = 700; activityColumn.minWidth = 400; activityTable.addTableColumn(activityColumn)
-        activityTable.headerView = nil; activityTable.rowHeight = 90; activityTable.style = .fullWidth; activityTable.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
+        activityTable.headerView = nil; activityTable.rowHeight = 98; activityTable.style = .fullWidth; activityTable.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
         activityTable.dataSource = self; activityTable.delegate = self; activityTable.setAccessibilityLabel("Last 200 local folder-rule outcomes")
         activityScroll.documentView = activityTable
         full(editorScroll, in: right); full(activityScroll, in: right); activityScroll.isHidden = true
         editorScroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 160).isActive = true; activityScroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 160).isActive = true
-        message.font = .systemFont(ofSize: 12); message.isSelectable = true; message.maximumNumberOfLines = 4; message.lineBreakMode = .byTruncatingTail; message.setAccessibilityLabel("Rule editor result"); full(message, in: right)
+        message.font = .systemFont(ofSize: 13); message.isSelectable = true; message.maximumNumberOfLines = 4; message.lineBreakMode = .byTruncatingTail; message.setAccessibilityLabel("Rule editor result"); full(message, in: right)
         message.heightAnchor.constraint(lessThanOrEqualToConstant: 62).isActive = true
         message.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
         save.title = "Save Rule"; save.bezelStyle = .rounded; save.target = save; save.action = #selector(RuleButton.performAction); save.keyEquivalent = "s"; save.keyEquivalentModifierMask = .command
@@ -163,16 +164,16 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         cancelTest.title = "Cancel Preview"; cancelTest.bezelStyle = .rounded; cancelTest.target = cancelTest; cancelTest.action = #selector(RuleButton.performAction); cancelTest.isHidden = true
         cancelTest.keyEquivalent = "\u{1b}"
         cancelTest.keyEquivalentModifierMask = []
-        cancelTest.invoke = { [weak self] in self?.cancelPreview(); self?.message.textColor = .secondaryLabelColor; self?.message.stringValue = "Preview cancelled. No files changed." }
+        cancelTest.invoke = { [weak self] in self?.cancelPreview(); self?.message.textColor = .labelColor; self?.message.stringValue = "Preview cancelled. No files changed." }
         viewPreviewDetails.title = "View Preview Details…"; viewPreviewDetails.bezelStyle = .rounded; viewPreviewDetails.target = viewPreviewDetails; viewPreviewDetails.action = #selector(RuleButton.performAction); viewPreviewDetails.invoke = { [weak self] in self?.showPreviewDetails() }; viewPreviewDetails.isEnabled = false; viewPreviewDetails.toolTip = "Read the full plan, including output and original-file locations."
         full(horizontal([viewPreviewDetails, NSView()]), in: right)
         existing.title = "Run Existing Files…"; existing.bezelStyle = .rounded; existing.target = existing; existing.action = #selector(RuleButton.performAction); existing.invoke = { [weak self] in self?.runExisting() }
         let footer = horizontal([test, cancelTest, existing, NSView(), save]); full(RuleBlock(content: footer), in: right)
         for control in [enabled, recursive, acknowledge, settle, matching] as [NSControl] { control.target = self; control.action = #selector(editorControlChanged(_:)) }
         name.delegate = self
-        editingStatus.font = .systemFont(ofSize: 11); editingStatus.textColor = .secondaryLabelColor; editingStatus.setAccessibilityLabel("Rule edit status")
+        editingStatus.font = .systemFont(ofSize: 12); editingStatus.textColor = .labelColor; editingStatus.setAccessibilityLabel("Rule edit status")
         NSLayoutConstraint.activate([area.heightAnchor.constraint(equalTo: main.heightAnchor, constant: -112), sidebar.heightAnchor.constraint(equalTo: area.heightAnchor), right.heightAnchor.constraint(equalTo: area.heightAnchor)])
-        if let first = runtime.rules.first { selectedID = first.id; draft = first }
+        if let first = runtime.rules.first { selectedID = first.id; draft = first; message.stringValue = "Preview a file to check this saved flow. Edits take effect after Save Rule." }
         rebuildEditor(); reloadList(); refreshStatus(); window.center()
     }
     required init?(coder: NSCoder) { fatalError() }
@@ -186,7 +187,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         NSLayoutConstraint.activate([canvas.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor), stack.leadingAnchor.constraint(equalTo: canvas.leadingAnchor), stack.trailingAnchor.constraint(equalTo: canvas.trailingAnchor, constant: -12), stack.topAnchor.constraint(equalTo: canvas.topAnchor, constant: 2), stack.bottomAnchor.constraint(equalTo: canvas.bottomAnchor, constant: -10)])
     }
     func block(_ title: String, subtitle: String? = nil, views: [NSView]) {
-        let contents = vertical([uiLabel(title, size: 13, weight: .semibold)] + (subtitle.map { [uiLabel($0, size: 11, color: .secondaryLabelColor)] } ?? []) + views)
+        let contents = vertical([uiLabel(title, size: 13, weight: .semibold)] + (subtitle.map { [uiLabel($0, size: 12, color: .secondaryLabelColor)] } ?? []) + views)
         for view in contents.arrangedSubviews { view.widthAnchor.constraint(equalTo: contents.widthAnchor).isActive = true }
         full(RuleBlock(content: contents), in: body)
     }
@@ -204,7 +205,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         return control
     }
     func folderRow(_ path: String, label: String, choose: @escaping (String) -> Void) -> NSView {
-        let text = uiLabel(path.isEmpty ? "Choose a folder…" : path, size: 12, color: path.isEmpty ? .secondaryLabelColor : .labelColor)
+        let text = uiLabel(path.isEmpty ? "Choose a folder…" : path, size: 13, color: path.isEmpty ? .secondaryLabelColor : .labelColor)
         text.isSelectable = true; text.lineBreakMode = .byTruncatingMiddle; text.maximumNumberOfLines = 2; text.toolTip = path; text.setAccessibilityLabel(label + ": " + path)
         let button = RuleButton(path.isEmpty ? "Choose Folder…" : "Change…", symbol: "folder", action: { [weak self] in
             let panel = NSOpenPanel(); panel.canChooseFiles = false; panel.canChooseDirectories = true; panel.canCreateDirectories = true; panel.message = label
@@ -219,18 +220,20 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     func puzzle(_ title: String, symbol: String, tone: FlowTone, views: [NSView]) -> RulePuzzleBlock {
         let icon = NSImageView(image: NSImage(systemSymbolName: symbol, accessibilityDescription: nil) ?? NSImage())
         icon.contentTintColor = tone.color; icon.widthAnchor.constraint(equalToConstant: 20).isActive = true
-        let heading = horizontal([icon, uiLabel(title, size: 14, weight: .semibold), NSView()])
-        let contents = vertical([heading] + views); contents.spacing = 8
+        let heading = horizontal([icon, uiLabel(title, size: 15, weight: .semibold), NSView()])
+        let contents = vertical([heading] + views); contents.spacing = 10
         for view in contents.arrangedSubviews { view.widthAnchor.constraint(equalTo: contents.widthAnchor).isActive = true }
         let piece = RulePuzzleBlock(content: contents, tone: tone)
-        if let previous = body.arrangedSubviews.last as? RulePuzzleBlock { body.setCustomSpacing(-20, after: previous) }
+        if let previous = body.arrangedSubviews.last as? RulePuzzleBlock { body.setCustomSpacing(-RulePuzzleGeometry.connectionOverlap, after: previous) }
         full(piece, in: body)
         let key = title.components(separatedBy: " ").first ?? ""
         if flowNodes[key] == nil { flowNodes[key] = piece }
         return piece
     }
     func rebuildEditor(resetScroll: Bool = false) {
+        if let viewTabs, viewTabs.selectedSegment != 0 { viewTabs.selectedSegment = 0; editorScroll.isHidden = false; activityScroll.isHidden = true }
         let offset = resetScroll ? NSPoint.zero : editorScroll.contentView.bounds.origin
+        InterfaceMotion.snapScroll(editorScroll, to: offset)
         window?.makeFirstResponder(nil)
         cancelPreview(); flowRevision += 1
         for view in body.arrangedSubviews { body.removeArrangedSubview(view); view.removeFromSuperview() }
@@ -260,14 +263,14 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
             guard let self, self.flowRevision == revision else { return }; self.gather(); self.showsArrivalOptions.toggle(); self.rebuildEditor()
         })
         var arrival: [NSView] = [folderRow(draft.inputFolder, label: "Watch this inbox", choose: { [weak self] in self?.draft.inputFolder = $0 }), horizontal([options, NSView()])]
-        if showsArrivalOptions { arrival += [recursive, settle, uiLabel("Only new or changed arrivals run. Existing files, temporary files and links are skipped.", size: 11, color: .secondaryLabelColor)] }
+        if showsArrivalOptions { arrival += [recursive, settle, uiLabel("Only new or changed arrivals run. Existing files, temporary files and links are skipped.", size: 13)] }
         puzzle("WHEN a new file arrives", symbol: "tray.and.arrow.down.fill", tone: .arrival, views: arrival)
         matching.removeAllItems(); matching.addItems(withTitles: ["ALL of these are true", "ANY of these is true"]); matching.selectItem(at: draft.matchAll ? 0 : 1)
         matching.setAccessibilityLabel("Match all or any conditions"); matching.toolTip = "ALL requires every condition to match. ANY requires at least one condition to match."
         var conditionViews: [NSView] = [matching]
         for (index, condition) in draft.conditions.enumerated() {
             let field = RulePopup(); for choice in MatchField.allCases { field.addItem(withTitle: choice.title); field.lastItem?.representedObject = choice.rawValue }; field.selectItem(at: MatchField.allCases.firstIndex(of: condition.field)!)
-            field.setAccessibilityLabel("Condition \(index + 1) type")
+            field.setAccessibilityLabel("Condition \(index + 1) type"); field.widthAnchor.constraint(equalToConstant: 180).isActive = true
             field.changed { [weak self, weak field] in
                 guard let self, self.flowRevision == revision, let value = field?.selectedItem?.representedObject as? String, let kind = MatchField(rawValue: value) else { return }
                 self.changeCondition(index, to: kind)
@@ -277,35 +280,42 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
             else if condition.field == .category { value = popup(FormatCatalog.groups.map { ($0.title, $0.id) }, selected: condition.value.lowercased()) }
             else { let text = NSTextField(string: condition.value); text.placeholderString = condition.field == .nameSuffix ? "Example: .mp3" : "Type part of a filename"; text.delegate = self; text.toolTip = "Matches the filename including its extension, without case sensitivity."; value = text }
             value.widthAnchor.constraint(greaterThanOrEqualToConstant: 120).isActive = true
+            value.setContentHuggingPriority(.defaultLow, for: .horizontal)
             value.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
             value.setAccessibilityLabel(condition.field.title + " value"); conditions.append((condition.field, value))
             let remove = RuleButton("", symbol: "xmark", action: { [weak self] in guard let self, self.flowRevision == revision else { return }; self.removeCondition(index) })
+            remove.setContentHuggingPriority(.required, for: .horizontal)
             remove.setAccessibilityLabel("Remove condition \(index + 1)"); remove.toolTip = "Remove this condition"; remove.isEnabled = draft.conditions.count > 1
-            conditionViews.append(horizontal([field, value, remove]))
+            let row = horizontal([field, value, remove]); row.distribution = .fill
+            conditionViews.append(row)
         }
         let addCondition = RuleButton("Add Condition", symbol: "plus.circle", action: { [weak self] in guard let self, self.flowRevision == revision else { return }; self.addCondition() }); addCondition.isEnabled = draft.conditions.count < 12
-        conditionViews += [horizontal([addCondition, NSView()]), uiLabel("Recognises file content where possible. Filename tests include the extension.", size: 11, color: .secondaryLabelColor)]
+        conditionViews += [horizontal([addCondition, NSView()]), uiLabel("Recognises file content where possible. Filename tests include the extension.", size: 13)]
         puzzle("IF the file matches…", symbol: "arrow.triangle.branch", tone: .decision, views: conditionViews)
-        let branch = horizontal([uiLabel("↓ MATCH · run the blocks below", size: 12, weight: .semibold, color: .systemGreen), NSView(), uiLabel("↳ NO MATCH · try next eligible rule", size: 11, weight: .medium, color: .secondaryLabelColor)])
+        let branch = horizontal([uiLabel("↓ MATCH · run the blocks below", size: 12, weight: .semibold), NSView(), uiLabel("↳ NO MATCH · try next eligible rule", size: 12, weight: .medium)])
         branch.toolTip = "A nonmatching file stays unchanged by this rule. The next enabled rule whose inbox contains it is tried; with no match it stays in the inbox."
-        branchStatus.font = .systemFont(ofSize: 11, weight: .medium); branchStatus.setAccessibilityLabel("Decision preview path")
-        let branchContainer = vertical([branch, uiLabel("If no rule matches, the original stays in its inbox.", size: 11, color: .secondaryLabelColor), branchStatus])
-        branchContainer.spacing = 3; full(RuleBlock(content: branchContainer, allowGlass: false), in: body)
+        branchStatus.font = .systemFont(ofSize: 12, weight: .medium); branchStatus.setAccessibilityLabel("Decision preview path")
+        let branchContainer = vertical([branch, uiLabel("If no rule matches, the original stays in its inbox.", size: 12), branchStatus])
+        branchContainer.spacing = 6
+        if let decision = body.arrangedSubviews.last { body.setCustomSpacing(8, after: decision) }
+        let decisionPaths = RuleBlock(content: branchContainer, allowGlass: false); full(decisionPaths, in: body); body.setCustomSpacing(8, after: decisionPaths)
         for (index, step) in draft.steps.enumerated() {
             let value: NSControl = step.kind == .convert ? formatPopup(step.value) : NSTextField(string: step.value)
-            value.widthAnchor.constraint(greaterThanOrEqualToConstant: 140).isActive = true; value.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+            value.widthAnchor.constraint(greaterThanOrEqualToConstant: 140).isActive = true; value.setContentCompressionResistancePriority(.defaultLow, for: .horizontal); value.setContentHuggingPriority(.defaultLow, for: .horizontal)
             if let text = value as? NSTextField { text.placeholderString = "{name}-{format}"; text.delegate = self }
             value.setAccessibilityLabel(step.kind == .convert ? "Action \(index + 1) output format" : "Action \(index + 1) rename template"); steps.append((step.kind, value))
             let up = RuleButton("", symbol: "chevron.up", action: { [weak self] in guard let self, self.flowRevision == revision else { return }; self.moveStep(index, -1) }); up.isEnabled = index > 0; up.setAccessibilityLabel("Move action \(index + 1) up"); up.toolTip = "Move Up"
             let down = RuleButton("", symbol: "chevron.down", action: { [weak self] in guard let self, self.flowRevision == revision else { return }; self.moveStep(index, 1) }); down.isEnabled = index + 1 < draft.steps.count; down.setAccessibilityLabel("Move action \(index + 1) down"); down.toolTip = "Move Down"
             let remove = RuleButton("", symbol: "xmark", action: { [weak self] in guard let self, self.flowRevision == revision else { return }; self.removeStep(index) }); remove.isEnabled = draft.steps.count > 1; remove.setAccessibilityLabel("Remove action \(index + 1)"); remove.toolTip = "Remove Action"
-            let example = uiLabel("", size: 11, color: .secondaryLabelColor); example.setAccessibilityLabel("Action \(index + 1) filename example"); exampleLabels.append(example)
+            for button in [up, down, remove] { button.setContentHuggingPriority(.required, for: .horizontal) }
+            let example = uiLabel("", size: 12, color: .secondaryLabelColor); example.setAccessibilityLabel("Action \(index + 1) filename example"); exampleLabels.append(example)
             let hint = step.kind == .rename ? "Output name only. Use {name}, {format}, {date}; extension is added automatically." : "Preview a real file to check compatibility. Actions run from top to bottom."
-            let piece = puzzle("DO \(index + 1) · " + (step.kind == .convert ? "Convert to" : "Rename the output"), symbol: step.kind == .convert ? "arrow.triangle.2.circlepath" : "pencil", tone: step.kind == .convert ? .convert : .rename, views: [horizontal([RuleDragHandle(token: dragToken(index)), value, up, down, remove]), example, uiLabel(hint, size: 11, color: .secondaryLabelColor)])
+            let row = horizontal([RuleDragHandle(token: dragToken(index)), value, up, down, remove]); row.distribution = .fill
+            let piece = puzzle("DO \(index + 1) · " + (step.kind == .convert ? "Convert to" : "Rename the output"), symbol: step.kind == .convert ? "arrow.triangle.2.circlepath" : "pencil", tone: step.kind == .convert ? .convert : .rename, views: [row, example, uiLabel(hint, size: 13)])
             piece.acceptsDrop = { [weak self] token in guard let self, self.flowRevision == revision else { return false }; return self.acceptActionDrag(token) }
             piece.drop = { [weak self] token, below in guard let self, self.flowRevision == revision else { return false }; return self.dropAction(token, at: index, below: below) }
         }
-        puzzle("SAVE the result in…", symbol: "folder.fill", tone: .destination, views: [folderRow(draft.destination, label: "Save converted results here", choose: { [weak self] in self?.draft.destination = $0 }), uiLabel("Use a folder outside watched inboxes. Existing names get a numbered suffix.", size: 11, color: .secondaryLabelColor)])
+        puzzle("SAVE the result in…", symbol: "folder.fill", tone: .destination, views: [folderRow(draft.destination, label: "Save converted results here", choose: { [weak self] in self?.draft.destination = $0 }), uiLabel("Use a folder outside watched inboxes. Existing names get a numbered suffix.", size: 13)])
         policy.removeAllItems(); for (title, value) in [("Keep original in inbox", "keep"), ("Move original to archive", "archive"), ("Send original to Trash", "trash")] { policy.addItem(withTitle: title); policy.lastItem?.representedObject = value }; policy.selectItem(at: OriginalPolicy.allCases.firstIndex(of: draft.originalPolicy)!)
         policy.setAccessibilityLabel("Original file after successful output")
         policy.changed { [weak self] in guard let self, self.flowRevision == revision else { return }; self.gather(); self.rebuildEditor() }
@@ -313,13 +323,14 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         var originalViews: [NSView] = [policy]
         if draft.originalPolicy == .archive { originalViews.append(folderRow(draft.archiveFolder, label: "Archive originals here", choose: { [weak self] in self?.draft.archiveFolder = $0 })) }
         if draft.originalPolicy != .keep { originalViews.append(acknowledge) }
-        originalViews.append(uiLabel("Only after the output is saved. Failures keep the original. Documents and geospatial files must use Keep.", size: 11, color: .secondaryLabelColor))
+        originalViews.append(uiLabel("Only after the output is saved. Failures keep the original. Documents and geospatial files must use Keep.", size: 13))
         puzzle("AFTER SUCCESS · the original", symbol: "shield.checkered", tone: .original, views: originalViews)
         for button in navigationButtons { button.isEnabled = flowNodes[button.identifier?.rawValue ?? ""] != nil }
         refreshEditingStatus(); refreshFlowSummary()
         window?.contentView?.layoutSubtreeIfNeeded()
         let maxY = max(0, (editorScroll.documentView?.bounds.height ?? 0) - editorScroll.contentView.bounds.height)
-        editorScroll.contentView.scroll(to: NSPoint(x: 0, y: min(offset.y, maxY))); editorScroll.reflectScrolledClipView(editorScroll.contentView)
+        InterfaceMotion.snapScroll(editorScroll, to: NSPoint(x: 0, y: min(offset.y, maxY)))
+        InterfaceMotion.reveal(body)
     }
     func addCondition() { gather(); guard draft.conditions.count < 12, selectedID != nil else { return }; draft.conditions.append(.init()); rebuildEditor() }
     func removeCondition(_ index: Int) { gather(); guard draft.conditions.count > 1, draft.conditions.indices.contains(index) else { return }; draft.conditions.remove(at: index); rebuildEditor() }
@@ -367,7 +378,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         if let viewTabs, viewTabs.selectedSegment != 0 { viewTabs.selectedSegment = 0; changeTab(viewTabs) }
         let frame = node.convert(node.bounds, to: canvas)
         let maxY = max(0, canvas.bounds.height - editorScroll.contentView.bounds.height)
-        editorScroll.contentView.scroll(to: NSPoint(x: 0, y: min(maxY, max(0, frame.minY - 2)))); editorScroll.reflectScrolledClipView(editorScroll.contentView)
+        InterfaceMotion.scroll(editorScroll, to: NSPoint(x: 0, y: min(maxY, max(0, frame.minY - 2))))
     }
     func gather() {
         guard selectedID != nil else { return }
@@ -376,16 +387,16 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         draft.steps = steps.map { kind, control in .init(kind: kind, value: controlValue(control)) }
         draft.originalPolicy = OriginalPolicy(rawValue: policy.selectedItem?.representedObject as? String ?? "keep") ?? .keep
         draft.acknowledgedRemoval = acknowledge.state == .on
-        if let detailsRule, detailsRule != draft { invalidatePreviewDetails(); message.textColor = .secondaryLabelColor; message.stringValue = "The rule changed. Preview again to see a current plan. No files changed." }
+        if let detailsRule, detailsRule != draft { invalidatePreviewDetails(); message.textColor = .labelColor; message.stringValue = "The rule changed. Preview again to see a current plan. No files changed." }
         refreshEditingStatus(); refreshFlowSummary()
     }
     func refreshEditingStatus() {
         guard let saved = runtime.rules.first(where: { $0.id == selectedID }) else { editingStatus.stringValue = ""; return }
-        editingStatus.stringValue = saved != draft ? "Unsaved changes. Preview uses your edits; watching uses saved rules until you save." : (saved.enabled ? "Saved rule is enabled. Only new or changed arrivals run automatically." : "Saved draft is off. Enable and Save Rule to start watching.")
+        editingStatus.stringValue = saved != draft ? "Unsaved changes. Preview uses your edits; watching uses saved rules until you save." : (saved.enabled ? (runtime.paused ? "Saved rule is enabled, but watching is paused. Resume All when ready." : "Saved rule is enabled. Only new or changed arrivals run automatically.") : "Saved draft is off. Enable and Save Rule to start watching.")
     }
     @objc func editorControlChanged(_ sender: NSControl) { gather(); cancelPreview() }
     func controlTextDidChange(_ notification: Notification) { gather(); cancelPreview() }
-    func invalidatePreviewDetails() { previewDetails = nil; detailsRule = nil; viewPreviewDetails.isEnabled = false; previewDetailsWindow?.close(); previewDetailsWindow = nil; branchStatus.stringValue = "Preview a file to see which path it takes."; branchStatus.textColor = .secondaryLabelColor }
+    func invalidatePreviewDetails() { previewDetails = nil; detailsRule = nil; viewPreviewDetails.isEnabled = false; previewDetailsWindow?.close(); previewDetailsWindow = nil; branchStatus.stringValue = "Preview a file to see which path it takes."; branchStatus.textColor = .labelColor }
     func showPreviewDetails() {
         gather()
         guard let previewDetails, detailsRule == draft, selectedID == draft.id else { invalidatePreviewDetails(); return }
@@ -397,8 +408,8 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     @discardableResult func saveRule() -> Bool {
         gather(); guard let index = runtime.rules.firstIndex(where: { $0.id == selectedID }) else { return false }
         var next = runtime.rules; next[index] = draft
-        do { try runtime.save(next); cancelPreview(); message.textColor = .secondaryLabelColor; message.stringValue = draft.enabled ? "Saved and watching. Only new or changed files arriving from now on will run." : "Draft saved. Turn on Enable this rule, then save to start watching."; reloadList(); return true }
-        catch { message.textColor = .systemRed; message.stringValue = error.localizedDescription; return false }
+        do { try runtime.save(next); cancelPreview(); message.textColor = .labelColor; message.stringValue = draft.enabled ? (runtime.paused ? "Saved, but folder rules are paused. Review the watcher status, then choose Resume All when ready." : "Saved and watching. Only new or changed files arriving from now on will run.") : "Draft saved. Turn on Enable this rule, then save to start watching."; reloadList(); return true }
+        catch { message.textColor = .labelColor; message.stringValue = error.localizedDescription; return false }
     }
     func newRule(template: Int) {
         guard (1...4).contains(template), mayDiscard() else { return }
@@ -421,7 +432,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     func resolveUnsavedChanges(_ choice: NSApplication.ModalResponse) -> Bool {
         if choice == .alertFirstButtonReturn { return saveRule() }
         guard choice == .alertThirdButtonReturn, let saved = runtime.rules.first(where: { $0.id == selectedID }) else { return false }
-        draft = saved; rebuildEditor(); message.textColor = .secondaryLabelColor; message.stringValue = "Changes discarded. The saved rule was restored."; return true
+        draft = saved; rebuildEditor(); message.textColor = .labelColor; message.stringValue = "Changes discarded. The saved rule was restored."; return true
     }
     func duplicate() {
         guard selectedID != nil, mayDiscard() else { return }
@@ -451,15 +462,15 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         let wasRunning = previewRunning, hadDetails = previewDetails != nil
         previewCancellation?.cancel(); previewCancellation = nil; previewID = nil
         invalidatePreviewDetails()
-        test.isEnabled = selectedID != nil && previewWorkCount == 0; cancelTest.isHidden = true
-        if wasRunning || hadDetails { message.textColor = .secondaryLabelColor; message.stringValue = "The rule changed or its preview was closed. Preview again to see a current plan." }
+        test.isEnabled = selectedID != nil && previewWorkCount == 0; test.isHidden = false; cancelTest.isHidden = true
+        if wasRunning || hadDetails { message.textColor = .labelColor; message.stringValue = "The rule changed or its preview was closed. Preview again to see a current plan." }
     }
     func startPreview(_ url: URL, rule: WatchRule) {
         guard previewWorkCount == 0 else { message.stringValue = "The previous preview is finishing. Try again when Preview a File becomes available."; return }
         cancelPreview()
         let id = UUID(), cancellation = AutomationCancellation(); previewID = id; previewCancellation = cancellation
         previewWorkCount += 1
-        test.isEnabled = false; cancelTest.isHidden = false; message.textColor = .secondaryLabelColor; message.stringValue = "Checking \(url.lastPathComponent) and building a read-only plan…"
+        test.isEnabled = false; test.isHidden = true; cancelTest.isHidden = false; message.textColor = .labelColor; message.stringValue = "Checking \(url.lastPathComponent) and building a read-only plan…"
         let factory = runtime.engine, scratch = runtime.store.url("Staging")
         DispatchQueue.global(qos: .utility).async { [weak self] in
             let text: String, failed: Bool
@@ -469,12 +480,12 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
                 self.previewWorkCount -= 1; self.test.isEnabled = self.selectedID != nil && self.previewWorkCount == 0
                 defer { self.onPreviewFinished?() }
                 guard self.previewID == id else { return }
-                self.gather(); self.previewID = nil; self.previewCancellation = nil; self.cancelTest.isHidden = true
-                guard self.selectedID == rule.id, self.draft == rule else { self.invalidatePreviewDetails(); self.message.textColor = .secondaryLabelColor; self.message.stringValue = "The rule changed during its preview. Preview again to see a current plan. No files changed."; return }
+                self.gather(); self.previewID = nil; self.previewCancellation = nil; self.test.isHidden = false; self.cancelTest.isHidden = true
+                guard self.selectedID == rule.id, self.draft == rule else { self.invalidatePreviewDetails(); self.message.textColor = .labelColor; self.message.stringValue = "The rule changed during its preview. Preview again to see a current plan. No files changed."; return }
                 self.previewDetails = text; self.detailsRule = rule; self.viewPreviewDetails.isEnabled = true
                 self.branchStatus.stringValue = failed ? "Preview needs attention · read the result below." : text.hasPrefix("No match") ? "↳ NO MATCH · this rule leaves the file unchanged." : "↓ MATCH · follow the action blocks, then save the output."
-                self.branchStatus.textColor = failed ? .systemOrange : text.hasPrefix("No match") ? .secondaryLabelColor : .systemGreen
-                self.message.textColor = failed ? .systemRed : .secondaryLabelColor
+                self.branchStatus.textColor = .labelColor
+                self.message.textColor = .labelColor
                 if failed { self.message.stringValue = String(text.prefix(240)) + (text.count > 240 ? "…" : "") }
                 else if text.hasPrefix("No match") { self.message.stringValue = "No match for this rule. Other eligible enabled rules may match.\nNo files changed. Open Preview Details for the recognised format and full paths." }
                 else {
@@ -487,17 +498,24 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     }
     func runExisting() {
         guard !runtime.enabledRules.isEmpty, !runtime.paused else { message.stringValue = "Enable and save a rule first, then resume watching."; return }
-        let alert = NSAlert(); alert.messageText = "Run enabled rules on existing files?"; alert.informativeText = "This queues up to 1,000 files already in your inboxes. Saved original-file actions also apply. Normal watching only handles new or changed arrivals."; alert.addButton(withTitle: "Cancel"); alert.addButton(withTitle: "Run Existing Files")
+        let alert = NSAlert(); alert.messageText = "Run enabled rules on existing files?"; alert.informativeText = "This adds files until the waiting queue reaches 1,000. Files already queued or running are skipped; files not yet handled this watching session come first. Completed files may run again on a later request. Saved original-file actions also apply. Normal watching only handles new or changed arrivals."; alert.addButton(withTitle: "Cancel"); alert.addButton(withTitle: "Run Existing Files")
         if alert.runModal() == .alertSecondButtonReturn {
-            if let count = runtime.runExisting() { message.stringValue = "Queued \(count) existing file(s) using saved rules." }
+            if let count = runtime.runExisting() { message.stringValue = count == 0 ? "No additional files queued. The waiting queue may be full, or all inbox files are already queued or running." : "Queued \(count) additional existing file(s) using saved rules." }
             else { message.stringValue = "The watcher is busy scanning or paused. Wait for it to be ready, then try again." }
         }
     }
-    @objc func changeTab(_ sender: NSSegmentedControl) { editorScroll.isHidden = sender.selectedSegment == 1; activityScroll.isHidden = sender.selectedSegment == 0; if sender.selectedSegment == 1 { refreshActivity() } }
+    @objc func changeTab(_ sender: NSSegmentedControl) {
+        gather(); window?.makeFirstResponder(sender)
+        InterfaceMotion.snapScroll(editorScroll, to: editorScroll.contentView.bounds.origin)
+        editorScroll.isHidden = sender.selectedSegment == 1; activityScroll.isHidden = sender.selectedSegment == 0
+        if sender.selectedSegment == 1 { refreshActivity(); InterfaceMotion.reveal(activityScroll) }
+        else { InterfaceMotion.reveal(editorScroll) }
+    }
     func refreshStatus() {
         stateLabel.stringValue = runtime.status; pause.title = runtime.paused ? "Resume All" : "Pause All"; pause.isEnabled = !runtime.enabledRules.isEmpty
         existing.isEnabled = runtime.canRunExisting
-        existing.toolTip = runtime.enabledRules.isEmpty ? "Enable and save a rule first. This action uses saved enabled rules." : (runtime.paused ? "Resume watching before running existing files." : (!runtime.canRunExisting ? "The watcher is still scanning. Wait until it is ready." : "Queues up to 1,000 inbox files using saved enabled rules, including their original-file actions."))
+        existing.toolTip = runtime.enabledRules.isEmpty ? "Enable and save a rule first. This action uses saved enabled rules." : (runtime.paused ? "Resume watching before running existing files." : (!runtime.canRunExisting ? "The watcher is still scanning. Wait until it is ready." : "Adds inbox files up to the 1,000-file waiting limit using saved rules. Skips queued/running files and prioritises files not handled this watching session. Original-file actions apply."))
+        refreshEditingStatus()
         if !activityScroll.isHidden { refreshActivity() }
     }
     func refreshActivity() {
@@ -524,7 +542,9 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
             return cell
         }
         guard runtime.rules.indices.contains(row) else { return nil }
-        let rule = runtime.rules[row]; let text = NSTextField(wrappingLabelWithString: rule.name + "\n" + (rule.enabled ? "Enabled" : "Draft · off")); text.font = .systemFont(ofSize: 12); text.maximumNumberOfLines = 2; text.setAccessibilityLabel(rule.name + ", " + (rule.enabled ? "enabled" : "disabled")); return text
+        let identifier = NSUserInterfaceItemIdentifier("folderRuleCell")
+        let cell = tableView.makeView(withIdentifier: identifier, owner: nil) as? RuleListCell ?? RuleListCell()
+        cell.identifier = identifier; cell.configure(runtime.rules[row]); return cell
     }
     func tableView(_ tableView: NSTableView, shouldSelectRow row: Int) -> Bool { tableView == activityTable || (runtime.rules.indices.contains(row) && (reloadingList || runtime.rules[row].id == selectedID || mayDiscard())) }
     func windowShouldClose(_ sender: NSWindow) -> Bool { mayDiscard() }
@@ -532,6 +552,48 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     func tableViewSelectionDidChange(_ notification: Notification) {
         guard !reloadingList, notification.object as? NSTableView === table, runtime.rules.indices.contains(table.selectedRow), runtime.rules[table.selectedRow].id != selectedID else { return }
         selectedID = runtime.rules[table.selectedRow].id; draft = runtime.rules[table.selectedRow]; rebuildEditor(resetScroll: true); reloadList(); message.stringValue = "Edit blocks, preview a file, then save. Changes take effect after saving."
+    }
+}
+
+/// Source-list selection follows the user's accent. Bright accents need dark
+/// text even in Dark Mode; native selectedTextColor alone can resolve to white.
+enum RuleSelectionText {
+    static func luminance(_ color: NSColor) -> CGFloat {
+        guard let rgb = color.usingColorSpace(.sRGB) else { return 0 }
+        func linear(_ value: CGFloat) -> CGFloat { value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4) }
+        return 0.2126 * linear(rgb.redComponent) + 0.7152 * linear(rgb.greenComponent) + 0.0722 * linear(rgb.blueComponent)
+    }
+    static func foreground(on background: NSColor) -> NSColor {
+        let light = luminance(background)
+        return (light + 0.05) / 0.05 >= 1.05 / (light + 0.05) ? .black : .white
+    }
+}
+
+final class RuleListCell: NSTableCellView {
+    let title = NSTextField(labelWithString: "")
+    let status = NSTextField(labelWithString: "")
+    override var backgroundStyle: NSView.BackgroundStyle { didSet { refreshTextColor() } }
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        title.font = .systemFont(ofSize: 13, weight: .medium); title.lineBreakMode = .byTruncatingMiddle
+        status.font = .systemFont(ofSize: 12)
+        let labels = NSStackView(views: [title, status]); labels.orientation = .vertical; labels.alignment = .leading; labels.spacing = 3
+        pin(labels, in: self, inset: 8)
+        for field in [title, status] { field.widthAnchor.constraint(equalTo: labels.widthAnchor).isActive = true; field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal) }
+        textField = title; refreshTextColor()
+    }
+    required init?(coder: NSCoder) { fatalError() }
+    override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); refreshTextColor() }
+    func refreshTextColor() {
+        effectiveAppearance.performAsCurrentDrawingAppearance {
+            let selected = backgroundStyle == .emphasized
+            let color = selected ? RuleSelectionText.foreground(on: .selectedContentBackgroundColor) : .labelColor
+            title.textColor = color; status.textColor = selected ? color : .secondaryLabelColor
+        }
+    }
+    func configure(_ rule: WatchRule) {
+        title.stringValue = rule.name; status.stringValue = rule.enabled ? "Enabled" : "Draft · off"
+        setAccessibilityLabel(rule.name + ", " + (rule.enabled ? "enabled" : "disabled")); refreshTextColor()
     }
 }
 
@@ -576,7 +638,7 @@ final class ActivityCell: NSTableCellView {
     override init(frame: NSRect) {
         super.init(frame: frame)
         title.font = .systemFont(ofSize: 13, weight: .semibold); title.lineBreakMode = .byTruncatingMiddle
-        details.font = .systemFont(ofSize: 11); details.textColor = .secondaryLabelColor; details.maximumNumberOfLines = 3; details.isSelectable = true
+        details.font = .systemFont(ofSize: 12); details.textColor = .secondaryLabelColor; details.maximumNumberOfLines = 3; details.isSelectable = true
         let text = NSStackView(views: [title, details]); text.orientation = .vertical; text.alignment = .leading; text.spacing = 4
         reveal.title = "Reveal"; reveal.bezelStyle = .rounded; reveal.target = reveal; reveal.action = #selector(RuleButton.performAction)
         text.translatesAutoresizingMaskIntoConstraints = false; reveal.translatesAutoresizingMaskIntoConstraints = false

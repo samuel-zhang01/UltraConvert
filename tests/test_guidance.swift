@@ -16,7 +16,9 @@ struct GuidanceSmoke {
         precondition(preferences.bool(forKey: "hasSeenGettingStarted"))
         precondition(preferences.object(forKey: "outputMode") == nil && preferences.object(forKey: "startInMenuBar") == nil)
         let guide = app.guideController!
-        guide.window!.setContentSize(NSSize(width: 680, height: 520))
+        precondition(guide.window!.contentMinSize == NSSize(width: 680, height: 520))
+        guide.window!.setFrame(NSRect(origin: guide.window!.frame.origin, size: guide.window!.minSize), display: false)
+        precondition(guide.window!.contentView!.bounds.width >= 680 && guide.window!.contentView!.bounds.height >= 520)
         for topic in 0..<4 {
             guide.openTopic(topic); guide.window!.contentView!.layoutSubtreeIfNeeded()
             precondition(guide.body.arrangedSubviews.count >= 3)
@@ -25,6 +27,11 @@ struct GuidanceSmoke {
                 precondition(frame.minX >= 0 && frame.maxX <= 680 && frame.minY >= 0 && frame.maxY <= 520)
             }
         }
+        for topic in [3, 1, 2, 0, 3, 0] { guide.topics.selectedSegment = topic; guide.changeTopic() }
+        precondition(guide.topics.selectedSegment == 0 && guide.body.alphaValue == 1)
+        precondition(guide.body.arrangedSubviews.compactMap { $0 as? RoundedCard }.first?.contents.arrangedSubviews.compactMap { $0 as? NSTextField }.first?.stringValue == "1. Add files")
+        guide.openTopic(2); guide.scroll.contentView.scroll(to: NSPoint(x: 0, y: 100)); guide.openTopic(0)
+        precondition(guide.scroll.contentView.bounds.origin == .zero)
         guide.close(); app.files = []
         precondition(!app.shouldOfferGettingStarted)
         app.showQuickStart(); precondition(app.guideController === guide && guide.window!.isVisible)
