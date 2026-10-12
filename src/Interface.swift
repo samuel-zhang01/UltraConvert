@@ -48,7 +48,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         rules.setAccessibilityLabel("Folder Rules")
         rules.toolTip = "Watch an inbox and convert new files with saved rules"
         let settings = NSButton(title: "Settings…", target: self, action: #selector(showSettings)); settings.bezelStyle = .rounded
-        settings.setAccessibilityLabel("Settings"); settings.toolTip = "Launch at login and Finder Quick Actions"
+        settings.setAccessibilityLabel("Settings"); settings.toolTip = "App updates, launch at login and Finder Quick Actions"
         // A separate task row preserves full labels at the smallest window size.
         let brand = NSStackView(views: [icon, titles, NSView(), settings]); brand.spacing = 12
         let shortcuts = NSStackView(views: [rules, helpButton, NSView()]); shortcuts.spacing = 10

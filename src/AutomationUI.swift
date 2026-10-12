@@ -107,7 +107,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         let titles = vertical([uiLabel("Folder Rules", size: 25, weight: .semibold), uiLabel("Snap together a flow. Let new files do the rest.", size: 13, color: .secondaryLabelColor)])
         pause.title = "Pause All"; pause.bezelStyle = .rounded; pause.target = pause; pause.action = #selector(RuleButton.performAction)
         pause.invoke = { [weak self] in guard let self else { return }; self.runtime.setPaused(!self.runtime.paused); self.refreshStatus() }
-        let settings = RuleButton("Startup & Finder…", symbol: "gearshape", action: { (NSApp.delegate as? ConverterApp)?.showSettings() })
+        let settings = RuleButton("Settings…", symbol: "gearshape", action: { (NSApp.delegate as? ConverterApp)?.showSettings() })
         let header = horizontal([titles, NSView(), settings, pause]); full(header, in: main)
         stateLabel.font = .systemFont(ofSize: 13, weight: .medium); stateLabel.setAccessibilityLabel("Folder watcher status"); full(stateLabel, in: main)
         let area = NSStackView(); area.orientation = .horizontal; area.alignment = .top; area.spacing = 20; full(area, in: main)
@@ -428,6 +428,11 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         alert.buttons[1].keyEquivalent = "\u{1b}"
         alert.buttons[1].keyEquivalentModifierMask = []
         return resolveUnsavedChanges(alert.runModal())
+    }
+    var hasUnsavedChanges: Bool {
+        gather()
+        guard let saved = runtime.rules.first(where: { $0.id == selectedID }) else { return false }
+        return saved != draft
     }
     func resolveUnsavedChanges(_ choice: NSApplication.ModalResponse) -> Bool {
         if choice == .alertFirstButtonReturn { return saveRule() }

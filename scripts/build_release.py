@@ -10,6 +10,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+from build_updates import build_update_assets
 from notarize import notarize, staple
 from package_app import (
     ROOT,
@@ -67,6 +68,11 @@ def main():
         "--dmg", action="store_true", help="Also package an installer-source disk image"
     )
     parser.add_argument(
+        "--update-assets",
+        action="store_true",
+        help="Also sign an app-only archive and Sparkle feed using the local Keychain",
+    )
+    parser.add_argument(
         "--output-dir", type=Path, help="New artifact directory; defaults to dist/VERSION"
     )
     parser.add_argument(
@@ -81,6 +87,8 @@ def main():
         parser.error("--notarized-app requires --sign-identity")
     if args.notarized_app and args.notary_profile:
         parser.error("Use either --notarized-app or --notary-profile, not both")
+    if args.update_assets and not (args.notarized_app or args.notary_profile):
+        parser.error("Public update assets require a Developer ID notarized app")
     if args.sign_identity:
         developer_id_identity(args.sign_identity)
     if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT).strip():
@@ -143,6 +151,8 @@ def main():
             if archive.testzip() is not None:
                 raise RuntimeError("Release archive integrity check failed")
         artifacts = [bundle]
+        if args.update_assets:
+            artifacts.extend(build_update_assets(app, out, version, arch))
         if args.dmg:
             dmg = out / f"UltraConvert-{version}-macos-{arch}.dmg"
             # The app requires its engine/runtime installer. Keep the release folder together.
@@ -231,6 +241,14 @@ def main():
                 "artifact_kind": "native_app_and_source_installer",
                 "standalone_runtime": False,
                 "conversion_engines_bundled": False,
+                "conversion_source_bundled": True,
+                "updater": {
+                    "framework": "Sparkle",
+                    "version": "2.10.0",
+                    "signed_feed": True,
+                    "signed_archive": True,
+                    "assets_included": args.update_assets,
+                },
                 "minimum_macos_native_app": "13.0",
             },
             indent=2,

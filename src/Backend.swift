@@ -13,7 +13,17 @@ struct BackendPaths {
         guard let contents, let manifest,
               FileManager.default.fileExists(atPath: manifest.path) else {
             python = support.appendingPathComponent(".venv/bin/python")
-            source = support.appendingPathComponent("src")
+            let sealedSource = contents?.appendingPathComponent("Resources/Source")
+            if let sealedSource, FileManager.default.fileExists(atPath: sealedSource.path) {
+                let root = contents!.resolvingSymlinksInPath().standardizedFileURL
+                let resolved = sealedSource.resolvingSymlinksInPath().standardizedFileURL
+                guard resolved.path.hasPrefix(root.path + "/") else { throw CocoaError(.fileReadInvalidFileName) }
+                for name in ["convert.py", "diagnostics.py", "runtime_tools.py", "structured.py", "geospatial.py", "guards.py", "policy.xml"] {
+                    let script = resolved.appendingPathComponent(name).resolvingSymlinksInPath().standardizedFileURL
+                    guard script.path.hasPrefix(resolved.path + "/"), FileManager.default.fileExists(atPath: script.path) else { throw CocoaError(.fileReadCorruptFile) }
+                }
+                source = resolved
+            } else { source = support.appendingPathComponent("src") }
             environment = [:]
             bundled = false
             return
@@ -57,7 +67,7 @@ extension ConverterApp {
                 }
                 try FinderActions.install(app: Bundle.main.bundleURL, home: FileManager.default.homeDirectoryForCurrentUser, force: true)
                 try FormatServices.register(app: Bundle.main.bundleURL)
-            })
+            }, updates: updater)
         }
         if let panel = settingsController?.window { InterfaceMotion.present(panel) }
         settingsController?.refresh()
@@ -236,16 +246,23 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
     let preferences: UserDefaults
     let login: any LoginService
     let registerFinder: () throws -> Void
+    let updates: (any UpdateManaging)?
+    let updateChecks = NSButton(checkboxWithTitle: "Automatically check for updates daily", target: nil, action: nil)
+    let updateDownloads = NSButton(checkboxWithTitle: "Download updates and install when I quit", target: nil, action: nil)
+    let previewUpdates = NSButton(checkboxWithTitle: "Include preview releases", target: nil, action: nil)
+    let updateStatus = NSTextField(wrappingLabelWithString: "")
+    let updateNow = NSButton(title: "Check for Updates…", target: nil, action: nil)
     let loginToggle = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
     let menuBarToggle = NSButton(checkboxWithTitle: "Start in the menu bar when folder rules are enabled", target: nil, action: nil)
     let finderToggle = NSButton(checkboxWithTitle: "Keep Finder Quick Actions installed", target: nil, action: nil)
     let loginStatus = NSTextField(wrappingLabelWithString: "")
     let integrationStatus = NSTextField(wrappingLabelWithString: "")
 
-    init(preferences: UserDefaults, login: any LoginService, registerFinder: @escaping () throws -> Void) {
+    init(preferences: UserDefaults, login: any LoginService, registerFinder: @escaping () throws -> Void, updates: (any UpdateManaging)? = nil) {
         self.preferences = preferences
         self.login = login
         self.registerFinder = registerFinder
+        self.updates = updates
         let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: min(690, (NSScreen.main?.visibleFrame.height ?? 900) - 90)), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
         panel.title = "UltraConvert Settings"
         panel.isReleasedWhenClosed = false; panel.contentMinSize = NSSize(width: 600, height: 520)
@@ -268,8 +285,26 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
             add(row)
         }
         func note(_ text: String) -> NSTextField { uiLabel(text, size: 13, color: .labelColor) }
-        add(uiLabel("Startup & Finder", size: 25, weight: .semibold))
-        add(note("Choose how UltraConvert starts and appears in Finder."))
+        add(uiLabel("Settings", size: 25, weight: .semibold))
+        add(note("Manage updates, startup and Finder shortcuts."))
+        if let updates {
+            add(uiLabel("App updates · signed and verified", size: 15, weight: .semibold))
+            let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development"
+            add(note("Installed version: \(version). New releases come from UltraConvert’s GitHub repository."))
+            for toggle in [updateChecks, updateDownloads, previewUpdates] { toggle.target = self; add(toggle) }
+            updateChecks.action = #selector(changeUpdateChecks)
+            updateDownloads.action = #selector(changeUpdateDownloads)
+            previewUpdates.action = #selector(changePreviewUpdates)
+            add(note("Install and Relaunch reopens the app with your queued files. Active conversions and previews finish first; save rule edits before updating. Conversion engines and your saved rules stay on this Mac."))
+            updateNow.target = self; updateNow.action = #selector(checkUpdates); updateNow.bezelStyle = .rounded
+            updateNow.image = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: nil); updateNow.imagePosition = .imageLeading
+            updateNow.setAccessibilityLabel("Check for Updates")
+            addAction(updateNow)
+            updateStatus.font = .systemFont(ofSize: 13); add(updateStatus)
+            add(note("App updates do not upgrade Homebrew or conversion engines. Use Help → Check Setup if an engine needs repair."))
+            let updateDivider = NSBox(); updateDivider.boxType = .separator; add(updateDivider)
+            updates.onChange = { [weak self] in self?.refreshUpdates() }
+        }
         loginToggle.target = self; loginToggle.action = #selector(changeLogin)
         add(uiLabel("Startup · optional", size: 15, weight: .semibold))
         add(loginToggle)
@@ -318,9 +353,23 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
         loginStatus.stringValue = state.message
         menuBarToggle.state = preferences.bool(forKey: "startInMenuBar") ? .on : .off
         finderToggle.state = preferences.object(forKey: "autoRegisterFinderActions") as? Bool != false ? .on : .off
+        refreshUpdates()
     }
 
     func windowDidBecomeKey(_ notification: Notification) { refresh() }
+    func refreshUpdates() {
+        guard let updates else { return }
+        updateChecks.state = updates.automaticallyChecks ? .on : .off
+        updateDownloads.state = updates.automaticallyDownloads ? .on : .off
+        updateDownloads.isEnabled = updates.automaticallyChecks
+        previewUpdates.state = updates.includesPreviews ? .on : .off
+        updateNow.isEnabled = updates.canCheck
+        updateStatus.stringValue = updates.status
+    }
+    @objc func changeUpdateChecks() { updates?.automaticallyChecks = updateChecks.state == .on; refreshUpdates() }
+    @objc func changeUpdateDownloads() { updates?.automaticallyDownloads = updateDownloads.state == .on; refreshUpdates() }
+    @objc func changePreviewUpdates() { updates?.includesPreviews = previewUpdates.state == .on; refreshUpdates() }
+    @objc func checkUpdates() { updates?.checkNow(); refreshUpdates() }
 
     @objc func changeLogin() {
         do {

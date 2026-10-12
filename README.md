@@ -13,12 +13,12 @@ UltraConvert is a native **Swift/AppKit macOS app** for images, audio, video, do
 
 ## Install
 
-The **[v1.7.0 preview](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.7.0)** contains a **Developer ID signed, Apple-notarized universal app** for Apple Silicon and Intel. The ticket is stapled and Gatekeeper acceptance is verified. Intel compilation is verified; Intel hardware and engine installation remain untested. The older stable v1.3.0 is not notarized. Check **RELEASE-METADATA.json** for the package you download.
+The **[v1.8.0 release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.0)** includes a **Developer ID signed, Apple-notarized universal app** for Apple Silicon and Intel, with in-app updates. Intel compilation is verified; Intel hardware and engine installation remain untested. Check **RELEASE-METADATA.json** and **SHA256SUMS.txt** for the package you download. The app’s notarization ticket is stapled; the signed DMG is not separately notarized.
 
 The app uses separately installed open source conversion engines. **Dragging the `.app` into Applications alone does not install those engines.** This installer sets up the app, engines and Finder actions:
 
 1. Install [Homebrew](https://brew.sh), including its printed **Next steps**. Open a new Terminal window and confirm `brew --version` works.
-2. Download **UltraConvert-1.7.0-macos-universal.zip** from the [preview release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.7.0). Use the named installer ZIP, rather than GitHub’s automatic “Source code” download.
+2. Download **UltraConvert-1.8.0-macos-universal.zip** from the [release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.0). Use the named installer ZIP. The **DMG** contains the same installer folder: open it, copy **UltraConvert** into Downloads, then eject the disk image. The `update-macos-universal.zip` asset is for the in-app updater and requires an existing engine installation. GitHub’s automatic “Source code” downloads are for developers.
 3. Double-click the ZIP. Open **Terminal**, type `cd ` with a trailing space, drag the extracted **UltraConvert folder** into Terminal, and press Return.
 4. Run:
 
@@ -150,7 +150,21 @@ Reopen **Getting Started…** for the offline guide. [Full usage and troubleshoo
 
 ## Update or remove
 
-**Update:** quit UltraConvert, extract the new ZIP, and run `python3 install.py` from its folder. Source installs can use `git pull --ff-only` followed by `python3 install.py --build-from-source`. Preferences and rules remain; old components are backed up and failed component swaps roll back.
+**From version 1.8 onward:** choose **UltraConvert → Check for Updates…** (also in **Settings**, ⌘,). Read the update notes, click **Install Update**, then **Install and Relaunch**. The app downloads from GitHub, checks the signed feed and archive before extraction, installs the app and reopens your queued files. Your preferences, saved rules and conversion engines are retained. Active conversions and previews finish first; save or discard any rule edits before updating.
+
+![App update settings with daily checks and optional background downloads](docs/images/app-updates.png)
+
+**Automatic updates:** Settings → **App updates** has three options:
+
+- **Automatically check for updates daily** is on by default. Checks run while UltraConvert is open; no separate background monitor is installed.
+- **Download updates and install when I quit** is optional and off by default. It downloads verified updates in the background and installs on a normal quit. You can still use Check for Updates to install and relaunch sooner.
+- **Include preview releases** is optional and off by default for this full release. Stable releases remain available in either setting.
+
+**Coming from 1.7 or earlier, repairing engines, or updating manually:** quit UltraConvert, extract the full installer ZIP (or copy its folder out of the DMG), and run `python3 install.py` from that folder once. Future app updates are available in the menu. Source installs can use `git pull --ff-only` followed by `python3 install.py --build-from-source`. The manual installer backs up old components and rolls back failed component swaps.
+
+In-app updates include the native app and its conversion code. They do **not** update Homebrew, Python packages or conversion engines; use **Help → Check Setup** and rerun the full installer if an engine needs repair. Update checks contact GitHub, but send no input files or saved rules. Sparkle system profiling is disabled.
+
+If an update fails, the existing app remains installed. Try Check for Updates again when online, or use the full installer ZIP. Running from a disk image or a read-only location can prevent updates; install using the instructions above first.
 
 **Remove:** quit the app and run `python3 uninstall.py` from the release/source folder. Owned app, workflows and runtime move to Trash. Shared Homebrew engines and converted files remain.
 

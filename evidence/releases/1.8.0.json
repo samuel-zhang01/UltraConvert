@@ -1,0 +1,19 @@
+{
+  "architectures": [
+    "arm64",
+    "x86_64"
+  ],
+  "audit_date": "2026-10-12",
+  "version": "1.8.0",
+  "source_fingerprint": "6aa60b13f45f5193ea9e17e88c7275c809826a164fda9c4b41beee496b14ee06",
+  "developer_id_signature_verified": true,
+  "hardened_runtime_and_timestamp_verified": true,
+  "stapled_ticket_verified": true,
+  "gatekeeper_accepted": true,
+  "updater": "Sparkle 2.10.0",
+  "signed_feed_and_archive_required": true,
+  "verify_before_extraction": true,
+  "intel_hardware_tested": false,
+  "intel_engine_runtime_tested": false,
+  "scope": "Universal native app, sealed conversion source and policy; external conversion engines required."
+}
