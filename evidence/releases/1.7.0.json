@@ -10,7 +10,7 @@
   "intel_engine_runtime_tested": false,
   "intel_hardware_tested": false,
   "scope": "Native public installer app; external conversion engines required.",
-  "source_fingerprint": "c1d88d856ee3dc2e1a9e0ce2463ec3fe65ac5695a0d20f551253a64b376fe1a6",
+  "source_fingerprint": "faefdca179f1c330da83616976f551d7993bc431074c9bf11050eb587c639dc7",
   "stapled_ticket_verified": true,
   "version": "1.7.0"
 }

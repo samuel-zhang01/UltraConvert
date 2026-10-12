@@ -112,6 +112,9 @@ struct RuleEditorTests {
         var rule = WatchRule(); rule.name = "Editor fixture"; rule.inputFolder = inbox.path; rule.destination = output.path
         rule.conditions = [.init(field: .format, value: "wav")]; rule.steps = [.init(kind: .convert, value: "mp3")]; rule.settleSeconds = 7
         try install(rule, in: editor)
+        let reopened = FolderRulesWindow(runtime: runtime)
+        check(reopened.selectedID == rule.id && reopened.message.stringValue.contains("check this saved flow") && !reopened.message.stringValue.contains("Choose a template"), "Cold loaded rule guidance matches the selected saved flow")
+        reopened.window?.orderOut(nil)
         editor.gather()
         check(editor.draft == rule && editor.settle.selectedItem?.representedObject as? Double == 7, "A valid custom seven-second wait round-trips without phantom edits")
         check(!editor.editingStatus.stringValue.contains("Unsaved"), "Opening an unchanged custom-wait rule stays clean")
@@ -310,7 +313,7 @@ struct RuleEditorTests {
             for control in descendants(content).compactMap({ $0 as? NSControl }).filter({ !$0.isHiddenOrHasHiddenAncestor && !within($0, editor.editorScroll) && !within($0, editor.activityScroll) }) {
                 visibleFrame(control, in: editor, "Every visible non-scrolling control fits in the minimum window: " + (control.accessibilityLabel() ?? String(describing: type(of: control))))
             }
-            for label in descendants(content).compactMap({ $0 as? NSTextField }).filter({ $0.stringValue.contains("Closing the converter keeps enabled rules running") }) {
+            for label in descendants(content).compactMap({ $0 as? NSTextField }).filter({ $0.accessibilityLabel() == "Folder watcher lifetime" }) {
                 visibleFrame(label, in: editor, "Sidebar watcher lifetime explanation stays visible at minimum size")
             }
             for block in actionBlocks(editor) {
@@ -324,7 +327,100 @@ struct RuleEditorTests {
         for pair in zip(editor.body.arrangedSubviews, editor.body.arrangedSubviews.dropFirst()) {
             guard let first = pair.0 as? RulePuzzleBlock, let second = pair.1 as? RulePuzzleBlock else { continue }
             let join = first.convert(first.bounds, to: editor.body).intersection(second.convert(second.bounds, to: editor.body))
-            check(abs(join.height - 20) < 1, "Adjacent puzzle blocks visually connect instead of leaving separated card gaps")
+            check(abs(join.height - RulePuzzleGeometry.connectionOverlap) < 0.01, "Adjacent puzzle blocks visually connect instead of leaving separated card gaps")
+            let canvas = editor.editorScroll.documentView!
+            let upperSeam = first.convert(NSPoint(x: 64, y: RulePuzzleGeometry.connectorBaseline(height: first.bounds.height, top: false)), to: canvas).y
+            let lowerSeam = second.convert(NSPoint(x: 64, y: RulePuzzleGeometry.connectorBaseline(height: second.bounds.height, top: true)), to: canvas).y
+            let upperTip = first.convert(NSPoint(x: 64, y: RulePuzzleGeometry.connectorTip(height: first.bounds.height, top: false)), to: canvas).y
+            let lowerNotch = second.convert(NSPoint(x: 64, y: RulePuzzleGeometry.connectorTip(height: second.bounds.height, top: true)), to: canvas).y
+            check(abs(upperSeam - lowerSeam) < 0.01 && abs(upperTip - lowerNotch) < 0.01, "Puzzle body seam and tab/notch points meet exactly, without the previous one-point offset")
+        }
+        for piece in descendants(editor.body).compactMap({ $0 as? RulePuzzleBlock }) {
+            guard let contents = piece.subviews.first else { fail("Puzzle content is required") }
+            let frame = contents.convert(contents.bounds, to: piece)
+            check(abs(frame.minX - 20) < 0.01 && abs(piece.bounds.width - frame.maxX - 20) < 0.01, "Puzzle content has equal twenty-point horizontal padding")
+            check(frame.minY - RulePuzzleGeometry.connectorTip(height: piece.bounds.height, top: true) >= 13 && RulePuzzleGeometry.connectorBaseline(height: piece.bounds.height, top: false) - frame.maxY >= 14, "Puzzle content clears the notch by thirteen points and bottom body edge by fourteen points")
+        }
+        var columnRule = dragRule
+        columnRule.conditions = [.init(field: .category, value: "audio"), .init(field: .namePrefix, value: "A long descriptive recording name"), .init(field: .format, value: "wav")]
+        try install(columnRule, in: editor)
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            editor.window!.appearance = NSAppearance(named: appearance)
+            for size in [NSSize(width: 900, height: 620), NSSize(width: 1040, height: 750)] {
+                editor.window!.setContentSize(size); editor.window!.contentView!.layoutSubtreeIfNeeded()
+                let blocks = actionBlocks(editor)
+                for tool in ["up", "down", "Remove"] {
+                    let labels = (1...blocks.count).map { tool == "Remove" ? "Remove action \($0)" : "Move action \($0) " + tool }
+                    let columns = zip(labels, blocks).map { label, block in button(editor, label).convert(button(editor, label).bounds, to: block).minX }
+                    check(columns.allSatisfy { abs($0 - columns[0]) < 0.01 }, "Convert and Rename actions align every trailing toolbar control at normal and compact widths in both appearances: \(tool) \(columns)")
+                }
+                let decision = editor.flowNodes["IF"]!
+                let starts = editor.conditions.map { $0.1.convert($0.1.alignmentRect(forFrame: $0.1.bounds), to: decision).minX }
+                check(starts.allSatisfy { abs($0 - starts[0]) < 0.01 }, "Format, category and filename condition values share a stable column")
+            }
+        }
+        editor.window!.setContentSize(NSSize(width: 900, height: 620))
+        let opaque = RuleBlock(content: NSTextField(labelWithString: "Opaque accessibility fallback"), allowGlass: false)
+        check(!opaque.usesGlass && !descendants(opaque).contains(where: { $0 is NSVisualEffectView }), "Reduce Transparency fallback contains an opaque native surface without blur")
+        check(InterfaceMotion.duration(reduceMotion: true, running: true) == 0 && InterfaceMotion.duration(reduceMotion: false, running: false) == 0, "Reduced Motion and nonrunning native test hosts use immediate transitions")
+        check(InterfaceMotion.duration(reduceMotion: false, running: true) == 0.18, "Interactive transitions share one short native duration")
+        for background in [NSColor.systemYellow, .systemBlue, .systemPink, .white, .black, .gray] {
+            for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+                NSAppearance(named: appearance)!.performAsCurrentDrawingAppearance {
+                    let light = RuleSelectionText.luminance(background), foreground = RuleSelectionText.foreground(on: background)
+                    let contrast = foreground == .black ? (light + 0.05) / 0.05 : 1.05 / (light + 0.05)
+                    check(contrast >= 4.5, "Rule selection chooses a readable foreground for bright and dark accents in both appearances")
+                }
+            }
+        }
+        editor.body.alphaValue = 0.4; InterfaceMotion.reveal(editor.body, reduceMotion: true)
+        check(editor.body.alphaValue == 1, "Reduced Motion immediately reveals complete content instead of leaving a faded previous transition")
+        for key in ["DO", "WHEN", "SAVE", "IF", "AFTER"] { editor.jumpToBlock(key) }
+        let latestNode = editor.flowNodes["AFTER"]!, latestCanvas = editor.editorScroll.documentView!
+        check(latestNode.convert(latestNode.bounds, to: latestCanvas).intersects(editor.editorScroll.contentView.bounds), "Rapid flow navigation leaves the final requested stage visible without a stale callback")
+        InterfaceMotion.scroll(editor.editorScroll, to: .zero, reduceMotion: true)
+        check(editor.editorScroll.contentView.bounds.origin == .zero, "Reduced Motion scroll jumps synchronously to the requested destination")
+        try install(rule, in: editor)
+        tabs.selectedSegment = 1; editor.changeTab(tabs)
+        button(editor, "Add Rename action").invoke()
+        check(tabs.selectedSegment == 0 && !editor.editorScroll.isHidden && editor.activityScroll.isHidden, "Adding an action from Activity returns to its visible builder instead of changing a hidden flow")
+        try install(maximum, in: editor)
+        // Exercise the production animation path in a real NSApplication.run
+        // event loop, then interrupt it with rebuilding, tab changes and an
+        // explicit Reduce Motion snap. These fixtures never run a conversion.
+        editor.window!.makeKeyAndOrderFront(nil)
+        DispatchQueue.main.async {
+            check(NSApp.isRunning, "Animation regression uses the live AppKit event loop")
+            editor.jumpToBlock("DO"); editor.jumpToBlock("SAVE")
+            editor.rebuildEditor(resetScroll: true)
+            editor.jumpToBlock("AFTER"); tabs.selectedSegment = 1; editor.changeTab(tabs)
+            tabs.selectedSegment = 0; editor.changeTab(tabs)
+            InterfaceMotion.scroll(editor.editorScroll, to: NSPoint(x: 0, y: 100), reduceMotion: false)
+            InterfaceMotion.scroll(editor.editorScroll, to: .zero, reduceMotion: true)
+            InterfaceMotion.reveal(editor.body, reduceMotion: false); InterfaceMotion.reveal(editor.body, reduceMotion: true)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.025) {
+                check((editor.body.layer?.presentation()?.opacity ?? editor.body.layer?.opacity ?? 1) >= 0.999, "Reduced Motion cancels pending native opacity animation immediately, including before transaction commit")
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                check(editor.editorScroll.contentView.bounds.origin == .zero && editor.body.alphaValue == 1, "Interrupted live animations cannot restore an old scroll destination or leave reduced-motion content faded")
+                check(tabs.selectedSegment == 0 && !editor.editorScroll.isHidden && editor.activityScroll.isHidden, "Rapid animated tab changes retain the latest visible builder state")
+                check(!(editor.editorScroll.contentView.layer?.animationKeys() ?? []).contains(where: { $0.lowercased().contains("bounds") }), "Reduced Motion and rebuilding leave no previous bounds animation")
+                NSApp.stop(nil)
+                if let event = NSEvent.otherEvent(with: .applicationDefined, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil, subtype: 0, data1: 0, data2: 0) { NSApp.postEvent(event, atStart: false) }
+            }
+        }
+        NSApp.run()
+        for policy in [OriginalPolicy.archive, .trash] {
+            var removal = maximum; removal.originalPolicy = policy; removal.acknowledgedRemoval = false
+            removal.archiveFolder = root.appendingPathComponent("Archive").path
+            try install(removal, in: editor)
+            editor.window!.setContentSize(NSSize(width: 900, height: 620)); editor.window!.contentView!.layoutSubtreeIfNeeded()
+            let original = editor.flowNodes["AFTER"]!
+            let acknowledgement = editor.acknowledge.convert(editor.acknowledge.bounds, to: original)
+            check(!editor.acknowledge.isHiddenOrHasHiddenAncestor && acknowledgement.minX >= 20 && acknowledgement.maxX <= original.bounds.width - 20, "Archive and Trash acknowledgement fits within compact puzzle content padding")
+            for label in descendants(original).compactMap({ $0 as? NSTextField }) {
+                check((label.font?.pointSize ?? 0) >= 12, "Original-file instructions remain legible at compact width")
+            }
         }
 
         // Simulate AppKit requesting rows cached before the model shrinks.

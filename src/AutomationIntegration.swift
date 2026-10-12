@@ -20,11 +20,11 @@ extension ConverterApp {
             rulesController?.onPreviewFinished = { [weak self] in self?.updateAutomationPresentation() }
         }
         NSApp.setActivationPolicy(.regular)
-        rulesController?.showWindow(nil); rulesController?.window?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+        if let panel = rulesController?.window { InterfaceMotion.present(panel) }; NSApp.activate(ignoringOtherApps: true)
     }
     @objc func toggleFolderWatching() { guard let automation else { return }; automation.setPaused(!automation.paused) }
     @objc func showConverter() {
-        NSApp.setActivationPolicy(.regular); window.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+        NSApp.setActivationPolicy(.regular); InterfaceMotion.present(window); NSApp.activate(ignoringOtherApps: true)
     }
     func updateAutomationPresentation() {
         if waitingForAutomationQuit && automation?.running != true && (rulesController?.previewWorkCount ?? 0) == 0 { waitingForAutomationQuit = false; NSApp.reply(toApplicationShouldTerminate: true); return }

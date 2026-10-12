@@ -343,7 +343,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             scroll.hasVerticalScroller = true
             let view = NSTextView(frame: scroll.bounds)
             view.string = text; view.isEditable = false; view.isSelectable = true
-            view.font = .systemFont(ofSize: 12)
+            view.font = .systemFont(ofSize: 13)
             view.autoresizingMask = [.width]; view.isVerticallyResizable = true
             view.textContainer?.widthTracksTextView = true
             scroll.documentView = view; alert.accessoryView = scroll
@@ -501,7 +501,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             let image = NSImageView(image: NSImage(systemSymbolName: symbols[key]!, accessibilityDescription: nil)!)
             image.widthAnchor.constraint(equalToConstant: 18).isActive = true
             let label = NSTextField(labelWithString: "\(names[key]!) · \(items.count)")
-            label.font = .systemFont(ofSize: 12, weight: .medium)
+            label.font = .systemFont(ofSize: 13, weight: .medium)
             let popup = NSPopUpButton()
             popup.addItems(withTitles: common.map { $0 == "alac" ? "ALAC (lossless .m4a)" : $0.uppercased() })
             for (index, format) in common.enumerated() { popup.item(at: index)?.representedObject = format }
@@ -513,7 +513,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             let heading = NSStackView(views: [image, label]); heading.spacing = 8
             let row = NSStackView(views: [heading, popup])
             row.orientation = .vertical; row.alignment = .leading; row.spacing = 4
-            let advice = uiLabel(FormatCatalog.advice(popup.selectedItem?.representedObject as? String ?? ""), size: 11, color: .secondaryLabelColor)
+            let advice = uiLabel(FormatCatalog.advice(popup.selectedItem?.representedObject as? String ?? ""), size: 13, color: .labelColor)
             advice.isSelectable = true; advice.setAccessibilityLabel("Format advice for " + names[key]!)
             row.addArrangedSubview(advice); advice.widthAnchor.constraint(equalTo: row.widthAnchor).isActive = true; formatExplanations[key] = advice
             formats.addArrangedSubview(row)

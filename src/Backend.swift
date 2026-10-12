@@ -59,8 +59,7 @@ extension ConverterApp {
                 try FormatServices.register(app: Bundle.main.bundleURL)
             })
         }
-        settingsController?.showWindow(nil)
-        settingsController?.window?.makeKeyAndOrderFront(nil)
+        if let panel = settingsController?.window { InterfaceMotion.present(panel) }
         settingsController?.refresh()
     }
     func backendPaths() throws -> BackendPaths {
@@ -262,33 +261,39 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
             stack.addArrangedSubview(view)
             view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         }
-        func note(_ text: String) -> NSTextField { uiLabel(text, size: 12, color: .secondaryLabelColor) }
-        add(uiLabel("Startup & Finder", size: 23, weight: .semibold))
+        func addAction(_ button: NSButton) {
+            button.setContentHuggingPriority(.required, for: .horizontal)
+            let row = NSStackView(views: [button, NSView()])
+            row.spacing = 0
+            add(row)
+        }
+        func note(_ text: String) -> NSTextField { uiLabel(text, size: 13, color: .labelColor) }
+        add(uiLabel("Startup & Finder", size: 25, weight: .semibold))
         add(note("Choose how UltraConvert starts and appears in Finder."))
         loginToggle.target = self; loginToggle.action = #selector(changeLogin)
         add(uiLabel("Startup · optional", size: 15, weight: .semibold))
         add(loginToggle)
-        loginStatus.font = .systemFont(ofSize: 12); loginStatus.textColor = .secondaryLabelColor
+        loginStatus.font = .systemFont(ofSize: 13); loginStatus.textColor = .labelColor
         add(loginStatus)
         menuBarToggle.target = self; menuBarToggle.action = #selector(changeMenuBarPreference)
         add(menuBarToggle)
         add(note("Enabled folder rules keep running when the converter window closes. Quit UltraConvert from its menu bar icon to stop watching."))
-        add(button("Open Login Items Settings…", #selector(openLoginSettings), symbol: "person.crop.circle.badge.checkmark"))
+        addAction(button("Open Login Items Settings…", #selector(openLoginSettings), symbol: "person.crop.circle.badge.checkmark"))
         let divider = NSBox(); divider.boxType = .separator; add(divider)
         add(uiLabel("Finder Quick Actions · review any batch", size: 15, weight: .semibold))
         finderToggle.target = self; finderToggle.action = #selector(changeFinderPreference)
         add(finderToggle)
-        add(note("Quick Actions opens a batch for review: right-click files → Quick Actions → Convert Here with UltraConvert, or Convert to Destination with UltraConvert. This option repairs their installation when the app opens from Applications. Turning it off keeps existing actions installed."))
-        add(button("Install or Repair Quick Actions", #selector(repairFinder), symbol: "arrow.clockwise"))
+        add(note("Quick Actions open a batch for review: right-click files → Quick Actions → Convert Here with UltraConvert, or Convert to Destination with UltraConvert. This option repairs their installation when the app opens from Applications. Turning it off keeps existing actions installed."))
+        addAction(button("Install or Repair Quick Actions", #selector(repairFinder), symbol: "arrow.clockwise"))
         add(note("To show these actions: System Settings → General → Login Items & Extensions → Finder (ⓘ). Enable both UltraConvert actions. Installing an action does not enable its macOS switch."))
-        add(button("Enable Quick Actions in macOS…", #selector(openFinderSettings), symbol: "folder"))
+        addAction(button("Enable Quick Actions in macOS…", #selector(openFinderSettings), symbol: "folder"))
         let servicesDivider = NSBox(); servicesDivider.boxType = .separator; add(servicesDivider)
         add(uiLabel("Format shortcuts · Finder Services", size: 15, weight: .semibold))
         add(note("Right-click files → Services → Convert Here with UltraConvert — Choose Format… for a grouped format picker, or use shortcuts such as Convert to MP3. You review the batch before clicking Convert."))
-        add(button("Refresh Format Shortcuts", #selector(refreshServices), symbol: "arrow.triangle.2.circlepath"))
+        addAction(button("Refresh Format Shortcuts", #selector(refreshServices), symbol: "arrow.triangle.2.circlepath"))
         add(note("To show these shortcuts: System Settings → Keyboard → Keyboard Shortcuts → Services. macOS filters shortcuts by selected file type; use a general Quick Action if a misnamed file hides a preset."))
-        add(button("Enable Format Shortcuts in macOS…", #selector(openServicesSettings), symbol: "keyboard"))
-        integrationStatus.font = .systemFont(ofSize: 12); integrationStatus.textColor = .secondaryLabelColor
+        addAction(button("Enable Format Shortcuts in macOS…", #selector(openServicesSettings), symbol: "keyboard"))
+        integrationStatus.font = .systemFont(ofSize: 13); integrationStatus.textColor = .labelColor
         add(integrationStatus)
         panel.center()
         refresh()

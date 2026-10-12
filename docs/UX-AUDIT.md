@@ -1,4 +1,30 @@
-# Installation and usability crawl — 2026-10-12
+# Component, layout and motion audit — 2026-10-12
+
+The final 1.7.0 source passes the user's stricter **≥9.5** component gate at **9.585/10** (rounded **9.6**). An independent agent inspected the native app views after the implementation agent's repairs. Every component is ≥9.0 and no checked control overlap or safety blocker remains. This is a scoped developer heuristic assessment; it does not establish functional perfection or replace novice-user research. The earlier 9.0 beginner audit below uses a different rubric.
+
+| Component | Weight | Score |
+| --- | --- | --- |
+| Puzzle geometry and joins | 20% | 9.8 |
+| Padding and spacing | 20% | 9.6 |
+| Readability | 20% | 9.5 |
+| Control alignment | 15% | 9.6 |
+| Navigation and state | 10% | 9.5 |
+| Converter, guide and Settings consistency | 10% | 9.6 |
+| Compact and appearance behaviour | 5% | 9.1 |
+
+The first detailed pass held alignment below the gate: Convert and Rename toolbars ended in different columns, and stretched Settings buttons separated symbols from their titles. The final pass aligns the fields and every trailing action control; Settings buttons retain their natural icon/title width. A shared puzzle geometry fixes the one-point seam mismatch. Tests compare connector points and control columns within **0.01 pt**, with **13 pt** clearance below the top notch, **14 pt** at the lower body and **20 pt** side insets. Essential explanations use larger semantic text; selected-rule foregrounds adapt to the system accent.
+
+The reviewer inspected **four views × two sizes × two appearances** in actual CUA screenshots: converter, Folder Rules, Getting Started and Settings. Additional checks covered long mixed conditions, reachable compact Archive/Trash acknowledgements, Settings' last Service button, expanded Batch options, Activity draft retention and guide topic scroll reset. **Physical grip dragging now visibly reorders actions**, confirmed in accessibility state, and Move Down restores the original order. No user's rules, startup settings or files changed. Raw captures use current production AppKit view classes with isolated, disabled public fixtures; bitmap-cached renders are excluded. [Representative action layout](images/folder-actions.png), [compact original policy](images/compact-original-policy.png) and [guide](images/getting-started.png) show the final source. [Independent rubric and limits](../evidence/usability-1.7.0.json) records the checked tasks; [component proof](../evidence/ui-components-1.7.0.json) records geometry and motion scope.
+
+Motion uses one **180 ms ease-in/ease-out** native transition across rule jumps, Builder/Activity, guidance, window presentation and Batch options. State updates immediately; interrupted scrolling cancels the obsolete transition. Structural edits from Activity return to Builder. Hidden views skip motion, Reduce Motion uses immediate updates, and no recurring idle animation timer is added. **399 native editor checks pass**, including a running `NSApplication` event-loop regression, a 25 ms presentation-opacity check and interrupted-scroll/Reduce Motion endpoints after 300 ms. [Editor evidence](../evidence/rule-editor-1.7.0.json) records the result. Actual navigation endpoints were checked; perceived smoothness and frame-time distributions have not been profiled, and the system Reduce Motion preference was not changed during this crawl.
+
+The native glass controls/navigation and readable content follow [Apple's Liquid Glass adoption guidance](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass). Compact views intentionally scroll later instructions; that is why compact behaviour remains the lowest-scoring component. VoiceOver, novice participants, older macOS appearance, Intel hardware/engines and long-duration energy use remain outside this audit. Final installed-app and release checks are separate from the disabled fixture helper.
+
+The unchanged event-driven automation suite passes **330 checks**. Its latest five-second fixture sample used **0.006523 CPU seconds**, a 1,000-small-file scan took **0.006274 seconds**, and the whole stress test peaked at about **255 MiB RSS**; these are not normal idle-app or conversion-engine peaks. [Automation evidence](../evidence/automation-1.7.0.json) describes that scope. Required final CI rebuilds and runs the native, engine, preservation, security, installer and release suites against the committed tree.
+
+---
+
+# Initial installation and usability crawl — 2026-10-12
 
 Three coding agents independently reviewed runtime correctness, installation/distribution and first-use usability. The renewed usability assessment is **9.0/10** (weighted **9.035**), passing the scoped ≥9.0 threshold. It is a developer heuristic review, not a novice-user study or a claim of functional perfection.
 
@@ -13,7 +39,7 @@ Three coding agents independently reviewed runtime correctness, installation/dis
 
 The crawl corrected stale Service names and THEN terminology, an order-dependent rename explanation, ambiguous selected-only queue review, Settings button accessibility labels and window/content minimum-size mismatches. The README now leads with installation and the three manual conversion stages; real current-interface screenshots use public fixtures and neutral demo paths. Detailed settings, rule safety, limits and recovery remain in the [usage guide](USAGE.md).
 
-Actual native UI checks covered WAV→MP3 and PNG→WebP in one batch, unchanged original hashes, connected rule pieces, the action palette, section jumps, keyboard action ordering, matching previews, selectable read-only Details, preview invalidation and Settings labels. Screenshots use the current AppKit classes in an isolated helper; no user's rules or startup settings were changed. [Usability evidence](../evidence/usability-1.7.0.json) records tasks and limits.
+Actual native UI checks covered WAV→MP3 and PNG→WebP in one batch, unchanged original hashes, connected rule pieces, the action palette, section jumps, keyboard action ordering, matching previews, selectable read-only Details, preview invalidation and Settings labels. Screenshots use the current AppKit classes in an isolated helper; no user's rules or startup settings were changed. [Initial usability evidence](../evidence/usability-initial-1.7.0.json) records tasks and limits.
 
 The runtime audit reproduced and fixed queue overflow, repeated existing-file starvation, settling-wait resets, early single-watcher lock release during cancellation and hidden skipped-arrival feedback. Paused saves now describe the actual watcher state. **330 automation checks and 310 editor checks pass**, including real filesystem events, cancellation/lock contention and source preservation. Guidance, interface, backend, 20 installer/removal and 28 release checks also pass. Installation now reuses the owned system/user Applications copy and rejects unowned, ambiguous or linked destinations; removal handles the same resolved app.
 

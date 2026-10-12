@@ -108,6 +108,8 @@ Open **UltraConvert → Settings…** (⌘,).
 
 ![UltraConvert startup and Finder settings](docs/images/settings.png)
 
+Navigation uses short, consistent native transitions. UltraConvert respects **System Settings → Accessibility → Display → Reduce motion**; enable it for immediate transitions.
+
 - **Launch at login:** opens UltraConvert when you sign in; off by default. Check any approval requested by macOS.
 - **Start in the menu bar when folder rules are enabled:** keeps the converter out of the way at startup. The menu bar icon opens the converter/rules and pauses watching.
 - **Install or Repair Quick Actions:** restores the two owned workflows using this app’s location.

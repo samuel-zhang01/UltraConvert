@@ -1,4 +1,67 @@
 import AppKit
+import QuartzCore
+
+/// Short, one-shot native transitions. State changes happen immediately; no
+/// completion callback can restore an older selection or keep idle work alive.
+enum InterfaceMotion {
+    static let standardDuration: TimeInterval = 0.18
+    static func duration(reduceMotion: Bool = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion, running: Bool = NSApp.isRunning) -> TimeInterval {
+        !reduceMotion && running ? standardDuration : 0
+    }
+    static func layout(_ view: NSView, reduceMotion: Bool? = nil, changes: () -> Void) {
+        view.layoutSubtreeIfNeeded()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = view.window?.isVisible == true && !view.isHiddenOrHasHiddenAncestor ? duration(reduceMotion: reduceMotion ?? NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) : 0
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            context.allowsImplicitAnimation = context.duration > 0
+            changes(); view.layoutSubtreeIfNeeded()
+        }
+    }
+    static func reveal(_ view: NSView, reduceMotion: Bool? = nil) {
+        // Cancel only a previous opacity transition, preserving unrelated native
+        // control animations. Repeated topic clicks always reveal the newest view.
+        view.layer?.removeAnimation(forKey: "opacity")
+        let seconds = view.window?.isVisible == true && !view.isHiddenOrHasHiddenAncestor ? duration(reduceMotion: reduceMotion ?? NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) : 0
+        guard seconds > 0 else {
+            NSAnimationContext.runAnimationGroup { context in context.duration = 0; view.animator().alphaValue = 1 }
+            view.alphaValue = 1; return
+        }
+        view.wantsLayer = true
+        view.alphaValue = 0.88
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = seconds; context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            view.animator().alphaValue = 1
+        }
+    }
+    static func present(_ window: NSWindow) {
+        let wasVisible = window.isVisible
+        window.makeKeyAndOrderFront(nil)
+        if !wasVisible, let content = window.contentView { reveal(content) }
+    }
+    static func scroll(_ scroll: NSScrollView, to point: NSPoint, reduceMotion: Bool? = nil) {
+        let clip = scroll.contentView
+        let seconds = scroll.window?.isVisible == true && !scroll.isHiddenOrHasHiddenAncestor ? duration(reduceMotion: reduceMotion ?? NSWorkspace.shared.accessibilityDisplayShouldReduceMotion) : 0
+        guard seconds > 0 else { snapScroll(scroll, to: point); return }
+        clip.wantsLayer = true
+        cancelBoundsAnimation(clip)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = seconds; context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            clip.animator().setBoundsOrigin(point)
+        }
+        scroll.reflectScrolledClipView(clip)
+    }
+    static func cancelBoundsAnimation(_ clip: NSClipView) {
+        for key in clip.layer?.animationKeys() ?? [] where key.lowercased().contains("bounds") { clip.layer?.removeAnimation(forKey: key) }
+    }
+    static func snapScroll(_ scroll: NSScrollView, to point: NSPoint) {
+        let clip = scroll.contentView
+        cancelBoundsAnimation(clip)
+        // A zero-duration update of the same native animator property cancels
+        // its preceding transition even before the layer transaction commits.
+        NSAnimationContext.runAnimationGroup { context in context.duration = 0; clip.animator().setBoundsOrigin(point) }
+        clip.scroll(to: point); scroll.reflectScrolledClipView(clip)
+    }
+}
 
 // Finder Services select a format and open a reviewable batch. The normal engine
 // inspection, preservation rules and explicit Convert button remain in the path.

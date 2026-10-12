@@ -25,6 +25,28 @@ struct InterfaceSmoke {
             precondition(app.start.isEnabled && app.queueEmpty.isHidden)
             precondition(app.selectors.values.allSatisfy { $0.numberOfItems > 0 })
         }
+        // Real six-category advice remains legible and within the scrolling
+        // format column at the exact minimum; the primary header has room for
+        // complete Settings, Folder Rules and Getting Started labels.
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            app.window.appearance = NSAppearance(named: appearance)
+            for size in [NSSize(width: 760, height: 570), NSSize(width: 880, height: 750)] {
+                app.window.setContentSize(size); app.window.contentView!.layoutSubtreeIfNeeded()
+                precondition(app.formatExplanations.count == 6)
+                for field in app.formatExplanations.values {
+                    let frame = field.convert(field.alignmentRect(forFrame: field.bounds), to: app.formats)
+                    precondition(field.font!.pointSize == 13 && field.textColor == .labelColor)
+                    precondition(frame.minX >= -1 && frame.maxX <= app.formats.bounds.width + 1 && frame.height > 0)
+                }
+                for popup in app.selectors.values {
+                    let frame = popup.convert(popup.bounds, to: app.formats)
+                    precondition(frame.minX >= -1 && frame.maxX <= app.formats.bounds.width + 1 && frame.height > 0)
+                }
+                let help = app.helpButton.convert(app.helpButton.bounds, to: app.window.contentView)
+                precondition(help.minX >= 0 && help.maxX <= size.width && help.width >= app.helpButton.intrinsicContentSize.width)
+                precondition(app.destinationPath.font!.pointSize == 13 && app.destinationPath.textColor == .labelColor)
+            }
+        }
         app.optionsDisclosure.state = .on
         app.toggleOptions()
         app.window.setFrame(NSRect(origin: app.window.frame.origin, size: app.window.minSize), display: false)

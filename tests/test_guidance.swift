@@ -27,6 +27,11 @@ struct GuidanceSmoke {
                 precondition(frame.minX >= 0 && frame.maxX <= 680 && frame.minY >= 0 && frame.maxY <= 520)
             }
         }
+        for topic in [3, 1, 2, 0, 3, 0] { guide.topics.selectedSegment = topic; guide.changeTopic() }
+        precondition(guide.topics.selectedSegment == 0 && guide.body.alphaValue == 1)
+        precondition(guide.body.arrangedSubviews.compactMap { $0 as? RoundedCard }.first?.contents.arrangedSubviews.compactMap { $0 as? NSTextField }.first?.stringValue == "1. Add files")
+        guide.openTopic(2); guide.scroll.contentView.scroll(to: NSPoint(x: 0, y: 100)); guide.openTopic(0)
+        precondition(guide.scroll.contentView.bounds.origin == .zero)
         guide.close(); app.files = []
         precondition(!app.shouldOfferGettingStarted)
         app.showQuickStart(); precondition(app.guideController === guide && guide.window!.isVisible)

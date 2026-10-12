@@ -14,6 +14,21 @@ enum FlowTone {
     }
 }
 
+/// Shared measurements make one block's tab exactly match the next notch.
+/// Content begins below the connector rather than crowding its curved edge.
+enum RulePuzzleGeometry {
+    static let edgeInset: CGFloat = 10
+    static let connectorDepth: CGFloat = 9
+    static let connectionOverlap: CGFloat = edgeInset * 2
+    static let contentInsets = NSEdgeInsets(top: 32, left: 20, bottom: 24, right: 20)
+    static func connectorBaseline(height: CGFloat, top: Bool) -> CGFloat {
+        top ? edgeInset : height - edgeInset
+    }
+    static func connectorTip(height: CGFloat, top: Bool) -> CGFloat {
+        connectorBaseline(height: height, top: top) + connectorDepth
+    }
+}
+
 /// A bounded, native puzzle block. Colour supplements the word and symbol;
 /// controls stay native and every ordering operation also has keyboard buttons.
 final class RulePuzzleBlock: NSView {
@@ -26,33 +41,43 @@ final class RulePuzzleBlock: NSView {
     init(content: NSView, tone: FlowTone) {
         self.tone = tone
         super.init(frame: .zero)
-        pin(content, in: self, inset: 20)
-        heightAnchor.constraint(equalTo: content.heightAnchor, constant: 40).isActive = true
+        let inset = RulePuzzleGeometry.contentInsets
+        content.translatesAutoresizingMaskIntoConstraints = false; addSubview(content)
+        NSLayoutConstraint.activate([
+            content.leadingAnchor.constraint(equalTo: leadingAnchor, constant: inset.left),
+            content.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -inset.right),
+            content.topAnchor.constraint(equalTo: topAnchor, constant: inset.top),
+            content.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -inset.bottom),
+            heightAnchor.constraint(equalTo: content.heightAnchor, constant: inset.top + inset.bottom)
+        ])
         registerForDraggedTypes([Self.dragType])
         setAccessibilityElement(false)
     }
     required init?(coder: NSCoder) { fatalError() }
     override func draw(_ dirtyRect: NSRect) {
-        let w = bounds.width - 1, bottom = bounds.height - 11
+        let w = bounds.width - 1
+        let top = RulePuzzleGeometry.connectorBaseline(height: bounds.height, top: true)
+        let bottom = RulePuzzleGeometry.connectorBaseline(height: bounds.height, top: false)
+        let depth = RulePuzzleGeometry.connectorDepth
         guard w > 100, bottom > 35 else { return }
         let p = NSBezierPath()
-        p.move(to: NSPoint(x: 13, y: 10))
-        p.line(to: NSPoint(x: 44, y: 10))
-        p.curve(to: NSPoint(x: 53, y: 19), controlPoint1: NSPoint(x: 48, y: 10), controlPoint2: NSPoint(x: 48, y: 19))
-        p.line(to: NSPoint(x: 75, y: 19))
-        p.curve(to: NSPoint(x: 84, y: 10), controlPoint1: NSPoint(x: 80, y: 19), controlPoint2: NSPoint(x: 80, y: 10))
-        p.line(to: NSPoint(x: w - 13, y: 10))
-        p.curve(to: NSPoint(x: w, y: 23), controlPoint1: NSPoint(x: w, y: 10), controlPoint2: NSPoint(x: w, y: 10))
+        p.move(to: NSPoint(x: 13, y: top))
+        p.line(to: NSPoint(x: 44, y: top))
+        p.curve(to: NSPoint(x: 53, y: top + depth), controlPoint1: NSPoint(x: 48, y: top), controlPoint2: NSPoint(x: 48, y: top + depth))
+        p.line(to: NSPoint(x: 75, y: top + depth))
+        p.curve(to: NSPoint(x: 84, y: top), controlPoint1: NSPoint(x: 80, y: top + depth), controlPoint2: NSPoint(x: 80, y: top))
+        p.line(to: NSPoint(x: w - 13, y: top))
+        p.curve(to: NSPoint(x: w, y: top + 13), controlPoint1: NSPoint(x: w, y: top), controlPoint2: NSPoint(x: w, y: top))
         p.line(to: NSPoint(x: w, y: bottom - 13))
         p.curve(to: NSPoint(x: w - 13, y: bottom), controlPoint1: NSPoint(x: w, y: bottom), controlPoint2: NSPoint(x: w, y: bottom))
         p.line(to: NSPoint(x: 84, y: bottom))
-        p.curve(to: NSPoint(x: 75, y: bottom + 9), controlPoint1: NSPoint(x: 80, y: bottom), controlPoint2: NSPoint(x: 80, y: bottom + 9))
-        p.line(to: NSPoint(x: 53, y: bottom + 9))
-        p.curve(to: NSPoint(x: 44, y: bottom), controlPoint1: NSPoint(x: 48, y: bottom + 9), controlPoint2: NSPoint(x: 48, y: bottom))
+        p.curve(to: NSPoint(x: 75, y: bottom + depth), controlPoint1: NSPoint(x: 80, y: bottom), controlPoint2: NSPoint(x: 80, y: bottom + depth))
+        p.line(to: NSPoint(x: 53, y: bottom + depth))
+        p.curve(to: NSPoint(x: 44, y: bottom), controlPoint1: NSPoint(x: 48, y: bottom + depth), controlPoint2: NSPoint(x: 48, y: bottom))
         p.line(to: NSPoint(x: 13, y: bottom))
         p.curve(to: NSPoint(x: 1, y: bottom - 13), controlPoint1: NSPoint(x: 1, y: bottom), controlPoint2: NSPoint(x: 1, y: bottom))
-        p.line(to: NSPoint(x: 1, y: 23))
-        p.curve(to: NSPoint(x: 13, y: 10), controlPoint1: NSPoint(x: 1, y: 10), controlPoint2: NSPoint(x: 1, y: 10))
+        p.line(to: NSPoint(x: 1, y: top + 13))
+        p.curve(to: NSPoint(x: 13, y: top), controlPoint1: NSPoint(x: 1, y: top), controlPoint2: NSPoint(x: 1, y: top))
         p.close()
         NSColor.controlBackgroundColor.setFill(); p.fill()
         tone.color.withAlphaComponent(NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency ? 0.22 : 0.12).setFill(); p.fill()
@@ -63,6 +88,7 @@ final class RulePuzzleBlock: NSView {
             NSColor.controlAccentColor.setStroke(); line.lineWidth = 4; line.stroke()
         }
     }
+    override func viewDidChangeEffectiveAppearance() { super.viewDidChangeEffectiveAppearance(); needsDisplay = true }
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation { draggingUpdated(sender) }
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
         guard let token = sender.draggingPasteboard.string(forType: Self.dragType), acceptsDrop?(token) == true else { return [] }

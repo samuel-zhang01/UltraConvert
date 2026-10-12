@@ -2,6 +2,9 @@
 
 ## 1.7.0 preview — 2026-10-12
 
+- Cohesive 180 ms native transitions for rule navigation, Builder/Activity, guidance, window presentation and batch options. Rapid clicks cancel obsolete scroll transitions; Reduce Motion switches to immediate updates. No idle animation timer.
+- Precisely matched puzzle seams, consistent 20 pt side padding, aligned condition/action controls, larger essential text and adaptive selected-rule contrast. Settings icons stay beside their titles at every checked window size.
+- Return to the Builder when adding an action or switching rules from Activity, and reset guide scrolling when changing topics.
 - Colourful native puzzle rule editor with fitted action blocks, drag snapping, keyboard reorder, persistent action palette and stage navigation.
 - Explicit match/no-match paths, labelled live filename illustrations, compact read-only preview summaries and full selectable plans.
 - Preserve custom settling times, unknown draft values and filename text across operator changes. Structural edits retain scroll position; stale controls and drag sessions cannot change replacement blocks.

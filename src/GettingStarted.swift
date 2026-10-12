@@ -7,6 +7,7 @@ final class GettingStarted: NSWindowController {
     let topics = NSSegmentedControl(labels: ["Convert Files", "Finder", "Folder Rules", "Options & Startup"], trackingMode: .selectOne, target: nil, action: nil)
     let body = NSStackView()
     let actions = NSStackView()
+    let scroll = NSScrollView()
     let route: (GuideDestination) -> Void
 
     init(route: @escaping (GuideDestination) -> Void) {
@@ -22,23 +23,23 @@ final class GettingStarted: NSWindowController {
         full(uiLabel("Convert a batch now, use Finder shortcuts, or let folder rules handle new files. Everything runs on your Mac.", size: 13, color: .secondaryLabelColor))
         topics.selectedSegment = 0; topics.target = self; topics.action = #selector(changeTopic)
         topics.setAccessibilityLabel("Getting Started topics"); full(topics)
-        let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.drawsBackground = false
+        scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.drawsBackground = false
         let canvas = FlippedView(); canvas.translatesAutoresizingMaskIntoConstraints = false; scroll.documentView = canvas
         body.orientation = .vertical; body.alignment = .leading; body.spacing = 12; body.translatesAutoresizingMaskIntoConstraints = false
         canvas.addSubview(body)
         NSLayoutConstraint.activate([canvas.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor), body.leadingAnchor.constraint(equalTo: canvas.leadingAnchor), body.trailingAnchor.constraint(equalTo: canvas.trailingAnchor, constant: -8), body.topAnchor.constraint(equalTo: canvas.topAnchor), body.bottomAnchor.constraint(equalTo: canvas.bottomAnchor, constant: -8)])
         full(scroll); scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 180).isActive = true
-        let note = uiLabel("Reopen this guide with Getting Started in the converter or the Help menu. Settings is also available with ⌘,.", size: 11, color: .secondaryLabelColor)
+        let note = uiLabel("Reopen this guide with Getting Started in the converter or the Help menu. Settings is also available with ⌘,.", size: 13)
         full(note)
         actions.spacing = 8; full(actions)
         render(); panel.center()
     }
     required init?(coder: NSCoder) { fatalError() }
-    @objc func changeTopic() { render() }
+    @objc func changeTopic() { render(); InterfaceMotion.reveal(body) }
     func openTopic(_ index: Int) { topics.selectedSegment = max(0, min(3, index)); render() }
     private func card(_ title: String, _ text: String) {
         let card = RoundedCard()
-        for field in [uiLabel(title, size: 14, weight: .semibold), uiLabel(text, size: 12)] {
+        for field in [uiLabel(title, size: 15, weight: .semibold), uiLabel(text, size: 13)] {
             field.isSelectable = true; card.contents.addArrangedSubview(field); field.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
         }
         body.addArrangedSubview(card); card.widthAnchor.constraint(equalTo: body.widthAnchor).isActive = true
@@ -77,6 +78,7 @@ final class GettingStarted: NSWindowController {
         if let done = actions.arrangedSubviews.first as? NSButton { done.keyEquivalent = "\u{1b}"; done.keyEquivalentModifierMask = [] }
         actions.insertArrangedSubview(NSView(), at: 1)
         action("Full Guide", .fullGuide)
+        window?.contentView?.layoutSubtreeIfNeeded(); InterfaceMotion.snapScroll(scroll, to: .zero)
     }
 }
 
@@ -94,6 +96,6 @@ extension ConverterApp {
             case .fullGuide: self.openGuide()
             }
         }) }
-        guideController?.showWindow(nil); guideController?.window?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps: true)
+        if let panel = guideController?.window { InterfaceMotion.present(panel) }; NSApp.activate(ignoringOtherApps: true)
     }
 }
