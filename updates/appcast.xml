@@ -1,0 +1,21 @@
+<?xml version="1.0" standalone="yes"?><!-- sparkle-sign-warning:
+IMPORTANT: This file was signed by Sparkle. Any modifications to this file requires re-signing this file with generate_appcast or sign_update! The signed signature will be embedded at the end of this file.
+--><rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>UltraConvert</title>
+        <item>
+            <title>1.8.0</title>
+            <pubDate>Mon, 12 Oct 2026 13:09:00 +0100</pubDate>
+            <link>https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.0</link>
+            <sparkle:version>1.8.0</sparkle:version>
+            <sparkle:shortVersionString>1.8.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[<h2>UltraConvert 1.8.0</h2><p>Signed app update. Your preferences, saved folder rules and separately installed conversion engines are preserved.</p>
+]]></description>
+            <enclosure url="https://github.com/samuel-zhang01/UltraConvert/releases/download/v1.8.0/UltraConvert-1.8.0-update-macos-universal.zip" length="2696878" type="application/octet-stream" sparkle:edSignature="UFB5KIcHZ0EuNIpsqS5v934pyXYbpcpzQW96Xnm4+7loxsKvUGtQe7BIlBJABrPderit/aCAkXA87g99loQPAg=="></enclosure>
+        </item>
+    </channel>
+</rss><!-- sparkle-signatures:
+edSignature: I6a4zaSo214SEE83sB3LIo+8dNIHvVm3PflKkT4ygKFJa0TSgCJZDHOfcD0oaMswegdzyXJTSP3W6mR7jrImCQ==
+length: 1379
+-->
