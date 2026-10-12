@@ -20,5 +20,10 @@
   "remaining_validation_limits": [
     "Intel physical hardware and older macOS versions were not available",
     "Fixture update is signed but not notarized; the public artifact undergoes separate Apple notarization and Gatekeeper checks"
-  ]
+  ],
+  "ci_static_and_fresh_macos_passed": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38244983718/attempts/2",
+  "installed_public_app_version": "1.8.0",
+  "installed_ui_mixed_batch_passed": true,
+  "installed_setup_checks_passed": true,
+  "installed_originals_and_saved_support_files_unchanged": true
 }

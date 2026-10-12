@@ -9,7 +9,7 @@ UltraConvert is a native **Swift/AppKit macOS app** for images, audio, video, do
 
 ![UltraConvert showing the three conversion stages](docs/images/converter.png)
 
-[Install](#install) · [First conversion](#convert-your-first-file) · [Finder](#convert-from-finder) · [Folder rules](#automate-a-folder) · [Startup](#startup-and-settings) · [Formats](#supported-formats) · [Help](#help-and-troubleshooting)
+[Install](#install) · [First conversion](#convert-your-first-file) · [Finder](#convert-from-finder) · [Folder rules](#automate-a-folder) · [Startup](#startup-and-settings) · [Updates](#update-or-remove) · [Formats](#supported-formats) · [Help](#help-and-troubleshooting)
 
 ## Install
 
@@ -173,3 +173,7 @@ If an update fails, the existing app remains installed. Try Check for Updates ag
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [UX audits](docs/UX-AUDIT.md) · [Release/signing](docs/MACOS-RELEASE.md) · [Source research](research/REVIEW.md).
 
 CI checks native compilation, format round trips, edge cases, malicious input, installer rollback and static/dependency security. Signing and notarization establish artifact status, not functional perfection. Original code/artwork are MIT licensed; upstream snapshots retain their licences.
+
+## Licence and upstream source
+
+UltraConvert’s original code and artwork use the [MIT licence](LICENSE). [Sparkle](https://github.com/sparkle-project/Sparkle) provides signed app updates; its complete licence is included at `UltraConvert.app/Contents/Resources/Sparkle-LICENSE`. Conversion engines are installed separately and retain their upstream licences. The [source review](research/REVIEW.md) links the upstream projects and explains which code is used; research snapshots retain their own licence files.
