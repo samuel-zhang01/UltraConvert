@@ -10,7 +10,10 @@ struct InterfaceSmoke {
         let report = try JSONSerialization.jsonObject(with: data) as! [String: Any]
         let inspected = report["files"] as! [[String: Any]]
         precondition(inspected.count == 6 && inspected.allSatisfy { $0["error"] is NSNull })
-        let app = ConverterApp()
+        let domain = "ultraconvert-interface-tests-" + UUID().uuidString
+        let preferences = UserDefaults(suiteName: domain)!
+        defer { preferences.removePersistentDomain(forName: domain) }
+        let app = ConverterApp(preferences: preferences)
         app.buildInterface()
         precondition(app.window.contentMinSize == NSSize(width: 760, height: 570))
         precondition(app.fileTable.numberOfRows == 0)

@@ -11,8 +11,9 @@ concurrency:
   cancel-in-progress: true
 jobs:
   static:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-latest' || fromJSON('["deploy-vps","ultraconvert"]') }}
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -31,49 +32,42 @@ jobs:
       - run: python -m unittest discover -s tests -p 'test_source_collection.py' -v
       - run: python -m unittest discover -s tests -p 'test_update_packaging.py' -v
   macos:
-    runs-on: macos-26
-    timeout-minutes: 60
+    runs-on: ${{ github.event_name == 'pull_request' && 'macos-26' || fromJSON('["local-macos","ultraconvert"]') }}
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - name: Install engines and compile native app
-        run: python3 install.py --build-from-source
-      - name: Format round trips and edge preservation
+      - name: Prepare disposable native CI interpreter
         run: |
-          UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
-          "$UC_PY" tests/test_conversion.py
-          "$UC_PY" tests/test_edges.py
-      - name: Native interface layout smoke
+          set -euo pipefail
+          ci_python=/opt/homebrew/bin/python3.14
+          if [[ ! -x "$ci_python" ]]; then
+            ci_python=/usr/local/opt/python@3.14/bin/python3.14
+          fi
+          # Standard public PR hosts are disposable. The owner's runner uses
+          # its existing engines and never runs the user installer.
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            for engine in ffmpeg-full imagemagick pandoc gdal mac python@3.14; do
+              brew list --versions "$engine" >/dev/null 2>&1 || brew install "$engine"
+            done
+            if [[ ! -d /Applications/calibre.app ]]; then
+              brew install --cask calibre
+            fi
+            ci_python=/opt/homebrew/bin/python3.14
+          fi
+          "$ci_python" -m venv --system-site-packages "$RUNNER_TEMP/ultraconvert-venv"
+          "$RUNNER_TEMP/ultraconvert-venv/bin/python" -m pip install --disable-pip-version-check -r requirements.txt
+      - name: Complete native build, conversion, interface and recovery gates
         run: |
-          UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
-          "$UC_PY" src/convert.py --inspect -- examples/* > /tmp/ultraconvert-interface.json
-          xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_interface.swift -o /tmp/ultraconvert-interface-test
-          /tmp/ultraconvert-interface-test /tmp/ultraconvert-interface.json
-          xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_guidance.swift -o /tmp/ultraconvert-guidance-test
-          /tmp/ultraconvert-guidance-test
-          python3 -c 'import install; from pathlib import Path; [install.workflow(Path("build/FinderActions") / (name + ".workflow"), mode) for mode, name in (("here", "Convert Here with UltraConvert"), ("destination", "Convert to Destination with UltraConvert"))]'
-          xcrun swiftc -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_backend.swift -o /tmp/ultraconvert-backend-test
-          /tmp/ultraconvert-backend-test build/FinderActions
-          xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_automation.swift -o /tmp/ultraconvert-automation-test
-          /tmp/ultraconvert-automation-test
-          xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_rule_editor.swift -o /tmp/ultraconvert-rule-editor-test
-          /tmp/ultraconvert-rule-editor-test
-          xcrun swiftc -Osize -parse-as-library -D ULTRACONVERT_INTERFACE_TESTS -framework AppKit src/*.swift tests/test_updates.swift -o /tmp/ultraconvert-updates-test
-          /tmp/ultraconvert-updates-test
-      - name: Security, batch workflow and rollback checks
-        run: |
-          UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
-          "$UC_PY" -m unittest discover -s tests -p 'test_security.py' -v
-          "$UC_PY" -m unittest discover -s tests -p 'test_batch.py' -v
-          "$UC_PY" -m unittest discover -s tests -p 'test_installer.py' -v
-          "$UC_PY" -m unittest discover -s tests -p 'test_diagnostics.py' -v
-          "$UC_PY" -m unittest discover -s tests -p 'test_release.py' -v
-          "$UC_PY" -m unittest discover -s tests -p 'test_runtime.py' -v
-          "$UC_PY" "$HOME/Library/Application Support/UltraConvert/src/diagnostics.py"
+          "$RUNNER_TEMP/ultraconvert-venv/bin/python" scripts/ci_macos.py
+      - name: Remove disposable interpreter
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/ultraconvert-venv"
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
           name: conversion-test-evidence
           path: evidence/local/*.json
-          retention-days: 14
+          retention-days: 3

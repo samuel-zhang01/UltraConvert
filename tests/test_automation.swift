@@ -344,7 +344,10 @@ struct AutomationTests {
         check(!rulesWindow.previewRunning && rulesWindow.cancelTest.isHidden, "Closing the rule window cancels and drains its test")
         let quittingPreview = ControlledInspectionEngine(); runtime.engine = { quittingPreview }; rulesWindow.gather()
         rulesWindow.startPreview(source, rule: rulesWindow.draft); spin({ quittingPreview.started })
-        let quittingApp = ConverterApp(); quittingApp.rulesController = rulesWindow
+        let domain = "ultraconvert-automation-tests-" + UUID().uuidString
+        let preferences = UserDefaults(suiteName: domain)!
+        defer { preferences.removePersistentDomain(forName: domain) }
+        let quittingApp = ConverterApp(preferences: preferences); quittingApp.rulesController = rulesWindow
         check(quittingApp.applicationShouldTerminate(NSApp) == .terminateLater && !rulesWindow.previewRunning, "Quit cancels a file test and waits for its work to drain")
         quittingPreview.release.signal(); spin({ rulesWindow.previewWorkCount == 0 }); quittingApp.waitingForAutomationQuit = false
         check(quittingApp.applicationShouldTerminate(NSApp) == .terminateNow, "Quit proceeds after file-test cleanup")
