@@ -13,7 +13,7 @@ UltraConvert is a native **Swift/AppKit macOS app** for images, audio, video, do
 
 ## Install
 
-The **[v1.8.2 release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.2)** includes a **Developer ID signed, Apple-notarized universal app** for Apple Silicon and Intel, with in-app updates. Intel compilation is verified; Intel hardware and engine installation remain untested. Check **RELEASE-METADATA.json** and **SHA256SUMS.txt** for the package you download. The app’s notarization ticket is stapled; the signed DMG is not separately notarized.
+The **[v1.8.3 release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.3)** includes a **Developer ID signed, Apple-notarized universal app** for Apple Silicon and Intel, with in-app updates. Intel compilation is verified; Intel hardware and engine installation remain untested. Check **RELEASE-METADATA.json** and **SHA256SUMS.txt** for the package you download. The app’s notarization ticket is stapled; the signed DMG is not separately notarized.
 
 ### Homebrew installation
 
@@ -33,7 +33,7 @@ Use **Check for Updates…** for app updates. Use `brew upgrade ultraconvert-run
 The app uses separately installed open source conversion engines. **Dragging the `.app` into Applications alone does not install those engines.** This installer sets up the app, engines and Finder actions:
 
 1. Install [Homebrew](https://brew.sh), including its printed **Next steps**. Open a new Terminal window and confirm `brew --version` works.
-2. Download **UltraConvert-1.8.2-macos-universal.zip** from the [release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.2). Use the named installer ZIP. The **DMG** contains the same installer folder: open it, copy **UltraConvert** into Downloads, then eject the disk image. The `update-macos-universal.zip` asset is for the in-app updater and requires an existing engine installation. GitHub’s automatic “Source code” downloads are for developers.
+2. Download **UltraConvert-1.8.3-macos-universal.zip** from the [release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.3). Use the named installer ZIP. The **DMG** contains the same installer folder: open it, copy **UltraConvert** into Downloads, then eject the disk image. The `update-macos-universal.zip` asset is for the in-app updater and requires an existing engine installation. GitHub’s automatic “Source code” downloads are for developers.
 3. Double-click the ZIP. Open **Terminal**, type `cd ` with a trailing space, drag the extracted **UltraConvert folder** into Terminal, and press Return.
 4. Run:
 
@@ -177,7 +177,7 @@ Reopen **Getting Started…** for the offline guide. [Full usage and troubleshoo
 
 **Coming from 1.7 or earlier, repairing engines, or updating manually:** quit UltraConvert, extract the full installer ZIP (or copy its folder out of the DMG), and run `python3 install.py` from that folder once. Future app updates are available in the menu. Source installs can use `git pull --ff-only` followed by `python3 install.py --build-from-source`. The manual installer backs up old components and rolls back failed component swaps.
 
-In-app updates include the native app and its conversion code. They do **not** update Homebrew, Python packages or conversion engines; use **Help → Check Setup** and rerun the full installer if an engine needs repair. Update checks contact GitHub, but send no input files or saved rules. Sparkle system profiling is disabled.
+In-app updates include the native app and its conversion code. Conversion engines are maintained separately. For a Homebrew installation, use `brew upgrade ultraconvert-runtime` and **Help → Check Setup…**. For a manual installation, rerun the full installer if an engine needs repair. Update checks contact GitHub, but send no input files or saved rules. Sparkle system profiling is disabled.
 
 If an update fails, the existing app remains installed. Try Check for Updates again when online, or use the full installer ZIP. Running from a disk image or a read-only location can prevent updates; install using the instructions above first.
 
@@ -187,7 +187,7 @@ If an update fails, the existing app remains installed. Try Check for Updates ag
 
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [UX audits](docs/UX-AUDIT.md) · [Release/signing](docs/MACOS-RELEASE.md) · [Source research](research/REVIEW.md).
 
-CI checks native compilation, format round trips, edge cases, malicious input, installer rollback and static/dependency security. Signing and notarization establish artifact status, not functional perfection. Original code/artwork are MIT licensed; upstream snapshots retain their licences.
+CI checks native compilation, format round trips, edge cases, malicious input, installer rollback and static/dependency security. Matching version tags automatically create the signed and notarized release, verify public downloads, update the Homebrew tap and run its installation tests before publishing the signed update feed. Signing runs on the maintainer’s Mac, which must be awake with its Keychain accessible; public pull requests use separate hosted runners. Signing and notarization establish artifact status, not functional perfection. Original code/artwork are MIT licensed; upstream snapshots retain their licences.
 
 ## Licence and upstream source
 

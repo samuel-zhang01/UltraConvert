@@ -27,7 +27,8 @@ jobs:
         run: |
           brew style samuel-zhang01/ultraconvert/ultraconvert-runtime samuel-zhang01/ultraconvert/ultraconvert
           brew audit --new --formula samuel-zhang01/ultraconvert/ultraconvert-runtime
-          brew audit --new --cask samuel-zhang01/ultraconvert/ultraconvert
+          # Official-catalogue popularity requirements do not apply to this custom tap.
+          brew audit --new --except=github_repository --cask samuel-zhang01/ultraconvert/ultraconvert
       - name: Install and test the runtime
         run: |
           brew install --build-from-source samuel-zhang01/ultraconvert/ultraconvert-runtime

@@ -65,11 +65,16 @@ class UltraconvertRuntime < Formula
   test do
     input = testpath/"settings.json"
     input.write('{"enabled":true,"value":7}')
-    inspected = shell_output("#{bin}/ultraconvert-engine --inspect #{input}")
-    assert_match '"category": "structured"', inspected
+    inspected = JSON.parse(shell_output("#{bin}/ultraconvert-engine --inspect #{input}"))
+    assert_equal "config", inspected.fetch("files").first.fetch("category")
+    assert_equal "json", inspected.fetch("files").first.fetch("format")
+    assert_nil inspected.fetch("files").first.fetch("error")
     system bin/"ultraconvert-engine", "--to", "yaml", "--here", "--reports-dir", testpath/"reports", input
     assert_path_exists testpath/"settings.yaml"
     assert_equal '{"enabled":true,"value":7}', input.read
-    system libexec/"bin/python", "-I", "-B", "-c", "from osgeo import gdal; import yaml, tomli_w, defusedxml"
+    system libexec/"bin/python", "-I", "-B", "-c",
+           "from osgeo import gdal; import sys, yaml, tomli_w, defusedxml; " \
+           "assert yaml.safe_load(open(sys.argv[1])) == {'enabled': True, 'value': 7}",
+           testpath/"settings.yaml"
   end
 end

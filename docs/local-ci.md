@@ -1,7 +1,7 @@
 # Local CI
 
 Trusted main pushes and explicit main dispatches run the unchanged static gate
-on `[deploy-vps, ultraconvert]` at 192.168.1.52 and the full native gate on
+on `[deploy-vps, ultraconvert]` and the full native gate on
 `[local-macos, ultraconvert]` on Samuel's ARM64 Mac. Public pull requests use
 standard hosted runners, whose public-repository compute is free, keeping
 external code off the owner's home machines. Runner labels select jobs; they
