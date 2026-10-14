@@ -242,6 +242,28 @@ class HomebrewTests(unittest.TestCase):
                 sparkle.download(io.BytesIO())
         self.assertEqual(request.call_count, 1)
 
+    def test_notary_ticket_wait_retries_then_succeeds(self):
+        import subprocess
+
+        with (
+            patch.object(
+                publish_release.subprocess,
+                "run",
+                side_effect=[
+                    subprocess.CompletedProcess([], 65),
+                    subprocess.CompletedProcess([], 0),
+                ],
+            ) as run,
+            patch.object(publish_release.time, "sleep"),
+        ):
+            publish_release.wait_for_ticket(self.root / "App.app")
+        self.assertEqual(run.call_count, 2)
+
+    def test_notary_ticket_timeout_prevents_publication(self):
+        with patch.object(publish_release.time, "monotonic", side_effect=[0, 1201]):
+            with self.assertRaises(RuntimeError):
+                publish_release.wait_for_ticket(self.root / "App.app")
+
     def test_self_hosted_signing_is_owner_only_and_never_pr_triggered(self):
         import yaml
 
