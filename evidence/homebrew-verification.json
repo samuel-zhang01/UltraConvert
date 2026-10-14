@@ -10,5 +10,8 @@
   "native_setup_checks_passed": 10,
   "homebrew_ci": "https://github.com/samuel-zhang01/homebrew-ultraconvert/actions/runs/38496475421",
   "homebrew_runtime_conversion_and_original_preservation": true,
-  "homebrew_app_install_and_data_preserving_uninstall": true
+  "homebrew_app_install_and_data_preserving_uninstall": true,
+  "production_signed_feed_published": true,
+  "production_feed_bytes_match_verified_release": true,
+  "production_feed": "https://raw.githubusercontent.com/samuel-zhang01/UltraConvert/main/updates/appcast.xml"
 }
