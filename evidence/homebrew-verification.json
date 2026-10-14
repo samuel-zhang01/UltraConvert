@@ -1,6 +1,7 @@
 {
-  "version": "1.8.2",
-  "release_commit": "2da28cb72f0c5807eeeeedf032e721c9b035eab0",
+  "date": "2026-10-14",
+  "version": "1.8.3",
+  "release_commit": "a68419d4df4c02b4fdd789c3469404ab7f275e43",
   "public_download_checksums_verified": true,
   "source_archive_matches_tag": true,
   "developer_id_signature_verified": true,
@@ -8,10 +9,26 @@
   "notarization_ticket_valid": true,
   "native_provenance_matches_metadata": true,
   "native_setup_checks_passed": 10,
-  "homebrew_ci": "https://github.com/samuel-zhang01/homebrew-ultraconvert/actions/runs/38496475421",
+  "automatic_release_ci": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38542506719",
+  "automatic_release_ci_passed": true,
+  "homebrew_ci": "https://github.com/samuel-zhang01/homebrew-ultraconvert/actions/runs/38542662062",
+  "homebrew_tap_commit": "45ddfa72c8aaccd2a28010b09e83a9e48d704f5e",
+  "homebrew_ci_passed": true,
   "homebrew_runtime_conversion_and_original_preservation": true,
   "homebrew_app_install_and_data_preserving_uninstall": true,
+  "local_runtime_source_install_passed": true,
+  "local_runtime_brew_test_passed": true,
+  "local_formula_and_cask_style_passed": true,
+  "local_formula_new_audit_passed": true,
+  "local_cask_new_audit_passed": true,
+  "cask_audit_exception": "github_repository popularity requirement for the official catalogue; custom tap only",
+  "local_cask_adopt_existing_app_passed": true,
+  "local_cask_adoption_preserved_preferences_and_rule_bytes": true,
   "production_signed_feed_published": true,
   "production_feed_bytes_match_verified_release": true,
-  "production_feed": "https://raw.githubusercontent.com/samuel-zhang01/UltraConvert/main/updates/appcast.xml"
+  "production_feed": "https://raw.githubusercontent.com/samuel-zhang01/UltraConvert/main/updates/appcast.xml",
+  "validation_limits": [
+    "Intel physical hardware and engine installation have not been tested",
+    "Homebrew is a custom tap, not an official Core/Cask submission"
+  ]
 }

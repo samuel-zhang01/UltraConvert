@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.8.3 — 2026-10-14
+
+- Homebrew runtime installation uses verified cached wheel downloads without a redundant fetch inside its build sandbox. The app cask checks published GitHub releases for its latest version.
+- Release automation verifies published artifacts, updates the custom tap, waits for its installation tests and publishes the signed appcast last. Safe resumption retains the original release/tag provenance; a missed tap CI event can be dispatched explicitly.
+- Real production updates 1.8.0 → 1.8.2 → 1.8.3 downloaded, installed and relaunched on the maintainer's Mac, preserving queued selections, all 11 persistent preferences and saved-rule bytes. Post-update conversion, native setup and Homebrew adoption passed.
+- Illustrated update instructions and public verification records. Universal Developer ID signed, Apple-notarized app; Intel physical hardware remains untested.
+
+## 1.8.2 — 2026-10-14
+
+- Custom Homebrew tap with a GUI app cask and managed conversion-runtime formula, pinned downloads and source/wheel checksums. Existing manual installations retain their working runtime.
+- Settings provides Open Download Page for manual installation or repair. Read-only version and setup commands support installation checks.
+- Automatic version-tag release pipeline with native/security tests, Developer ID signing, Apple notarization, all release assets, public download verification and Homebrew CI. Signing credentials remain on the maintainer's Mac.
+
+## 1.8.0 — 2026-10-12
+
+- Signed Sparkle updates from GitHub with Check for Updates, download/install/relaunch, daily checks and optional background download/install on quit.
+- Queue, format and destination restoration after relaunch; updates wait for conversion/preview work and unsaved rule edits. Settings and saved folder rules are retained.
+- Modified feed/archive rejection and interrupted-update recovery tests, plus an isolated actual-app update test. Universal signed/notarized public release.
+
 ## 1.7.0 preview — 2026-10-12
 
 - Cohesive 180 ms native transitions for rule navigation, Builder/Activity, guidance, window presentation and batch options. Rapid clicks cancel obsolete scroll transitions; Reduce Motion switches to immediate updates. No idle animation timer.

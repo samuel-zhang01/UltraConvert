@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-14",
+  "platform": {
+    "macos": "27.0.1",
+    "architecture": "arm64"
+  },
+  "source": "Production HTTPS GitHub appcast and public release archives",
+  "test_app": "Canonical installed UltraConvert app; no fixture feed or test bundle",
+  "updates": [
+    {
+      "from": "1.8.0",
+      "to": "1.8.2",
+      "download_passed": true,
+      "installation_passed": true,
+      "automatic_relaunch_passed": true,
+      "queued_file_restored": true,
+      "selected_format_restored": true,
+      "output_location_restored": true,
+      "persistent_preferences_preserved": true,
+      "persistent_preference_count": 11,
+      "saved_rule_bytes_unchanged": true
+    },
+    {
+      "from": "1.8.2",
+      "to": "1.8.3",
+      "download_passed": true,
+      "installation_passed": true,
+      "automatic_relaunch_passed": true,
+      "queued_file_restored": true,
+      "selected_format_restored": true,
+      "output_location_restored": true,
+      "persistent_preferences_preserved": true,
+      "persistent_preference_count": 11,
+      "saved_rule_bytes_unchanged": true
+    }
+  ],
+  "post_first_update_gui_conversion": {
+    "input": "Public Tone.wav test file",
+    "output": "MP3",
+    "converted": 1,
+    "failed": 0,
+    "output_codec_verified": true,
+    "original_bytes_unchanged": true
+  },
+  "homebrew_adoption": {
+    "app_version": "1.8.3",
+    "existing_app_adopted": true,
+    "preferences_preserved": true,
+    "saved_rule_bytes_unchanged": true
+  },
+  "final_installed_app": {
+    "version": "1.8.3",
+    "developer_id_signature_valid": true,
+    "gatekeeper_source": "Notarized Developer ID",
+    "stapled_ticket_valid": true,
+    "setup_checks_passed": 10,
+    "production_check_reported_up_to_date": true,
+    "app_opened_successfully": true
+  },
+  "screenshots": {
+    "update_available": "../docs/images/update-available.png",
+    "preparing_download": "../docs/images/update-progress.png",
+    "ready_to_install": "../docs/images/update-ready.png",
+    "restored_queue": "../docs/images/update-restored-queue.png",
+    "installed_settings": "../docs/images/app-updates.png"
+  },
+  "automatic_release_ci": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38542506719",
+  "homebrew_ci": "https://github.com/samuel-zhang01/homebrew-ultraconvert/actions/runs/38542662062",
+  "privacy": "Preference values, private paths, saved-rule contents and rule hashes are omitted. Local backups remain private.",
+  "validation_limits": [
+    "Intel physical hardware and older macOS versions were unavailable",
+    "These tests establish the observed paths; they do not guarantee every possible update or conversion"
+  ]
+}

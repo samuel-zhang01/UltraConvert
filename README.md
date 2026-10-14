@@ -165,7 +165,19 @@ Reopen **Getting Started…** for the offline guide. [Full usage and troubleshoo
 
 ## Update or remove
 
-**From version 1.8 onward:** choose **UltraConvert → Check for Updates…** (also in **Settings**, ⌘,). Read the update notes, click **Install Update**, then **Install and Relaunch**. The app downloads from GitHub, checks the signed feed and archive before extraction, installs the app and reopens your queued files. Your preferences, saved rules and conversion engines are retained. Active conversions and previews finish first; save or discard any rule edits before updating.
+**From version 1.8 onward, update inside the app:**
+
+1. Choose **UltraConvert → Check for Updates…**, or open **Settings** (⌘,) and click **Check for Updates…**.
+2. Read the release notes and click **Install Update**. Keep the app open while the download is verified and prepared.
+3. Click **Install and Relaunch**. UltraConvert installs the update and reopens with your queued files, selected formats and destination.
+
+Your preferences, saved folder rules and conversion engines are retained. Active conversions and previews finish first; save or discard any rule edits before updating. If you already have the newest version, the app says **You’re up to date!**.
+
+![A real GitHub update offer with release notes and the Install Update button](docs/images/update-available.png)
+
+![The downloaded update ready for Install and Relaunch](docs/images/update-ready.png)
+
+These screenshots show real update tests; version numbers change with each release. [Download preparation](docs/images/update-progress.png) · [Restored file queue after relaunch](docs/images/update-restored-queue.png).
 
 ![App update settings with daily checks and optional background downloads](docs/images/app-updates.png)
 
@@ -174,6 +186,8 @@ Reopen **Getting Started…** for the offline guide. [Full usage and troubleshoo
 - **Automatically check for updates daily** is on by default. Checks run while UltraConvert is open; no separate background monitor is installed.
 - **Download updates and install when I quit** is optional and off by default. It downloads verified updates in the background and installs on a normal quit. You can still use Check for Updates to install and relaunch sooner.
 - **Include preview releases** is optional and off by default for this full release. Stable releases remain available in either setting.
+
+The Settings screenshot shows an example with background downloads and Launch at Login enabled; these options are your choice.
 
 **Coming from 1.7 or earlier, repairing engines, or updating manually:** quit UltraConvert, extract the full installer ZIP (or copy its folder out of the DMG), and run `python3 install.py` from that folder once. Future app updates are available in the menu. Source installs can use `git pull --ff-only` followed by `python3 install.py --build-from-source`. The manual installer backs up old components and rolls back failed component swaps.
 
@@ -185,7 +199,9 @@ If an update fails, the existing app remains installed. Try Check for Updates ag
 
 ## Development and verification
 
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [UX audits](docs/UX-AUDIT.md) · [Release/signing](docs/MACOS-RELEASE.md) · [Source research](research/REVIEW.md) · [Homebrew verification](evidence/homebrew-verification.json).
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [UX audits](docs/UX-AUDIT.md) · [Release/signing](docs/MACOS-RELEASE.md) · [Source research](research/REVIEW.md) · [Homebrew verification](evidence/homebrew-verification.json) · [Real GitHub update verification](evidence/github-update-verification.json).
+
+On an Apple Silicon Mac running macOS 27, real production GitHub updates **1.8.0 → 1.8.2 → 1.8.3** downloaded, installed and relaunched successfully. Both retained the queued file, MP3 choice, destination, all 11 persistent preferences and the saved folder rule unchanged. A conversion after the first update passed and kept its original. Local Homebrew runtime installation, conversion tests, app adoption and data preservation also passed; fresh hosted Homebrew installation/removal tests and the automatic release pipeline passed.
 
 CI checks native compilation, format round trips, edge cases, malicious input, installer rollback and static/dependency security. Matching version tags automatically create the signed and notarized release, verify public downloads, update the Homebrew tap and run its installation tests before publishing the signed update feed. Signing runs on the maintainer’s Mac, which must be awake with its Keychain accessible; public pull requests use separate hosted runners. Signing and notarization establish artifact status, not functional perfection. Original code/artwork are MIT licensed; upstream snapshots retain their licences.
 
