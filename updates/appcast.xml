@@ -4,18 +4,18 @@ IMPORTANT: This file was signed by Sparkle. Any modifications to this file requi
     <channel>
         <title>UltraConvert</title>
         <item>
-            <title>1.8.0</title>
-            <pubDate>Mon, 12 Oct 2026 13:09:00 +0100</pubDate>
-            <link>https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.0</link>
-            <sparkle:version>1.8.0</sparkle:version>
-            <sparkle:shortVersionString>1.8.0</sparkle:shortVersionString>
+            <title>1.8.2</title>
+            <pubDate>Wed, 14 Oct 2026 02:16:13 +0100</pubDate>
+            <link>https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.2</link>
+            <sparkle:version>1.8.2</sparkle:version>
+            <sparkle:shortVersionString>1.8.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
-            <description><![CDATA[<h2>UltraConvert 1.8.0</h2><p>Signed app update. Your preferences, saved folder rules and separately installed conversion engines are preserved.</p>
+            <description><![CDATA[<h2>UltraConvert 1.8.2</h2><p>Signed app update. Your preferences, saved folder rules and separately installed conversion engines are preserved.</p>
 ]]></description>
-            <enclosure url="https://github.com/samuel-zhang01/UltraConvert/releases/download/v1.8.0/UltraConvert-1.8.0-update-macos-universal.zip" length="2696878" type="application/octet-stream" sparkle:edSignature="UFB5KIcHZ0EuNIpsqS5v934pyXYbpcpzQW96Xnm4+7loxsKvUGtQe7BIlBJABrPderit/aCAkXA87g99loQPAg=="></enclosure>
+            <enclosure url="https://github.com/samuel-zhang01/UltraConvert/releases/download/v1.8.2/UltraConvert-1.8.2-update-macos-universal.zip" length="2702456" type="application/octet-stream" sparkle:edSignature="u5ThBkAqBIoCvzH766oJaxM/D2VhzSTwOhbo5L5vcEoyKwQ5dZIoJjoCYaoOQO8nL0Xn+5agXyH3H8CvXvhRCQ=="></enclosure>
         </item>
     </channel>
 </rss><!-- sparkle-signatures:
-edSignature: I6a4zaSo214SEE83sB3LIo+8dNIHvVm3PflKkT4ygKFJa0TSgCJZDHOfcD0oaMswegdzyXJTSP3W6mR7jrImCQ==
+edSignature: pyac0rfsuCaslbq6mDEGZDcBiEKbYuxTc5hjSHITTUPzf5B3HuJU1M3whRvpS03oiKbgOwAwmSN68fowbaDAAA==
 length: 1379
 -->
