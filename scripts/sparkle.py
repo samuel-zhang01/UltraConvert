@@ -5,6 +5,8 @@ import hashlib
 import shutil
 import subprocess
 import tempfile
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -17,6 +19,23 @@ KEY_ACCOUNT = "UltraConvert"
 FEED_URL = "https://raw.githubusercontent.com/samuel-zhang01/UltraConvert/main/updates/appcast.xml"
 
 
+def download(destination):
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(URL, timeout=30) as response:  # nosec B310
+                destination.seek(0)
+                destination.truncate()
+                shutil.copyfileobj(response, destination)
+            return
+        except urllib.error.HTTPError as error:
+            if error.code not in {408, 429, 500, 502, 503, 504} or attempt == 2:
+                raise
+        except urllib.error.URLError, TimeoutError:
+            if attempt == 2:
+                raise
+        time.sleep(1 + attempt)
+
+
 def verified_archive():
     cache = ROOT / "build/dependencies"
     cache.mkdir(parents=True, exist_ok=True)
@@ -26,8 +45,7 @@ def verified_archive():
             temporary = Path(temp.name)
             try:
                 # Fixed upstream HTTPS URL, followed by a pinned SHA-256 check.
-                with urllib.request.urlopen(URL, timeout=30) as response:  # nosec B310
-                    shutil.copyfileobj(response, temp)
+                download(temp)
                 temp.flush()
                 if hashlib.sha256(temporary.read_bytes()).hexdigest() != SHA256:
                     raise RuntimeError("Sparkle download checksum mismatch")

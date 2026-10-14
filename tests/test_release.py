@@ -153,11 +153,11 @@ class ReleaseTests(unittest.TestCase):
             pass
 
         def git_output(command, **kwargs):
-            if command == ["git", "status", "--porcelain"]:
+            if command == ["/usr/bin/git", "status", "--porcelain"]:
                 return b""
-            if command == ["git", "archive", "HEAD"]:
+            if command == ["/usr/bin/git", "archive", "HEAD"]:
                 return source.getvalue()
-            if command == ["git", "rev-parse", "HEAD"]:
+            if command == ["/usr/bin/git", "rev-parse", "HEAD"]:
                 return "test-release-commit\n"
             raise AssertionError(f"Unexpected command: {command}")
 
@@ -169,7 +169,7 @@ class ReleaseTests(unittest.TestCase):
                         archive.writestr("UltraConvert/INSTALL-FIRST.txt", "fixture")
                 else:
                     shutil.copytree(command[1], command[2])
-            elif command[:2] == ["git", "archive"]:
+            elif command[:2] == ["/usr/bin/git", "archive"]:
                 Path(command[command.index("-o") + 1]).write_bytes(b"source fixture")
             else:
                 raise AssertionError(f"Unexpected command: {command}")
@@ -638,9 +638,9 @@ class ReleaseTests(unittest.TestCase):
             pass
 
         def git_output(command, **kwargs):
-            if command == ["git", "status", "--porcelain"]:
+            if command == ["/usr/bin/git", "status", "--porcelain"]:
                 return b""
-            if command == ["git", "archive", "HEAD"]:
+            if command == ["/usr/bin/git", "archive", "HEAD"]:
                 return source.getvalue()
             raise AssertionError("Unexpected command after failed validation")
 

@@ -91,7 +91,7 @@ def main():
         parser.error("Public update assets require a Developer ID notarized app")
     if args.sign_identity:
         developer_id_identity(args.sign_identity)
-    if subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT).strip():
+    if subprocess.check_output(["/usr/bin/git", "status", "--porcelain"], cwd=ROOT).strip():
         raise RuntimeError("Commit the public working tree before building a release")
     version = (ROOT / "VERSION").read_text().strip()
     out = args.output_dir or ROOT / "dist" / version
@@ -101,7 +101,7 @@ def main():
             "Release artifacts already exist here. Choose a new --output-dir to preserve them."
         )
     # git archive includes precisely the committed public tree, without ignored/private files.
-    source = subprocess.check_output(["git", "archive", "HEAD"], cwd=ROOT)
+    source = subprocess.check_output(["/usr/bin/git", "archive", "HEAD"], cwd=ROOT)
     submission_ids = {}
     with tempfile.TemporaryDirectory(prefix="ultraconvert-release-") as temp:
         base = Path(temp)
@@ -208,7 +208,7 @@ def main():
         source_path = out / f"UltraConvert-{version}-source.tar.gz"
         subprocess.run(
             [
-                "git",
+                "/usr/bin/git",
                 "archive",
                 "--format=tar.gz",
                 "--prefix=UltraConvert/",
@@ -226,7 +226,7 @@ def main():
             {
                 "version": version,
                 "commit": subprocess.check_output(
-                    ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+                    ["/usr/bin/git", "rev-parse", "HEAD"], cwd=ROOT, text=True
                 ).strip(),
                 "architecture": arch,
                 "architectures": architectures,
@@ -242,6 +242,7 @@ def main():
                 "standalone_runtime": False,
                 "conversion_engines_bundled": False,
                 "conversion_source_bundled": True,
+                "homebrew_runtime_supported": True,
                 "updater": {
                     "framework": "Sparkle",
                     "version": "2.10.0",

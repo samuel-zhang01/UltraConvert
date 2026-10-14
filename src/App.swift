@@ -694,6 +694,26 @@ final class LockedCapture: @unchecked Sendable {
 @main
 struct UltraConvertMain {
     static func main() {
+        if CommandLine.arguments.dropFirst().first == "--version" {
+            print(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development")
+            return
+        }
+        if CommandLine.arguments.dropFirst().first == "--check-setup" {
+            do {
+                let support = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/UltraConvert")
+                let backend = try BackendPaths(contents: Bundle.main.bundleURL.appendingPathComponent("Contents"), support: support)
+                let process = Process(); process.executableURL = backend.python
+                process.arguments = backend.bundled
+                    ? ["-I", "-S", "-B", backend.source.appendingPathComponent("bootstrap.py").path, "diagnostics.py"]
+                    : ["-E", "-s", "-B", backend.source.appendingPathComponent("diagnostics.py").path]
+                process.environment = ProcessInfo.processInfo.environment.merging(backend.environment) { _, new in new }
+                process.standardInput = FileHandle.nullDevice
+                process.standardOutput = FileHandle.standardOutput; process.standardError = FileHandle.standardError
+                try process.run(); process.waitUntilExit(); exit(process.terminationStatus)
+            } catch {
+                FileHandle.standardError.write(Data(("Setup check could not start: " + error.localizedDescription + "\n").utf8)); exit(1)
+            }
+        }
         let app = NSApplication.shared
         // Install file icons before the staged workflows are swapped into place. Finder
         // Settings uses their document icons, independently of the Quick Action image.

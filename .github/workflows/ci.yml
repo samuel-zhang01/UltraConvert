@@ -4,6 +4,7 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  workflow_call:
 permissions:
   contents: read
 concurrency:
@@ -30,6 +31,7 @@ jobs:
       - run: python -m unittest discover -s tests -p 'test_runtime.py' -v
       - run: python -m unittest discover -s tests -p 'test_source_collection.py' -v
       - run: python -m unittest discover -s tests -p 'test_update_packaging.py' -v
+      - run: python -m unittest discover -s tests -p 'test_homebrew.py' -v
   macos:
     runs-on: macos-26
     timeout-minutes: 60

@@ -2,17 +2,36 @@ import AppKit
 import CoreServices
 import ServiceManagement
 
+enum HomebrewRuntime {
+    static var prefixes: [URL] {
+        #if arch(arm64)
+        return [URL(fileURLWithPath: "/opt/homebrew")]
+        #else
+        return [URL(fileURLWithPath: "/usr/local")]
+        #endif
+    }
+    static func python(support: URL, prefixes: [URL]) -> URL {
+        let existing = support.appendingPathComponent(".venv/bin/python")
+        if FileManager.default.fileExists(atPath: existing.path) { return existing }
+        for prefix in prefixes {
+            let candidate = prefix.appendingPathComponent("opt/ultraconvert-runtime/libexec/bin/python")
+            if FileManager.default.isExecutableFile(atPath: candidate.path) { return candidate }
+        }
+        return existing
+    }
+}
+
 struct BackendPaths {
     let python: URL
     let source: URL
     let environment: [String: String]
     let bundled: Bool
 
-    init(contents: URL?, support: URL) throws {
+    init(contents: URL?, support: URL, brewPrefixes: [URL] = HomebrewRuntime.prefixes) throws {
         let manifest = contents?.appendingPathComponent("Resources/runtime-manifest.json")
         guard let contents, let manifest,
               FileManager.default.fileExists(atPath: manifest.path) else {
-            python = support.appendingPathComponent(".venv/bin/python")
+            python = HomebrewRuntime.python(support: support, prefixes: brewPrefixes)
             let sealedSource = contents?.appendingPathComponent("Resources/Source")
             if let sealedSource, FileManager.default.fileExists(atPath: sealedSource.path) {
                 let root = contents!.resolvingSymlinksInPath().standardizedFileURL
@@ -300,6 +319,7 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
             updateNow.image = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: nil); updateNow.imagePosition = .imageLeading
             updateNow.setAccessibilityLabel("Check for Updates")
             addAction(updateNow)
+            addAction(button("Open Download Page…", #selector(openReleaseDownloads), symbol: "safari"))
             updateStatus.font = .systemFont(ofSize: 13); add(updateStatus)
             add(note("App updates do not upgrade Homebrew or conversion engines. Use Help → Check Setup if an engine needs repair."))
             let updateDivider = NSBox(); updateDivider.boxType = .separator; add(updateDivider)
@@ -370,6 +390,9 @@ final class IntegrationSettings: NSWindowController, NSWindowDelegate {
     @objc func changeUpdateDownloads() { updates?.automaticallyDownloads = updateDownloads.state == .on; refreshUpdates() }
     @objc func changePreviewUpdates() { updates?.includesPreviews = previewUpdates.state == .on; refreshUpdates() }
     @objc func checkUpdates() { updates?.checkNow(); refreshUpdates() }
+    @objc func openReleaseDownloads() {
+        NSWorkspace.shared.open(URL(string: "https://github.com/samuel-zhang01/UltraConvert/releases/latest")!)
+    }
 
     @objc func changeLogin() {
         do {

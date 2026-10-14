@@ -1,0 +1,51 @@
+name: Homebrew audit and install
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: homebrew-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  macos:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Install the checked-out tap
+        run: |
+          brew tap samuel-zhang01/ultraconvert
+          UC_TAP="$(brew --repo samuel-zhang01/ultraconvert)"
+          cp Formula/ultraconvert-runtime.rb "$UC_TAP/Formula/ultraconvert-runtime.rb"
+          cp Casks/ultraconvert.rb "$UC_TAP/Casks/ultraconvert.rb"
+      - name: Audit and style
+        run: |
+          brew style samuel-zhang01/ultraconvert/ultraconvert-runtime samuel-zhang01/ultraconvert/ultraconvert
+          brew audit --new --formula samuel-zhang01/ultraconvert/ultraconvert-runtime
+          brew audit --new --cask samuel-zhang01/ultraconvert/ultraconvert
+      - name: Install and test the runtime
+        run: |
+          brew install --build-from-source samuel-zhang01/ultraconvert/ultraconvert-runtime
+          brew test samuel-zhang01/ultraconvert/ultraconvert-runtime
+      - name: Install and test the signed app and preserve user data on uninstall
+        env:
+          UC_TEST_APPDIR: ${{ runner.temp }}/UltraConvertApplications
+        run: |
+          mkdir -p "$UC_TEST_APPDIR" "$HOME/Library/Application Support/UltraConvert/Automation"
+          printf '%s\n' '{"schema":1,"rules":[],"homebrew_test":"keep"}' > "$HOME/Library/Application Support/UltraConvert/Automation/rules.json"
+          defaults write local.ultraconvert HomebrewCITestValue -string keep
+          brew install --cask --appdir="$UC_TEST_APPDIR" samuel-zhang01/ultraconvert/ultraconvert
+          "$UC_TEST_APPDIR/UltraConvert.app/Contents/MacOS/UltraConvert" --version
+          "$UC_TEST_APPDIR/UltraConvert.app/Contents/MacOS/UltraConvert" --check-setup > "$RUNNER_TEMP/ultraconvert-setup.json" || true
+          python3.14 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/ultraconvert-setup.json")); checks=[x for x in d["checks"] if "UltraConvert" not in x["name"]]; assert len(checks)==8 and all(x["ok"] for x in checks), d'
+          codesign --verify --deep --strict "$UC_TEST_APPDIR/UltraConvert.app"
+          spctl --assess --type execute "$UC_TEST_APPDIR/UltraConvert.app"
+          brew uninstall --cask --appdir="$UC_TEST_APPDIR" samuel-zhang01/ultraconvert/ultraconvert
+          test ! -e "$UC_TEST_APPDIR/UltraConvert.app"
+          grep -q '"homebrew_test":"keep"' "$HOME/Library/Application Support/UltraConvert/Automation/rules.json"
+          test "$(defaults read local.ultraconvert HomebrewCITestValue)" = keep

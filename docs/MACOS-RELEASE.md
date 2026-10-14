@@ -124,3 +124,13 @@ A full Swift port should be incremental and preserve the existing fixture/securi
 5. Add a native first-run setup flow, or separately package/sign the engines with their licences and all dependent libraries. Only then promise a Terminal-free, drag-to-Applications installation.
 
 Developer ID distribution is the practical first target. Mac App Store sandboxing, engine packaging and licence constraints require a separate design; notarization alone does not make the current architecture App Store-ready.
+
+## Automated stable releases
+
+CI runs for main and pull requests on hosted runners. Push an exact `vMAJOR.MINOR.PATCH` tag after merging its matching VERSION change to main. The signed-release workflow reuses all CI checks, then uses the existing `ultraconvert` + `local-macos` runner. Only the repository owner can dispatch this job, and its exact tag must be reachable from main. Pull requests never run signing jobs.
+
+The runner needs Xcode account authorization, the existing Developer ID certificate/private key, Sparkle’s matching `UltraConvert` Keychain item, and the existing local `gh` login for the separate Homebrew tap. Keys and Xcode account credentials remain local; they are not exported to GitHub secrets. Xcode distribution logs stay in the runner’s ignored build folder and are not uploaded. The Mac must be awake and its Keychain accessible. If Apple requires renewed authorization, refresh it in Xcode and rerun the tagged workflow.
+
+The pipeline signs/notarizes the universal app, creates the complete seven-asset release, downloads and verifies all checksums, binds the source tarball to its Git tag, checks the app signature/ticket and signed feed/archive, and atomically updates `samuel-zhang01/homebrew-ultraconvert`. Tap CI audits the definitions and tests installation, conversion, setup and preservation of rule/preferences fixtures on a fresh hosted Mac. Only after tap CI passes does the pipeline publish the exact signed feed. Existing public artifacts are immutable on a retry. A newer published release prevents a downgrade.
+
+A manual retry uses `gh workflow run release.yml --ref vMAJOR.MINOR.PATCH`. It verifies the existing public assets before resuming tap/feed publication. No release is created by an ordinary documentation commit. Recipe templates are in `homebrew/templates`, with checksum rendering in `scripts/render_homebrew.py`.
