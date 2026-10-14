@@ -44,7 +44,9 @@ class UltraconvertRuntime < Formula
     venv = virtualenv_create(libexec, "python3.14", system_site_packages: true)
     resources.each do |resource|
       resource.fetch
-      venv.pip_install resource.cached_download, build_isolation: false
+      wheel = buildpath/resource.downloader.basename
+      cp resource.cached_download, wheel
+      venv.pip_install wheel, build_isolation: false
     end
     (libexec/"src").install Dir["src/*.py"], "src/policy.xml"
     (libexec/"scripts").install "scripts/homebrew_integrations.py"
