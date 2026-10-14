@@ -13,7 +13,7 @@ UltraConvert is a native **Swift/AppKit macOS app** for images, audio, video, do
 
 ## Install
 
-The **[v1.8.3 release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.3)** includes a **Developer ID signed, Apple-notarized universal app** for Apple Silicon and Intel, with in-app updates. Intel compilation is verified; Intel hardware and engine installation remain untested. Check **RELEASE-METADATA.json** and **SHA256SUMS.txt** for the package you download. The app’s notarization ticket is stapled; the signed DMG is not separately notarized.
+The **[latest release](https://github.com/samuel-zhang01/UltraConvert/releases/latest)** includes a **Developer ID signed, Apple-notarized universal app** for Apple Silicon and Intel, with in-app updates. Intel compilation is verified; Intel hardware and engine installation remain untested. Check **RELEASE-METADATA.json** and **SHA256SUMS.txt** for the package you download. The app’s notarization ticket is stapled; the signed DMG is not separately notarized.
 
 ### Homebrew installation
 
@@ -22,7 +22,7 @@ brew tap samuel-zhang01/ultraconvert
 brew install --cask ultraconvert
 ```
 
-The custom tap installs the signed app into Applications, a conversion-runtime formula and its engine dependencies. Open the app once, then enable Finder actions as described below. This tap is maintained by UltraConvert and is not an official Homebrew Core/Cask submission.
+The custom tap installs the signed app into Applications, a conversion-runtime formula and its engine dependencies. Open the app once, then enable Finder actions as described below. This tap is maintained by UltraConvert and is not an official Homebrew Core/Cask submission. Its fresh-Mac CI tests cover installation, a real conversion, setup, signature checks and removal while retaining saved preferences and rules.
 
 **Already installed in `/Applications`?** Quit the app, then use `brew install --cask --adopt ultraconvert`. Homebrew checks the existing app instead of overwriting a conflicting copy. Keep one app in Applications; a manual `~/Applications` copy should be moved to `/Applications` before adoption.
 
@@ -33,7 +33,7 @@ Use **Check for Updates…** for app updates. Use `brew upgrade ultraconvert-run
 The app uses separately installed open source conversion engines. **Dragging the `.app` into Applications alone does not install those engines.** This installer sets up the app, engines and Finder actions:
 
 1. Install [Homebrew](https://brew.sh), including its printed **Next steps**. Open a new Terminal window and confirm `brew --version` works.
-2. Download **UltraConvert-1.8.3-macos-universal.zip** from the [release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.3). Use the named installer ZIP. The **DMG** contains the same installer folder: open it, copy **UltraConvert** into Downloads, then eject the disk image. The `update-macos-universal.zip` asset is for the in-app updater and requires an existing engine installation. GitHub’s automatic “Source code” downloads are for developers.
+2. Download the **UltraConvert-VERSION-macos-universal.zip** installer from the [latest release](https://github.com/samuel-zhang01/UltraConvert/releases/latest), replacing VERSION with its release number. Use the named installer ZIP. The **DMG** contains the same installer folder: open it, copy **UltraConvert** into Downloads, then eject the disk image. The `update-macos-universal.zip` asset is for the in-app updater and requires an existing engine installation. GitHub’s automatic “Source code” downloads are for developers.
 3. Double-click the ZIP. Open **Terminal**, type `cd ` with a trailing space, drag the extracted **UltraConvert folder** into Terminal, and press Return.
 4. Run:
 
@@ -185,7 +185,7 @@ If an update fails, the existing app remains installed. Try Check for Updates ag
 
 ## Development and verification
 
-[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [UX audits](docs/UX-AUDIT.md) · [Release/signing](docs/MACOS-RELEASE.md) · [Source research](research/REVIEW.md).
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [UX audits](docs/UX-AUDIT.md) · [Release/signing](docs/MACOS-RELEASE.md) · [Source research](research/REVIEW.md) · [Homebrew verification](evidence/homebrew-verification.json).
 
 CI checks native compilation, format round trips, edge cases, malicious input, installer rollback and static/dependency security. Matching version tags automatically create the signed and notarized release, verify public downloads, update the Homebrew tap and run its installation tests before publishing the signed update feed. Signing runs on the maintainer’s Mac, which must be awake with its Keychain accessible; public pull requests use separate hosted runners. Signing and notarization establish artifact status, not functional perfection. Original code/artwork are MIT licensed; upstream snapshots retain their licences.
 

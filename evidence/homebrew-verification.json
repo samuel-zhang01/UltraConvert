@@ -1,0 +1,14 @@
+{
+  "version": "1.8.2",
+  "release_commit": "2da28cb72f0c5807eeeeedf032e721c9b035eab0",
+  "public_download_checksums_verified": true,
+  "source_archive_matches_tag": true,
+  "developer_id_signature_verified": true,
+  "gatekeeper_accepted": true,
+  "notarization_ticket_valid": true,
+  "native_provenance_matches_metadata": true,
+  "native_setup_checks_passed": 10,
+  "homebrew_ci": "https://github.com/samuel-zhang01/homebrew-ultraconvert/actions/runs/38496475421",
+  "homebrew_runtime_conversion_and_original_preservation": true,
+  "homebrew_app_install_and_data_preserving_uninstall": true
+}
