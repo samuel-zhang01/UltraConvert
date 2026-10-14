@@ -40,7 +40,7 @@ def api(path, method="GET", data=None, tap=False):
         capture_output=True,
         env=env,
     )
-    return json.loads(result.stdout)
+    return json.loads(result.stdout) if result.stdout.strip() else None
 
 
 def optional_api(path, tap=False):
@@ -63,11 +63,17 @@ def validate_ref(version):
         ["/usr/bin/git", "rev-parse", f"v{version}^{{commit}}"], cwd=ROOT, text=True
     ).strip()
     if head != tag:
-        raise ValueError("Run the release at its exact version tag")
+        existing = optional_api(f"repos/{REPOSITORY}/releases/tags/v{version}")
+        if not existing or existing["draft"]:
+            raise ValueError("New releases require their exact version tag")
+        # Main may repair publication orchestration for an immutable release.
+        # verify_release still binds its source archive to this tag and requires
+        # the current native inputs to match the signed published app exactly.
+        run(["/usr/bin/git", "merge-base", "--is-ancestor", tag, head], cwd=ROOT)
     run(["/usr/bin/git", "merge-base", "--is-ancestor", head, "origin/main"], cwd=ROOT)
     if subprocess.check_output(["/usr/bin/git", "status", "--porcelain"], cwd=ROOT).strip():
         raise ValueError("The release checkout must be clean")
-    return head
+    return tag
 
 
 def verify_release(directory, version, commit):
@@ -256,14 +262,24 @@ def publish_tap(directory, version):
 
 
 def wait_tap_ci(commit, timeout=2400):
-    deadline = time.monotonic() + timeout
-    while time.monotonic() < deadline:
-        runs = api(f"repos/{TAP}/actions/runs?head_sha={commit}&event=push", tap=True)[
+    started = time.monotonic()
+    deadline = started + timeout
+    dispatched = False
+    while (now := time.monotonic()) < deadline:
+        runs = api(f"repos/{TAP}/actions/workflows/ci.yml/runs?head_sha={commit}", tap=True)[
             "workflow_runs"
         ]
-        completed = [r for r in runs if r["status"] == "completed"]
-        if completed:
-            if any(r["conclusion"] != "success" for r in completed):
+        runs = [
+            r
+            for r in runs
+            if r["head_sha"] == commit and r["event"] in {"push", "workflow_dispatch"}
+        ]
+        if runs:
+            latest = max(runs, key=lambda r: r["id"])
+            if latest["status"] != "completed":
+                time.sleep(20)
+                continue
+            if latest["conclusion"] != "success":
                 raise RuntimeError(
                     "Homebrew CI failed; the update feed was not changed. Fix the tap and rerun this release."
                 )
@@ -272,6 +288,18 @@ def wait_tap_ci(commit, timeout=2400):
                 flush=True,
             )
             return
+        if not dispatched and now - started >= 40:
+            head = api(f"repos/{TAP}/git/ref/heads/main", tap=True)["object"]["sha"]
+            if head != commit:
+                raise RuntimeError("The tap changed before CI started; the feed was not changed")
+            api(
+                f"repos/{TAP}/actions/workflows/ci.yml/dispatches",
+                "POST",
+                {"ref": "main"},
+                tap=True,
+            )
+            dispatched = True
+            print("Explicitly started Homebrew CI for the verified tap commit", flush=True)
         time.sleep(20)
     raise RuntimeError("Homebrew CI did not finish; the update feed was not changed")
 

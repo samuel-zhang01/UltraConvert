@@ -10,6 +10,11 @@ cask "ultraconvert" do
   desc "Local file converter with Finder shortcuts and folder rules"
   homepage "https://github.com/samuel-zhang01/UltraConvert"
 
+  livecheck do
+    url :url
+    strategy :github_latest
+  end
+
   auto_updates true
   depends_on cask: "calibre"
   depends_on formula: "samuel-zhang01/ultraconvert/ultraconvert-runtime"

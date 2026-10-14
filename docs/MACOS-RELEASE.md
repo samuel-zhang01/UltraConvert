@@ -138,3 +138,7 @@ The pipeline signs/notarizes the universal app, creates the complete seven-asset
 A manual retry uses `gh workflow run release.yml --ref vMAJOR.MINOR.PATCH`. It verifies the existing public assets before resuming tap/feed publication. No release is created by an ordinary documentation commit. Recipe templates are in `homebrew/templates`, with checksum rendering in `scripts/render_homebrew.py`.
 
 The custom-tap cask audit uses `--new --except=github_repository`: Homebrew’s official-catalogue popularity requirement does not apply to a personal tap. Archived-repository, download, checksum, style and installation checks remain enabled. The runtime formula uses the complete `--new` audit.
+
+When a published release needs an orchestration or tap-recipe repair, dispatch `release.yml` from main with the same VERSION. This resume path requires the original tag to be an ancestor of main, retains the original release commit, verifies every downloaded asset and its exact tagged source archive, and rejects any change to native build inputs. It never rebuilds or replaces existing public binaries. Unpublished or draft releases still require their exact tag.
+
+If a tap API update does not start CI within 40 seconds, the controller verifies that main still points to the expected tap commit and explicitly dispatches its CI workflow. It accepts only push or workflow-dispatch runs for that exact commit and checks the newest run, so a superseded cancelled run cannot invalidate a newer successful run. A changed tap or failed current run keeps the update feed unchanged.

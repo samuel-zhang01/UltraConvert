@@ -264,6 +264,145 @@ class HomebrewTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 publish_release.wait_for_ticket(self.root / "App.app")
 
+    def test_empty_api_response_supports_workflow_dispatch(self):
+        import subprocess
+
+        with patch.object(
+            publish_release, "run", return_value=subprocess.CompletedProcess([], 0, "")
+        ):
+            self.assertIsNone(publish_release.api("example", "POST", {}))
+
+    def test_missing_push_event_dispatches_ci_for_the_exact_tap_commit(self):
+        commit = "a" * 40
+        success = {
+            "id": 2,
+            "head_sha": commit,
+            "event": "workflow_dispatch",
+            "status": "completed",
+            "conclusion": "success",
+        }
+        with (
+            patch.object(publish_release.time, "monotonic", side_effect=[0, 0, 40, 60]),
+            patch.object(publish_release.time, "sleep"),
+            patch.object(
+                publish_release,
+                "api",
+                side_effect=[
+                    {"workflow_runs": []},
+                    {"workflow_runs": []},
+                    {"object": {"sha": commit}},
+                    None,
+                    {"workflow_runs": [success]},
+                ],
+            ) as api,
+        ):
+            publish_release.wait_tap_ci(commit)
+        dispatch = api.call_args_list[3]
+        self.assertEqual(dispatch.args[1:], ("POST", {"ref": "main"}))
+
+    def test_changed_tap_is_not_dispatched_or_published(self):
+        with (
+            patch.object(publish_release.time, "monotonic", side_effect=[0, 40]),
+            patch.object(publish_release.time, "sleep"),
+            patch.object(
+                publish_release,
+                "api",
+                side_effect=[{"workflow_runs": []}, {"object": {"sha": "b" * 40}}],
+            ) as api,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "tap changed"):
+                publish_release.wait_tap_ci("a" * 40)
+        self.assertEqual(api.call_count, 2)
+
+    def test_newer_successful_run_supersedes_cancelled_run(self):
+        commit = "a" * 40
+        runs = [
+            {
+                "id": 1,
+                "head_sha": commit,
+                "event": "push",
+                "status": "completed",
+                "conclusion": "cancelled",
+            },
+            {
+                "id": 2,
+                "head_sha": commit,
+                "event": "workflow_dispatch",
+                "status": "completed",
+                "conclusion": "success",
+            },
+        ]
+        with (
+            patch.object(publish_release.time, "monotonic", side_effect=[0, 0]),
+            patch.object(publish_release, "api", return_value={"workflow_runs": runs}),
+        ):
+            publish_release.wait_tap_ci(commit)
+
+    def test_failed_ci_never_dispatches_or_allows_publication(self):
+        commit = "a" * 40
+        failed = {
+            "id": 1,
+            "head_sha": commit,
+            "event": "push",
+            "status": "completed",
+            "conclusion": "failure",
+        }
+        with (
+            patch.object(publish_release.time, "monotonic", side_effect=[0, 0]),
+            patch.object(publish_release, "api", return_value={"workflow_runs": [failed]}) as api,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "CI failed"):
+                publish_release.wait_tap_ci(commit)
+        self.assertEqual(api.call_count, 1)
+
+    def test_untagged_checkout_cannot_create_a_new_release(self):
+        (self.root / "VERSION").write_text("1.8.3")
+        with (
+            patch.object(publish_release, "ROOT", self.root),
+            patch.object(
+                publish_release.subprocess, "check_output", side_effect=["a" * 40, "b" * 40]
+            ),
+            patch.object(publish_release, "optional_api", return_value=None),
+        ):
+            with self.assertRaisesRegex(ValueError, "exact version tag"):
+                publish_release.validate_ref("1.8.3")
+
+    def test_existing_public_release_resume_keeps_its_original_tag_commit(self):
+        (self.root / "VERSION").write_text("1.8.3")
+        with (
+            patch.object(publish_release, "ROOT", self.root),
+            patch.object(
+                publish_release.subprocess, "check_output", side_effect=["a" * 40, "b" * 40, b""]
+            ),
+            patch.object(publish_release, "optional_api", return_value={"draft": False}),
+            patch.object(publish_release, "run") as run,
+        ):
+            self.assertEqual(publish_release.validate_ref("1.8.3"), "b" * 40)
+        self.assertEqual(run.call_args_list[0].args[0][-2:], ["b" * 40, "a" * 40])
+
+    def test_draft_release_cannot_bypass_exact_tag_requirement(self):
+        (self.root / "VERSION").write_text("1.8.3")
+        with (
+            patch.object(publish_release, "ROOT", self.root),
+            patch.object(
+                publish_release.subprocess, "check_output", side_effect=["a" * 40, "b" * 40]
+            ),
+            patch.object(publish_release, "optional_api", return_value={"draft": True}),
+        ):
+            with self.assertRaisesRegex(ValueError, "exact version tag"):
+                publish_release.validate_ref("1.8.3")
+
+    def test_existing_release_resume_rejects_changed_native_inputs(self):
+        meta = {"version": "1.8.3", "commit": "b" * 40, "native_source_fingerprint": "old"}
+        with (
+            patch.object(publish_release, "checked_artifacts", return_value=(meta, {})),
+            patch.object(
+                publish_release, "native_provenance", return_value={"source_fingerprint": "changed"}
+            ),
+        ):
+            with self.assertRaisesRegex(ValueError, "different native inputs"):
+                publish_release.verify_release(self.root, "1.8.3", "b" * 40)
+
     def test_self_hosted_signing_is_owner_only_and_never_pr_triggered(self):
         import yaml
 

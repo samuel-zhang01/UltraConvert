@@ -42,8 +42,8 @@ class UltraconvertRuntime < Formula
 
   def install
     venv = virtualenv_create(libexec, "python3.14", system_site_packages: true)
+    # Homebrew verifies and fetches resources before entering the build sandbox.
     resources.each do |resource|
-      resource.fetch
       wheel = buildpath/resource.downloader.basename
       cp resource.cached_download, wheel
       venv.pip_install wheel, build_isolation: false

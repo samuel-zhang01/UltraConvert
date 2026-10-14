@@ -28,11 +28,15 @@ jobs:
         run: |
           echo /opt/homebrew/bin >> "$GITHUB_PATH"
           echo /usr/local/bin >> "$GITHUB_PATH"
-      - name: Require an approved exact version tag
+      - name: Require an exact new tag or an immutable published release
         run: |
           UC_VERSION="$(cat VERSION)"
           [[ "$UC_VERSION" =~ ^[1-9][0-9]*\.[0-9]+\.[0-9]+$ ]]
-          test "$(git rev-parse HEAD)" = "$(git rev-parse "v$UC_VERSION^{commit}")"
+          UC_TAG="$(git rev-parse "v$UC_VERSION^{commit}")"
+          if test "$(git rev-parse HEAD)" != "$UC_TAG"; then
+            test "$(gh release view "v$UC_VERSION" --json isDraft --jq .isDraft)" = false
+            git merge-base --is-ancestor "$UC_TAG" HEAD
+          fi
           git merge-base --is-ancestor HEAD origin/main
       - name: Build, notarize, verify, publish and update the tap
         env:
