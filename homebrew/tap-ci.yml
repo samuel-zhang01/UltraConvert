@@ -46,7 +46,7 @@ jobs:
           python3.14 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/ultraconvert-setup.json")); checks=[x for x in d["checks"] if "UltraConvert" not in x["name"]]; assert len(checks)==8 and all(x["ok"] for x in checks), d'
           codesign --verify --deep --strict "$UC_TEST_APPDIR/UltraConvert.app"
           spctl --assess --type execute "$UC_TEST_APPDIR/UltraConvert.app"
-          brew uninstall --cask --appdir="$UC_TEST_APPDIR" samuel-zhang01/ultraconvert/ultraconvert
+          brew uninstall --cask samuel-zhang01/ultraconvert/ultraconvert
           test ! -e "$UC_TEST_APPDIR/UltraConvert.app"
           grep -q '"homebrew_test":"keep"' "$HOME/Library/Application Support/UltraConvert/Automation/rules.json"
           test "$(defaults read local.ultraconvert HomebrewCITestValue)" = keep
