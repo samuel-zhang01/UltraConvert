@@ -30,6 +30,10 @@ def main():
         # Compile/sign only a disposable ad-hoc development app. Do not launch
         # its normal entrypoint or call install.main/install_payload.
         app = package_app.build_app(work)
+        native = app / "Contents/MacOS/UltraConvert"
+        version = subprocess.check_output([str(native), "--version"], text=True).strip()
+        if version != (ROOT / "VERSION").read_text().strip():
+            raise RuntimeError("Native version command does not match VERSION")
         fixture_home = work / "fixture-home"
         actions = fixture_home / "Library/Services"
         for mode, name in (
@@ -44,6 +48,19 @@ def main():
                 *sorted(actions.glob("*.workflow")),
             ]
         )
+        fixture_support = fixture_home / "Library/Application Support/UltraConvert"
+        fixture_support.mkdir(parents=True)
+        (fixture_support / ".venv").symlink_to(Path(sys.prefix), target_is_directory=True)
+        cli_environment = {
+            **os.environ,
+            "HOME": str(fixture_home),
+            "CFFIXED_USER_HOME": str(fixture_home),
+        }
+        cli_setup = json.loads(
+            subprocess.check_output([str(native), "--check-setup"], text=True, env=cli_environment)
+        )
+        if not cli_setup["ok"]:
+            raise RuntimeError("Native setup command failed against disposable fixtures")
         for filename in ("test_conversion.py", "test_edges.py"):
             run([sys.executable, ROOT / "tests" / filename])
         report = work / "interface.json"

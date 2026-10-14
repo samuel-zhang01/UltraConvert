@@ -13,12 +13,27 @@ UltraConvert is a native **Swift/AppKit macOS app** for images, audio, video, do
 
 ## Install
 
-The **[v1.8.0 release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.0)** includes a **Developer ID signed, Apple-notarized universal app** for Apple Silicon and Intel, with in-app updates. Intel compilation is verified; Intel hardware and engine installation remain untested. Check **RELEASE-METADATA.json** and **SHA256SUMS.txt** for the package you download. The app’s notarization ticket is stapled; the signed DMG is not separately notarized.
+The **[v1.8.1 release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.1)** includes a **Developer ID signed, Apple-notarized universal app** for Apple Silicon and Intel, with in-app updates. Intel compilation is verified; Intel hardware and engine installation remain untested. Check **RELEASE-METADATA.json** and **SHA256SUMS.txt** for the package you download. The app’s notarization ticket is stapled; the signed DMG is not separately notarized.
+
+### Homebrew installation
+
+```sh
+brew tap samuel-zhang01/ultraconvert
+brew install --cask ultraconvert
+```
+
+The custom tap installs the signed app into Applications, a conversion-runtime formula and its engine dependencies. Open the app once, then enable Finder actions as described below. This tap is maintained by UltraConvert and is not an official Homebrew Core/Cask submission.
+
+**Already installed in `/Applications`?** Quit the app, then use `brew install --cask --adopt ultraconvert`. Homebrew checks the existing app instead of overwriting a conflicting copy. Keep one app in Applications; a manual `~/Applications` copy should be moved to `/Applications` before adoption.
+
+Use **Check for Updates…** for app updates. Use `brew upgrade ultraconvert-runtime` for the conversion runtime. Existing manual installations retain their working per-user environment. Normal `brew uninstall --cask ultraconvert` preserves preferences, folder rules and converted files; shared engines and the runtime remain installed. [Tap guide](https://github.com/samuel-zhang01/homebrew-ultraconvert).
+
+### Manual installer
 
 The app uses separately installed open source conversion engines. **Dragging the `.app` into Applications alone does not install those engines.** This installer sets up the app, engines and Finder actions:
 
 1. Install [Homebrew](https://brew.sh), including its printed **Next steps**. Open a new Terminal window and confirm `brew --version` works.
-2. Download **UltraConvert-1.8.0-macos-universal.zip** from the [release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.0). Use the named installer ZIP. The **DMG** contains the same installer folder: open it, copy **UltraConvert** into Downloads, then eject the disk image. The `update-macos-universal.zip` asset is for the in-app updater and requires an existing engine installation. GitHub’s automatic “Source code” downloads are for developers.
+2. Download **UltraConvert-1.8.1-macos-universal.zip** from the [release](https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.8.1). Use the named installer ZIP. The **DMG** contains the same installer folder: open it, copy **UltraConvert** into Downloads, then eject the disk image. The `update-macos-universal.zip` asset is for the in-app updater and requires an existing engine installation. GitHub’s automatic “Source code” downloads are for developers.
 3. Double-click the ZIP. Open **Terminal**, type `cd ` with a trailing space, drag the extracted **UltraConvert folder** into Terminal, and press Return.
 4. Run:
 

@@ -55,34 +55,47 @@ struct BackendSmoke {
         try fm.createDirectory(at: resources, withIntermediateDirectories: true)
         try fm.createDirectory(at: contents.appendingPathComponent("Helpers"), withIntermediateDirectories: true)
         try Data().write(to: contents.appendingPathComponent("Helpers/python"))
-        let legacy = try BackendPaths(contents: contents, support: support)
+        let legacy = try BackendPaths(contents: contents, support: support, brewPrefixes: [])
         precondition(!legacy.bundled && legacy.python == support.appendingPathComponent(".venv/bin/python"))
+        let brew = root.appendingPathComponent("brew")
+        let brewPython = brew.appendingPathComponent("opt/ultraconvert-runtime/libexec/bin/python")
+        try fm.createDirectory(at: brewPython.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data("#!/bin/sh\n".utf8).write(to: brewPython)
+        precondition(HomebrewRuntime.python(support: support, prefixes: [brew]) == legacy.python)
+        try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: brewPython.path)
+        precondition(HomebrewRuntime.python(support: support, prefixes: [brew]) == brewPython)
+        let brewBackend = try BackendPaths(contents: contents, support: support, brewPrefixes: [brew])
+        precondition(brewBackend.python == brewPython && !brewBackend.bundled)
+        try fm.createDirectory(at: legacy.python.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data().write(to: legacy.python)
+        precondition(HomebrewRuntime.python(support: support, prefixes: [brew]) == legacy.python)
+        try fm.removeItem(at: support)
         let sealed = resources.appendingPathComponent("Source")
         try fm.createDirectory(at: sealed, withIntermediateDirectories: true)
-        do { _ = try BackendPaths(contents: contents, support: support); preconditionFailure("Incomplete sealed source fell back to legacy code") } catch {}
+        do { _ = try BackendPaths(contents: contents, support: support, brewPrefixes: []); preconditionFailure("Incomplete sealed source fell back to legacy code") } catch {}
         for name in ["convert.py", "diagnostics.py", "runtime_tools.py", "structured.py", "geospatial.py", "guards.py", "policy.xml"] { try Data(name.utf8).write(to: sealed.appendingPathComponent(name)) }
-        let sourceUpdate = try BackendPaths(contents: contents, support: support)
+        let sourceUpdate = try BackendPaths(contents: contents, support: support, brewPrefixes: [])
         precondition(sourceUpdate.source.path == sealed.resolvingSymlinksInPath().standardizedFileURL.path && !sourceUpdate.bundled && sourceUpdate.python == legacy.python)
         try fm.removeItem(at: sealed.appendingPathComponent("convert.py"))
         try fm.createSymbolicLink(at: sealed.appendingPathComponent("convert.py"), withDestinationURL: contents.appendingPathComponent("Helpers/python"))
-        do { _ = try BackendPaths(contents: contents, support: support); preconditionFailure("Escaped sealed script accepted") } catch {}
+        do { _ = try BackendPaths(contents: contents, support: support, brewPrefixes: []); preconditionFailure("Escaped sealed script accepted") } catch {}
         try fm.removeItem(at: sealed.appendingPathComponent("convert.py")); try Data().write(to: sealed.appendingPathComponent("convert.py"))
         let manifest = resources.appendingPathComponent("runtime-manifest.json")
         var metadata: [String: Any] = ["schema": 1, "python": "Helpers/python", "source": "Resources/Source", "environment_paths": [:]]
         try JSONSerialization.data(withJSONObject: metadata).write(to: manifest)
-        let backend = try BackendPaths(contents: contents, support: support)
+        let backend = try BackendPaths(contents: contents, support: support, brewPrefixes: [])
         precondition(backend.bundled && backend.python.path.hasSuffix("Helpers/python"))
         precondition(!backend.environment["PATH"]!.contains("homebrew"))
         for path in ["/usr/bin/true", "../../../usr/bin/true", "Helpers/missing"] {
             metadata["python"] = path
             try JSONSerialization.data(withJSONObject: metadata).write(to: manifest)
-            do { _ = try BackendPaths(contents: contents, support: support); preconditionFailure("Unsafe path was accepted") }
+            do { _ = try BackendPaths(contents: contents, support: support, brewPrefixes: []); preconditionFailure("Unsafe path was accepted") }
             catch { }
         }
         metadata["python"] = "Helpers/python"
         metadata["environment_paths"] = ["DYLD_INSERT_LIBRARIES": "Helpers/python"]
         try JSONSerialization.data(withJSONObject: metadata).write(to: manifest)
-        do { _ = try BackendPaths(contents: contents, support: support); preconditionFailure("Loader environment was accepted") }
+        do { _ = try BackendPaths(contents: contents, support: support, brewPrefixes: []); preconditionFailure("Loader environment was accepted") }
         catch { }
         // Native workflow installation handles arbitrary app paths, preserves
         // owned previous actions and refuses a foreign destination before swaps.

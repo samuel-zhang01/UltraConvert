@@ -1,0 +1,45 @@
+name: Signed macOS release
+on:
+  push:
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ultraconvert-stable-release
+  cancel-in-progress: false
+jobs:
+  validation:
+    if: github.repository == 'samuel-zhang01/UltraConvert' && github.actor == 'samuel-zhang01'
+    uses: ./.github/workflows/ci.yml
+  release:
+    needs: validation
+    if: github.repository == 'samuel-zhang01/UltraConvert' && github.actor == 'samuel-zhang01'
+    runs-on: [ultraconvert, local-macos]
+    timeout-minutes: 90
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set trusted Mac tool paths
+        run: |
+          echo /opt/homebrew/bin >> "$GITHUB_PATH"
+          echo /usr/local/bin >> "$GITHUB_PATH"
+      - name: Require an approved exact version tag
+        run: |
+          UC_VERSION="$(cat VERSION)"
+          [[ "$UC_VERSION" =~ ^[1-9][0-9]*\.[0-9]+\.[0-9]+$ ]]
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "v$UC_VERSION^{commit}")"
+          git merge-base --is-ancestor HEAD origin/main
+      - name: Build, notarize, verify, publish and update the tap
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYTHONUNBUFFERED: '1'
+        run: |
+          UC_VERSION="$(cat VERSION)"
+          python3.14 -m venv build/release-env
+          build/release-env/bin/python -m pip install -r requirements.txt
+          build/release-env/bin/python scripts/publish_release.py --version "$UC_VERSION" --output "build/official-release-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"

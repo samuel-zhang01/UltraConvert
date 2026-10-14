@@ -1,0 +1,75 @@
+# frozen_string_literal: true
+
+# Conversion engines and an isolated Python environment for the native app.
+class UltraconvertRuntime < Formula
+  include Language::Python::Virtualenv
+
+  desc "Local conversion engines and Python runtime for UltraConvert"
+  homepage "https://github.com/samuel-zhang01/UltraConvert"
+  url "https://github.com/samuel-zhang01/UltraConvert/releases/download/v@VERSION@/UltraConvert-@VERSION@-source.tar.gz"
+  sha256 "@SOURCE_SHA256@"
+  license "MIT"
+
+  depends_on "ffmpeg-full"
+  depends_on "gdal"
+  depends_on "imagemagick"
+  depends_on "libyaml"
+  depends_on "mac"
+  depends_on macos: :ventura
+  depends_on "pandoc"
+  depends_on "python@3.14"
+
+  resource "pyyaml" do
+    on_arm do
+      url "https://files.pythonhosted.org/packages/bd/9c/4d95bb87eb2063d20db7b60faa3840c1b18025517ae857371c4dd55a6b3a/pyyaml-6.0.3-cp314-cp314-macosx_11_0_arm64.whl"
+      sha256 "34d5fcd24b8445fadc33f9cf348c1047101756fd760b4dacb5c3e99755703310"
+    end
+    on_intel do
+      url "https://files.pythonhosted.org/packages/9d/8c/f4bd7f6465179953d3ac9bc44ac1a8a3e6122cf8ada906b4f96c60172d43/pyyaml-6.0.3-cp314-cp314-macosx_10_13_x86_64.whl"
+      sha256 "8d1fab6bb153a416f9aeb4b8763bc0f22a5586065f86f7664fc23339fc1c1fac"
+    end
+  end
+
+  resource "tomli-w" do
+    url "https://files.pythonhosted.org/packages/c7/18/c86eb8e0202e32dd3df50d43d7ff9854f8e0603945ff398974c1d91ac1ef/tomli_w-1.2.0-py3-none-any.whl"
+    sha256 "188306098d013b691fcadc011abd66727d3c414c571bb01b1a174ba8c983cf90"
+  end
+
+  resource "defusedxml" do
+    url "https://files.pythonhosted.org/packages/07/6c/aa3f2f849e01cb6a001cd8554a88d4c77c5c1a31c95bdf1cf9301e6d9ef4/defusedxml-0.7.1-py2.py3-none-any.whl"
+    sha256 "a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61"
+  end
+
+  def install
+    venv = virtualenv_create(libexec, "python3.14", system_site_packages: true)
+    resources.each do |resource|
+      resource.fetch
+      wheel = buildpath/resource.downloader.basename
+      cp resource.cached_download, wheel
+      venv.pip_install wheel, build_isolation: false
+    end
+    (libexec/"src").install Dir["src/*.py"], "src/policy.xml"
+    (libexec/"scripts").install "scripts/homebrew_integrations.py"
+    (bin/"ultraconvert-engine").write <<~SH
+      #!/bin/sh
+      exec "#{opt_libexec}/bin/python" -E -s -B "#{opt_libexec}/src/convert.py" "$@"
+    SH
+    (bin/"ultraconvert-remove-finder-actions").write <<~SH
+      #!/bin/sh
+      exec "#{opt_libexec}/bin/python" -E -s -B "#{opt_libexec}/scripts/homebrew_integrations.py" "$@"
+    SH
+    (bin/"ultraconvert-engine").chmod 0755
+    (bin/"ultraconvert-remove-finder-actions").chmod 0755
+  end
+
+  test do
+    input = testpath/"settings.json"
+    input.write('{"enabled":true,"value":7}')
+    inspected = shell_output("#{bin}/ultraconvert-engine --inspect #{input}")
+    assert_match '"category": "structured"', inspected
+    system bin/"ultraconvert-engine", "--to", "yaml", "--here", "--reports-dir", testpath/"reports", input
+    assert_path_exists testpath/"settings.yaml"
+    assert_equal '{"enabled":true,"value":7}', input.read
+    system libexec/"bin/python", "-I", "-B", "-c", "from osgeo import gdal; import yaml, tomli_w, defusedxml"
+  end
+end
