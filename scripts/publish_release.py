@@ -130,6 +130,22 @@ def verify_release(directory, version, commit):
     return meta
 
 
+def wait_for_ticket(app, timeout=1200):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        result = subprocess.run(
+            ["/usr/bin/xcrun", "stapler", "staple", str(app)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0:
+            print("Apple notarization ticket is stapled", flush=True)
+            return
+        time.sleep(20)
+    raise RuntimeError("Apple notarization ticket is not available; no release was published")
+
+
 def xcode_notarized_app(base):
     identity = developer_id_details(IDENTITY)
     archive = base / "UltraConvert.xcarchive"
@@ -184,6 +200,7 @@ def xcode_notarized_app(base):
                     "Xcode distribution did not finish. Review its private local log and refresh Xcode account authorization if required; no unsigned release is permitted."
                 ) from None
         print("Xcode " + destination + " completed", flush=True)
+    wait_for_ticket(base / "export/UltraConvert.app")
     return validate_notarized_app(
         base / "export/UltraConvert.app", IDENTITY, architecture="universal"
     )
