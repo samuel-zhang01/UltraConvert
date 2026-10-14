@@ -40,7 +40,12 @@ jobs:
         with:
           persist-credentials: false
       - name: Install engines and compile native app
-        run: python3 install.py --build-from-source
+        run: |
+          python3 install.py --build-from-source
+          UC_APP="$HOME/Applications/UltraConvert.app/Contents/MacOS/UltraConvert"
+          test "$("$UC_APP" --version)" = "$(cat VERSION)"
+          "$UC_APP" --check-setup > /tmp/ultraconvert-setup.json
+          python3 -c 'import json; assert json.load(open("/tmp/ultraconvert-setup.json"))["ok"]'
       - name: Format round trips and edge preservation
         run: |
           UC_PY="$HOME/Library/Application Support/UltraConvert/.venv/bin/python"
