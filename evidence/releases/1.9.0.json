@@ -55,7 +55,8 @@
     "dmg_integrity_and_developer_id_signature_verified": true,
     "dmg_app_matches_verified_notarized_update_app": true,
     "production_bundle_has_no_test_support_override": true,
-    "native_fingerprint_unchanged_after_ci_repair": true
+    "native_fingerprint_unchanged_after_ci_repair": true,
+    "inline_homebrew_style_and_online_audits_passed_locally": true
   },
   "limitations": {
     "dmg_separately_notarized": false,
@@ -67,8 +68,8 @@
     "status": "artifacts_verified_distribution_gate_pending",
     "release_workflow_url": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38704335346",
     "release_workflow_conclusion": "failure",
-    "distribution_blocker": "Hosted Homebrew cask audit hit the shared runner IP unauthenticated GitHub API rate limit. Runtime/app upgrade gates have not run.",
+    "distribution_blocker": "Automatic distribution retry is pending the maintainer-Mac-only pipeline change. The original hosted audit failed its shared-IP GitHub API quota; no hosted retry will run.",
     "production_feed_updated": false,
-    "prepared_repair": "Authenticate Homebrew GitHub API requests with the existing read-only Actions job token; no new secrets or broader permissions."
+    "prepared_repair": "Run Homebrew style and strict online formula/cask audits inline on the release Mac, then verify the atomic tap commit and exact audited files before publishing the feed. The separate tap workflow is inert; real upgrades remain separately authorized."
   }
 }

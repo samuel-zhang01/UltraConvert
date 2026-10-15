@@ -1,9 +1,12 @@
 """Distribution integrity and data-preserving Homebrew uninstall checks."""
 
+import base64
 import hashlib
 import io
 import json
+import os
 import plistlib
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -324,7 +327,7 @@ class HomebrewTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 publish_release.wait_for_ticket(self.root / "App.app")
 
-    def test_empty_api_response_supports_workflow_dispatch(self):
+    def test_api_accepts_no_content_responses(self):
         import subprocess
 
         with patch.object(
@@ -332,88 +335,168 @@ class HomebrewTests(unittest.TestCase):
         ):
             self.assertIsNone(publish_release.api("example", "POST", {}))
 
-    def test_missing_push_event_dispatches_ci_for_the_exact_tap_commit(self):
-        commit = "a" * 40
-        success = {
-            "id": 2,
-            "head_sha": commit,
-            "event": "workflow_dispatch",
-            "status": "completed",
-            "conclusion": "success",
-        }
+    def test_inline_audit_uses_verified_private_recipes_without_mutating_brew(self):
+        folder = self.assets()
         with (
-            patch.object(publish_release.time, "monotonic", side_effect=[0, 0, 40, 60]),
-            patch.object(publish_release.time, "sleep"),
+            patch.dict(os.environ, {"GH_TOKEN": "existing-job-token", "GITHUB_TOKEN": "unused"}),
+            patch.object(publish_release, "run") as run,
+        ):
+            files = publish_release.audit_homebrew(folder, "1.8.1")
+            self.assertEqual(os.environ["GH_TOKEN"], "existing-job-token")
+        self.assertEqual(run.call_count, 2)
+        style, audit = run.call_args_list
+        self.assertEqual(style.args[0][:2], ["brew", "style"])
+        self.assertEqual(audit.args[0][:3], ["brew", "ruby", "-e"])
+        self.assertEqual(style.args[0][2:], audit.args[0][4:])
+        self.assertTrue(
+            all(str(path).startswith(str(folder / "tap")) for path in style.args[0][2:])
+        )
+        for call in [style, audit]:
+            env = call.kwargs["env"]
+            self.assertEqual(env["HOMEBREW_GITHUB_API_TOKEN"], "existing-job-token")
+            self.assertEqual(env["HOMEBREW_NO_AUTO_UPDATE"], "1")
+            self.assertNotIn("GH_TOKEN", env)
+            self.assertNotIn("GITHUB_TOKEN", env)
+            self.assertNotIn("HOMEBREW_INTERNAL_ALLOW_PACKAGES_FROM_PATHS", env)
+            self.assertNotIn("existing-job-token", str(call.args))
+        self.assertEqual(len(files), 5)
+        self.assertEqual(
+            files["Casks/ultraconvert.rb"], (folder / "tap/Casks/ultraconvert.rb").read_text()
+        )
+        ruby = audit.args[0][3]
+        self.assertIn("Formulary.from_contents", ruby)
+        self.assertIn("Cask::CaskLoader::FromContentLoader", ruby)
+        self.assertIn("new_formula: true, strict: true, online: true", ruby)
+        self.assertIn("audit_online: true, audit_strict: true, audit_new_cask: true", ruby)
+        self.assertIn('except: ["github_repository"]', ruby)
+        for unsafe in [
+            "Installer",
+            "trust!",
+            "tap-new",
+            "brew install",
+            "brew uninstall",
+            "defaults write",
+        ]:
+            self.assertNotIn(unsafe, ruby)
+
+    def test_inline_audit_rejects_corrupt_assets_before_evaluating_recipes(self):
+        folder = self.assets()
+        (folder / "UltraConvert-1.8.1-source.tar.gz").write_text("tampered")
+        with patch.object(publish_release, "run") as run:
+            with self.assertRaisesRegex(ValueError, "checksum mismatch"):
+                publish_release.audit_homebrew(folder, "1.8.1")
+        run.assert_not_called()
+
+    def test_inline_audit_rejects_wrong_release_before_running_brew(self):
+        folder = self.assets()
+        with patch.object(publish_release, "run") as run:
+            with self.assertRaisesRegex(ValueError, "requested release"):
+                publish_release.audit_homebrew(folder, "1.8.2")
+        run.assert_not_called()
+
+    def test_inline_audit_rejects_a_recipe_changed_by_an_auditor(self):
+        folder = self.assets()
+
+        def change_recipe(*args, **kwargs):
+            (folder / "tap/Casks/ultraconvert.rb").write_text("changed")
+
+        with patch.object(publish_release, "run", side_effect=change_recipe):
+            with self.assertRaisesRegex(ValueError, "changed a rendered recipe"):
+                publish_release.audit_homebrew(folder, "1.8.1")
+
+    def test_distribution_checks_run_in_order_before_feed_publication(self):
+        calls = []
+        files = {"Casks/ultraconvert.rb": "audited bytes"}
+        with (
+            patch.object(
+                publish_release, "verify_release", side_effect=lambda *a: calls.append("assets")
+            ),
             patch.object(
                 publish_release,
-                "api",
-                side_effect=[
-                    {"workflow_runs": []},
-                    {"workflow_runs": []},
-                    {"object": {"sha": commit}},
-                    None,
-                    {"workflow_runs": [success]},
-                ],
-            ) as api,
-        ):
-            publish_release.wait_tap_ci(commit)
-        dispatch = api.call_args_list[3]
-        self.assertEqual(dispatch.args[1:], ("POST", {"ref": "main"}))
-
-    def test_changed_tap_is_not_dispatched_or_published(self):
-        with (
-            patch.object(publish_release.time, "monotonic", side_effect=[0, 40]),
-            patch.object(publish_release.time, "sleep"),
+                "audit_homebrew",
+                side_effect=lambda *a: calls.append("audit") or files,
+            ),
             patch.object(
                 publish_release,
-                "api",
-                side_effect=[{"workflow_runs": []}, {"object": {"sha": "b" * 40}}],
-            ) as api,
+                "publish_tap",
+                side_effect=lambda *a: calls.append(("tap", a)) or "commit",
+            ),
+            patch.object(
+                publish_release,
+                "verify_published_tap",
+                side_effect=lambda *a: calls.append(("remote", a)),
+            ),
+            patch.object(
+                publish_release, "publish_feed", side_effect=lambda *a: calls.append("feed")
+            ),
         ):
-            with self.assertRaisesRegex(RuntimeError, "tap changed"):
-                publish_release.wait_tap_ci("a" * 40)
-        self.assertEqual(api.call_count, 2)
+            publish_release.publish_verified_distribution(self.root, "1.8.1", "tag")
+        self.assertEqual(
+            calls,
+            ["assets", "audit", ("tap", (files, "1.8.1")), ("remote", ("commit", files)), "feed"],
+        )
 
-    def test_newer_successful_run_supersedes_cancelled_run(self):
-        commit = "a" * 40
-        runs = [
-            {
-                "id": 1,
-                "head_sha": commit,
-                "event": "push",
-                "status": "completed",
-                "conclusion": "cancelled",
-            },
-            {
-                "id": 2,
-                "head_sha": commit,
-                "event": "workflow_dispatch",
-                "status": "completed",
-                "conclusion": "success",
-            },
-        ]
-        with (
-            patch.object(publish_release.time, "monotonic", side_effect=[0, 0]),
-            patch.object(publish_release, "api", return_value={"workflow_runs": runs}),
-        ):
-            publish_release.wait_tap_ci(commit)
+    def test_every_failed_gate_prevents_feed_and_later_publication(self):
+        gates = ["verify_release", "audit_homebrew", "publish_tap", "verify_published_tap"]
+        for failed in gates:
+            with self.subTest(gate=failed):
+                with (
+                    patch.object(publish_release, "verify_release") as assets,
+                    patch.object(publish_release, "audit_homebrew", return_value={}) as audit,
+                    patch.object(publish_release, "publish_tap", return_value="commit") as tap,
+                    patch.object(publish_release, "verify_published_tap") as remote,
+                    patch.object(publish_release, "publish_feed") as feed,
+                ):
+                    checks = dict(zip(gates, [assets, audit, tap, remote], strict=True))
+                    checks[failed].side_effect = subprocess.CalledProcessError(1, ["failed gate"])
+                    with self.assertRaises(subprocess.CalledProcessError):
+                        publish_release.publish_verified_distribution(self.root, "1.8.1", "tag")
+                    feed.assert_not_called()
+                    for later in gates[gates.index(failed) + 1 :]:
+                        checks[later].assert_not_called()
 
-    def test_failed_ci_never_dispatches_or_allows_publication(self):
+    def test_remote_gate_checks_the_exact_commit_and_audited_bytes(self):
         commit = "a" * 40
-        failed = {
-            "id": 1,
-            "head_sha": commit,
-            "event": "push",
-            "status": "completed",
-            "conclusion": "failure",
-        }
-        with (
-            patch.object(publish_release.time, "monotonic", side_effect=[0, 0]),
-            patch.object(publish_release, "api", return_value={"workflow_runs": [failed]}) as api,
+        files = {"Casks/ultraconvert.rb": "audited bytes"}
+        with patch.object(
+            publish_release,
+            "api",
+            side_effect=[
+                {"object": {"sha": commit}},
+                {"content": base64.b64encode(b"audited bytes").decode()},
+                {"object": {"sha": commit}},
+            ],
+        ) as api:
+            publish_release.verify_published_tap(commit, files)
+        self.assertIn("?ref=" + commit, api.call_args_list[1].args[0])
+        self.assertTrue(all(call.kwargs == {"tap": True} for call in api.call_args_list))
+
+    def test_remote_gate_rejects_changed_head_before_or_after_reading_files(self):
+        commit = "a" * 40
+        files = {"Casks/ultraconvert.rb": "audited bytes"}
+        for responses in [
+            [{"object": {"sha": "different"}}],
+            [
+                {"object": {"sha": commit}},
+                {"content": base64.b64encode(b"audited bytes").decode()},
+                {"object": {"sha": "different"}},
+            ],
+        ]:
+            with patch.object(publish_release, "api", side_effect=responses):
+                with self.assertRaisesRegex(RuntimeError, "tap changed"):
+                    publish_release.verify_published_tap(commit, files)
+
+    def test_remote_gate_rejects_wrong_published_content(self):
+        with patch.object(
+            publish_release,
+            "api",
+            side_effect=[
+                {"object": {"sha": "commit"}},
+                {"content": base64.b64encode(b"changed bytes").decode()},
+            ],
         ):
-            with self.assertRaisesRegex(RuntimeError, "CI failed"):
-                publish_release.wait_tap_ci(commit)
-        self.assertEqual(api.call_count, 1)
+            with self.assertRaisesRegex(RuntimeError, "differ from the audited"):
+                publish_release.verify_published_tap("commit", {"recipe.rb": "audited bytes"})
 
     def test_untagged_checkout_cannot_create_a_new_release(self):
         (self.root / "VERSION").write_text("1.8.3")
@@ -476,20 +559,28 @@ class HomebrewTests(unittest.TestCase):
         self.assertIn("merge-base --is-ancestor", str(job["steps"]))
         self.assertEqual(workflow["concurrency"]["cancel-in-progress"], "false")
 
-    def test_hosted_brew_audits_use_only_the_existing_read_only_job_token(self):
+    def test_tap_workflow_cannot_allocate_any_runner_or_run_installs(self):
         import yaml
 
         workflow = yaml.load((ROOT / "homebrew/tap-ci.yml").read_text(), Loader=yaml.BaseLoader)
-        job = workflow["jobs"]["macos"]
-        self.assertEqual(job["env"]["HOMEBREW_GITHUB_API_TOKEN"], "${{ github.token }}")
-        # Authentication fixes shared-IP rate limits without adding a PAT,
-        # secret or repository-write permission to any installation/audit step.
-        self.assertEqual(job.get("permissions", workflow["permissions"]), {"contents": "read"})
-        self.assertNotIn("secrets.", str(job["env"]))
-        audits = [step for step in job["steps"] if "brew audit" in step.get("run", "")]
-        self.assertTrue(audits)
-        for step in audits:
-            self.assertNotIn("HOMEBREW_GITHUB_API_TOKEN", step.get("env", {}))
+        self.assertEqual(set(workflow["on"]), {"workflow_dispatch"})
+        self.assertEqual(workflow["permissions"], {"contents": "read"})
+        self.assertEqual(len(workflow["jobs"]), 1)
+        job = workflow["jobs"]["checks-run-inline"]
+        self.assertEqual(job["if"], "${{ false }}")
+        self.assertEqual(job["runs-on"], ["ultraconvert", "local-macos"])
+        workflow_text = (ROOT / "homebrew/tap-ci.yml").read_text()
+        for unsafe in [
+            "macos-26",
+            "macos-latest",
+            "ubuntu-",
+            "pull_request",
+            "defaults write",
+            "brew install",
+            "brew upgrade",
+            "brew uninstall",
+        ]:
+            self.assertNotIn(unsafe, workflow_text)
 
 
 if __name__ == "__main__":

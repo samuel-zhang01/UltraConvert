@@ -24,7 +24,7 @@ brew tap samuel-zhang01/ultraconvert
 brew install --cask ultraconvert
 ```
 
-The custom tap installs the signed app into Applications, a conversion-runtime formula and its engine dependencies. Open the app once, then enable Finder actions as described below. This tap is maintained by UltraConvert and is not an official Homebrew Core/Cask submission. Its fresh-Mac CI tests cover installation, a real conversion, setup, signature checks and removal while retaining saved preferences and rules.
+The custom tap installs the signed app into Applications, a conversion-runtime formula and its engine dependencies. Open the app once, then enable Finder actions as described below. This tap is maintained by UltraConvert and is not an official Homebrew Core/Cask submission. Its release gate checks the recipes, public downloads and signatures on the maintainer’s Mac. Real installation and upgrade tests are run separately with explicit authorization, preserving saved preferences and rules.
 
 **Already installed in `/Applications`?** Quit the app, then use `brew install --cask --adopt ultraconvert`. Homebrew checks the existing app instead of overwriting a conflicting copy. Keep one app in Applications; a manual `~/Applications` copy should be moved to `/Applications` before adoption.
 
@@ -226,7 +226,7 @@ If an update fails, the existing app remains installed. Try Check for Updates ag
 
 On an Apple Silicon Mac running macOS 27, real production GitHub updates **1.8.0 → 1.8.2 → 1.8.3** downloaded, installed and relaunched successfully. Both retained the queued file, MP3 choice, destination, all 11 persistent preferences and the saved folder rule unchanged. A conversion after the first update passed and kept its original. Local Homebrew runtime installation, conversion tests, app adoption and data preservation also passed; fresh hosted Homebrew installation/removal tests and the automatic release pipeline passed.
 
-CI checks native compilation, format round trips, edge cases, malicious input, installer rollback and static/dependency security. Matching version tags automatically create the signed and notarized release, verify public downloads, update the Homebrew tap and run its installation tests before publishing the signed update feed. Signing runs on the maintainer’s Mac, which must be awake with its Keychain accessible; public pull requests use separate hosted runners. Signing and notarization establish artifact status, not functional perfection. Original code/artwork are MIT licensed; upstream snapshots retain their licences.
+CI checks native compilation, format round trips, edge cases, malicious input, installer rollback and static/dependency security. Matching version tags automatically create the signed and notarized release, verify public downloads, run inline Homebrew style and online recipe audits, and verify the exact published tap before publishing the signed update feed. Signing runs on the maintainer’s Mac, which must be awake with its Keychain accessible; all project-defined jobs use the registered maintainer Mac with no hosted fallback. GitHub’s free managed dependency checks are separate; see [local CI](docs/local-ci.md). Public pull requests do not trigger automatic jobs; external changes need review in a disposable environment before merging. Signing and notarization establish artifact status, not functional perfection. Original code/artwork are MIT licensed; upstream snapshots retain their licences.
 
 ## Licence and upstream source
 

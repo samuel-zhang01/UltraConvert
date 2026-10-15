@@ -18,6 +18,46 @@ REPOSITORY = "samuel-zhang01/UltraConvert"
 TAP = "samuel-zhang01/homebrew-ultraconvert"
 IDENTITY = "9EB5F0840D5809223A046EDA4903EDFB0206FF2F"
 
+# Homebrew 7 no longer accepts `brew audit /path/to/recipe.rb`. Its content
+# loaders let the maintainer audit newly rendered, checksum-verified definitions
+# without installing a tap, changing its trust store, or replacing active recipes.
+# An incompatible Homebrew API fails the gate rather than silently skipping it.
+HOMEBREW_AUDIT = r"""
+require "formula"
+require "utils/curl"
+require "formula_cellar_checks"
+require "utils/spdx"
+require "formula_auditor"
+require "cask/cask_loader"
+require "cask/auditor"
+
+Homebrew.auditing = true
+path = Pathname(ARGV.fetch(0)).realpath
+formula = Formulary.from_contents("ultraconvert-runtime", path, path.read)
+auditor = Homebrew::FormulaAuditor.new(formula, new_formula: true, strict: true, online: true)
+auditor.audit
+errors = { "formula" => auditor.problems + auditor.new_formula_problems }
+cask = Cask::CaskLoader::FromContentLoader.new(File.read(ARGV.fetch(1))).load(config: nil)
+errors["cask"] = Cask::Auditor.audit(
+  cask, audit_online: true, audit_strict: true, audit_new_cask: true,
+  any_named_args: true, except: ["github_repository"]
+).to_a
+errors.each do |kind, entries|
+  entries.each do |entry|
+    message = if entry.is_a?(Hash)
+      entry.fetch(:message)
+    elsif entry.respond_to?(:message)
+      entry.message
+    else
+      entry.to_s
+    end
+    warn "#{kind}: #{message}"
+  end
+end
+abort "Homebrew recipe audit failed; no tap or feed was published" if errors.values.any?(&:any?)
+puts "Homebrew formula and cask audits passed without installing or removing anything"
+"""
+
 
 def run(command, **kwargs):
     return subprocess.run(list(map(str, command)), check=True, **kwargs)
@@ -212,9 +252,11 @@ def xcode_notarized_app(base):
     )
 
 
-def publish_tap(directory, version):
+def audit_homebrew(directory, version):
     folder = Path(directory) / "tap"
-    render(directory, folder)
+    meta = render(directory, folder)
+    if meta["version"] != version:
+        raise ValueError("Homebrew recipes do not match the requested release")
     files = {
         "Formula/ultraconvert-runtime.rb": (folder / "Formula/ultraconvert-runtime.rb").read_text(),
         "Casks/ultraconvert.rb": (folder / "Casks/ultraconvert.rb").read_text(),
@@ -222,6 +264,24 @@ def publish_tap(directory, version):
         "README.md": (ROOT / "homebrew/TAP-README.md").read_text(),
         ".github/workflows/ci.yml": (ROOT / "homebrew/tap-ci.yml").read_text(),
     }
+    recipes = [folder / name for name in files if name.endswith(".rb")]
+    env = os.environ.copy()
+    token = env.pop("GH_TOKEN", None) or env.get("GITHUB_TOKEN")
+    env.pop("GITHUB_TOKEN", None)
+    if token:
+        # Reuse only the current job's existing credential in this child process.
+        # No new token, global Homebrew configuration or trust setting is created.
+        env["HOMEBREW_GITHUB_API_TOKEN"] = token
+    env.update(HOMEBREW_NO_AUTO_UPDATE="1", HOMEBREW_NO_ANALYTICS="1")
+    run(["brew", "style", *recipes], env=env)
+    run(["brew", "ruby", "-e", HOMEBREW_AUDIT, *recipes], env=env)
+    if any((folder / name).read_text() != files[name] for name in files if name.endswith(".rb")):
+        raise ValueError("Homebrew changed a rendered recipe during its audit")
+    print("Inline Homebrew style and online recipe audits passed on the release Mac", flush=True)
+    return files
+
+
+def publish_tap(files, version):
     reference = api(f"repos/{TAP}/git/ref/heads/main", tap=True)
     parent = reference["object"]["sha"]
     previous = api(f"repos/{TAP}/git/commits/{parent}", tap=True)
@@ -261,47 +321,26 @@ def publish_tap(directory, version):
     return commit["sha"]
 
 
-def wait_tap_ci(commit, timeout=2400):
-    started = time.monotonic()
-    deadline = started + timeout
-    dispatched = False
-    while (now := time.monotonic()) < deadline:
-        runs = api(f"repos/{TAP}/actions/workflows/ci.yml/runs?head_sha={commit}", tap=True)[
-            "workflow_runs"
-        ]
-        runs = [
-            r
-            for r in runs
-            if r["head_sha"] == commit and r["event"] in {"push", "workflow_dispatch"}
-        ]
-        if runs:
-            latest = max(runs, key=lambda r: r["id"])
-            if latest["status"] != "completed":
-                time.sleep(20)
-                continue
-            if latest["conclusion"] != "success":
-                raise RuntimeError(
-                    "Homebrew CI failed; the update feed was not changed. Fix the tap and rerun this release."
-                )
-            print(
-                "Homebrew audit, install, runtime test and data-preserving uninstall passed",
-                flush=True,
-            )
-            return
-        if not dispatched and now - started >= 40:
-            head = api(f"repos/{TAP}/git/ref/heads/main", tap=True)["object"]["sha"]
-            if head != commit:
-                raise RuntimeError("The tap changed before CI started; the feed was not changed")
-            api(
-                f"repos/{TAP}/actions/workflows/ci.yml/dispatches",
-                "POST",
-                {"ref": "main"},
-                tap=True,
-            )
-            dispatched = True
-            print("Explicitly started Homebrew CI for the verified tap commit", flush=True)
-        time.sleep(20)
-    raise RuntimeError("Homebrew CI did not finish; the update feed was not changed")
+def verify_published_tap(commit, files):
+    def require_head():
+        if api(f"repos/{TAP}/git/ref/heads/main", tap=True)["object"]["sha"] != commit:
+            raise RuntimeError("The published tap changed; the update feed was not changed")
+
+    require_head()
+    for name, expected in files.items():
+        existing = api(f"repos/{TAP}/contents/{name}?ref={commit}", tap=True)
+        if base64.b64decode(existing["content"]).decode() != expected:
+            raise RuntimeError("Published Homebrew files differ from the audited release")
+    require_head()
+    print("Verified the exact published Homebrew commit and audited file bytes", flush=True)
+
+
+def publish_verified_distribution(directory, version, commit):
+    verify_release(directory, version, commit)
+    files = audit_homebrew(directory, version)
+    tap_commit = publish_tap(files, version)
+    verify_published_tap(tap_commit, files)
+    publish_feed(directory, version)
 
 
 def publish_feed(directory, version):
@@ -324,7 +363,7 @@ def publish_feed(directory, version):
             "branch": "main",
         },
     )
-    print("Published signed feed after public assets and Homebrew CI verification", flush=True)
+    print("Published signed feed after public assets and inline Homebrew verification", flush=True)
 
 
 def main():
@@ -389,10 +428,7 @@ def main():
             ]
         )
     run(["gh", "release", "download", f"v{args.version}", "--repo", REPOSITORY, "--dir", public])
-    verify_release(public, args.version, commit)
-    tap_commit = publish_tap(public, args.version)
-    wait_tap_ci(tap_commit)
-    publish_feed(public, args.version)
+    publish_verified_distribution(public, args.version, commit)
     print(
         f"Complete stable release: https://github.com/{REPOSITORY}/releases/tag/v{args.version}",
         flush=True,

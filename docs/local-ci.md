@@ -1,6 +1,6 @@
 # Local CI
 
-All automated checks and releases run on Samuel’s registered Mac runner
+All project-defined checks and releases run on Samuel’s registered Mac runner
 `samuel-mac-ultraconvert`, selected by `[ultraconvert, local-macos]`.
 There are no GitHub-hosted runner fallbacks. Jobs queue while this Mac is
 asleep or offline; GitHub does not substitute a hosted machine.
@@ -23,3 +23,12 @@ owner Finder services, replaces the installed app, reads owner automation
 state, changes system packages, or signs with an owner credential. Temporary
 builds and interpreter are removed. Generated JSON evidence has three-day
 retention; artifact storage is distinct from runner compute billing.
+
+GitHub-managed Dependabot and Dependency Graph jobs are separate from these
+project workflows. They can still appear on GitHub-hosted Linux infrastructure;
+standard Dependabot usage is free and GitHub does not support Dependabot on
+self-hosted runners for public repositories. Dependency alerts remain enabled.
+See [GitHub’s Dependabot compute notice](https://github.blog/changelog/2025-06-23-upcoming-change-dependabot-compute-migration-to-github-actions/)
+and [runner limitations](https://docs.github.com/en/code-security/concepts/supply-chain-security/dependabot-on-actions).
+No billed macOS runner is selected by this project’s workflows. This runner
+policy does not set an account-wide spending limit or cover other repositories.

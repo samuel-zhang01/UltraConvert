@@ -1,5 +1,6 @@
 import AppKit
 import Darwin
+import QuartzCore
 
 /// A local engine keeps native editor regressions independent of installed
 /// converters, user rules, watched folders, and original-file removal.
@@ -391,22 +392,46 @@ struct RuleEditorTests {
         editor.window!.makeKeyAndOrderFront(nil)
         DispatchQueue.main.async {
             check(NSApp.isRunning, "Animation regression uses the live AppKit event loop")
-            editor.jumpToBlock("DO"); editor.jumpToBlock("SAVE")
-            editor.rebuildEditor(resetScroll: true)
-            editor.jumpToBlock("AFTER"); tabs.selectedSegment = 1; editor.changeTab(tabs)
-            tabs.selectedSegment = 0; editor.changeTab(tabs)
-            InterfaceMotion.scroll(editor.editorScroll, to: NSPoint(x: 0, y: 100), reduceMotion: false)
-            InterfaceMotion.scroll(editor.editorScroll, to: .zero, reduceMotion: true)
-            InterfaceMotion.reveal(editor.body, reduceMotion: false); InterfaceMotion.reveal(editor.body, reduceMotion: true)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.025) {
-                check((editor.body.layer?.presentation()?.opacity ?? editor.body.layer?.opacity ?? 1) >= 0.999, "Reduced Motion cancels pending native opacity animation immediately, including before transaction commit")
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                check(editor.editorScroll.contentView.bounds.origin == .zero && editor.body.alphaValue == 1, "Interrupted live animations cannot restore an old scroll destination or leave reduced-motion content faded")
-                check(tabs.selectedSegment == 0 && !editor.editorScroll.isHidden && editor.activityScroll.isHidden, "Rapid animated tab changes retain the latest visible builder state")
-                check(!(editor.editorScroll.contentView.layer?.animationKeys() ?? []).contains(where: { $0.lowercased().contains("bounds") }), "Reduced Motion and rebuilding leave no previous bounds animation")
-                NSApp.stop(nil)
-                if let event = NSEvent.otherEvent(with: .applicationDefined, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil, subtype: 0, data1: 0, data2: 0) { NSApp.postEvent(event, atStart: false) }
+            // Finish the first ordered window's layout/display transaction
+            // before measuring interruption. NSApplication.run may still be
+            // completing launch and its initial window sizing on this turn.
+            editor.window!.contentView!.layoutSubtreeIfNeeded()
+            editor.window!.displayIfNeeded(); CATransaction.flush()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                editor.window!.contentView!.layoutSubtreeIfNeeded()
+                let viewport = editor.editorScroll.contentView.bounds.size
+                check(viewport.width > 0 && viewport.height > 0 && editor.editorScroll.documentView!.bounds.height > viewport.height, "Live animation interruption starts with a laid-out scrollable editor")
+                editor.jumpToBlock("DO"); editor.jumpToBlock("SAVE")
+                editor.rebuildEditor(resetScroll: true)
+                editor.jumpToBlock("AFTER"); tabs.selectedSegment = 1; editor.changeTab(tabs)
+                tabs.selectedSegment = 0; editor.changeTab(tabs)
+                InterfaceMotion.scroll(editor.editorScroll, to: NSPoint(x: 0, y: 100), reduceMotion: false)
+                InterfaceMotion.scroll(editor.editorScroll, to: .zero, reduceMotion: true)
+                InterfaceMotion.reveal(editor.body, reduceMotion: false); InterfaceMotion.reveal(editor.body, reduceMotion: true)
+                let endpoint = editor.editorScroll.contentView.bounds
+                func atRequestedOrigin() -> Bool {
+                    let origin = editor.editorScroll.contentView.bounds.origin
+                    // Core Animation can finish a native scroll with subpixel
+                    // floating-point residue. 0.01pt is far below one display pixel.
+                    return abs(origin.x) < 0.01 && abs(origin.y) < 0.01
+                }
+                check(atRequestedOrigin(), "Reduced Motion reaches the requested live origin synchronously: \(endpoint.origin)")
+                check(abs(editor.body.alphaValue - 1) < 0.0001, "Reduced Motion reaches full model opacity synchronously: \(editor.body.alphaValue)")
+                CATransaction.flush()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.025) {
+                    check(atRequestedOrigin(), "No stale scroll takes over during the interrupted animation: \(editor.editorScroll.contentView.bounds.origin)")
+                    check((editor.body.layer?.presentation()?.opacity ?? editor.body.layer?.opacity ?? 1) >= 0.999, "Reduced Motion cancels pending native opacity animation immediately, including before transaction commit")
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    check(atRequestedOrigin(), "Interrupted live animations cannot restore an old scroll destination: origin=\(editor.editorScroll.contentView.bounds.origin), expected=\(endpoint.origin)")
+                    check(abs(editor.body.alphaValue - 1) < 0.0001, "Interrupted live animations cannot leave reduced-motion content faded: model=\(editor.body.alphaValue), presentation=\(String(describing: editor.body.layer?.presentation()?.opacity))")
+                    let finalViewport = editor.editorScroll.contentView.bounds.size
+                    check(abs(finalViewport.width - viewport.width) < 0.01 && abs(finalViewport.height - viewport.height) < 0.01, "The interruption test retains a stable viewport instead of measuring initial window sizing")
+                    check(tabs.selectedSegment == 0 && !editor.editorScroll.isHidden && editor.activityScroll.isHidden, "Rapid animated tab changes retain the latest visible builder state")
+                    check(!(editor.editorScroll.contentView.layer?.animationKeys() ?? []).contains(where: { $0.lowercased().contains("bounds") }), "Reduced Motion and rebuilding leave no previous bounds animation")
+                    NSApp.stop(nil)
+                    if let event = NSEvent.otherEvent(with: .applicationDefined, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: 0, context: nil, subtype: 0, data1: 0, data2: 0) { NSApp.postEvent(event, atStart: false) }
+                }
             }
         }
         NSApp.run()

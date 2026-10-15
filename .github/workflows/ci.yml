@@ -31,7 +31,6 @@ jobs:
       - run: ruff format --check src scripts tests install.py uninstall.py
       - run: bandit -r src scripts install.py uninstall.py -c pyproject.toml
       - run: pip-audit -r requirements.txt
-      - run: python -m unittest discover -s tests -p 'test_installer.py' -v
       - run: python -m unittest discover -s tests -p 'test_release.py' -v
       - run: python -m unittest discover -s tests -p 'test_runtime.py' -v
       - run: python -m unittest discover -s tests -p 'test_source_collection.py' -v

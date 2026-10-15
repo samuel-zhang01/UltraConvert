@@ -2,8 +2,8 @@
   "version": "1.9.0",
   "status": "visual candidate passed; release and actual Homebrew upgrade pending",
   "observed_date": "2026-10-15",
-  "source_commit": "a7a7ea1f0e3ac18c29450c8229d72d1dda9a3761",
-  "ci": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38667386936",
+  "source_commit": "495569e71c28c4c3e5194408f719872c7098859a",
+  "ci": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38704332840",
   "ci_conclusion": "success",
   "native_suites": {
     "interface": "passed",
@@ -16,7 +16,9 @@
     "settings_checks": 646,
     "compression_checks": 85,
     "report_checks": 45,
-    "compression_checks_scope": "Final local live suite; complete committed release CI remains required."
+    "compression_checks_scope": "Complete source-tag CI passed all85checks, including live layout/motion regression tests.",
+    "rule_editor_diagnostic_checks": 418,
+    "rule_editor_diagnostic_scope": "Test-only first-window settling and split interruption diagnostics passed five focused runs; original combined CI failure cause unproven; complete current CI required."
   },
   "python_tests": {
     "security": 18,
@@ -28,7 +30,7 @@
     "compression": 21,
     "source_collection": 4,
     "update_packaging": 4,
-    "homebrew": 28
+    "homebrew": 34
   },
   "engine_round_trips": {
     "targets": 62,
@@ -51,8 +53,7 @@
     "scope": "Temporary stress suite, not normal application RAM or a long-duration energy benchmark."
   },
   "pending": [
-    "Signed/notarized v1.9.0 artifact publication and public verification",
-    "Hosted tap upgrade gate for v1.9.0",
+    "Local-only publication pipeline repair and signed production-feed update",
     "Actual installed Homebrew upgrade with preference/rule/Finder-action preservation"
   ],
   "limits": [
@@ -66,5 +67,15 @@
     "pass_mark": 9.5,
     "passed": true,
     "scope": "Independent developer heuristic review of observed native UI; see ui-components-1.9.0.json for rubric and limits."
+  },
+  "runner_policy": {
+    "runner_name": "samuel-mac-ultraconvert",
+    "labels": [
+      "ultraconvert",
+      "local-macos"
+    ],
+    "hosted_fallback": false,
+    "pull_request_execution": false,
+    "regression_checks": 4
   }
 }
