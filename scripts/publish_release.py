@@ -8,6 +8,7 @@ import os
 import plistlib
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -17,6 +18,19 @@ from render_homebrew import checked_artifacts, release_version, render
 REPOSITORY = "samuel-zhang01/UltraConvert"
 TAP = "samuel-zhang01/homebrew-ultraconvert"
 IDENTITY = "9EB5F0840D5809223A046EDA4903EDFB0206FF2F"
+
+# A named config roots RuboCop's project index at our isolated working folder.
+# Inheriting the canonical rules retains all enabled cops, including duplicate
+# methods, without indexing an older installed copy of the same formula.
+HOMEBREW_STYLE = r"""
+require "json"
+require "utils/gem_setup"
+Utils::GemSetup.install_bundler_gems!(groups: ["style"])
+config = Pathname(ARGV.shift)
+config.write("inherit_from: #{(HOMEBREW_LIBRARY_PATH.parent/".rubocop.yml").to_s.to_json}\n")
+ARGV.unshift("--config", config.to_s, "--force-exclusion", "--format", "clang")
+load HOMEBREW_LIBRARY_PATH/"utils/rubocop.rb"
+"""
 
 # Homebrew 7 no longer accepts `brew audit /path/to/recipe.rb`. Its content
 # loaders let the maintainer audit newly rendered, checksum-verified definitions
@@ -252,6 +266,28 @@ def xcode_notarized_app(base):
     )
 
 
+def style_homebrew(files, env):
+    # Keep the index outside the runner's hidden .github-runners directory:
+    # Homebrew's Formula/Casks glob exclusions intentionally skip hidden paths.
+    # Only these exact audited bytes are staged; no installed tap is changed.
+    with tempfile.TemporaryDirectory(
+        prefix="ultraconvert-homebrew-style-", dir="/tmp"
+    ) as temporary:
+        folder = Path(temporary)
+        recipes = []
+        for name, text in files.items():
+            if name.endswith(".rb"):
+                target = folder / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(text)
+                recipes.append(target)
+        run(
+            ["brew", "ruby", "-e", HOMEBREW_STYLE, folder / "release-style.yml", *recipes],
+            env=env,
+            cwd=folder,
+        )
+
+
 def audit_homebrew(directory, version):
     folder = Path(directory) / "tap"
     meta = render(directory, folder)
@@ -273,7 +309,7 @@ def audit_homebrew(directory, version):
         # No new token, global Homebrew configuration or trust setting is created.
         env["HOMEBREW_GITHUB_API_TOKEN"] = token
     env.update(HOMEBREW_NO_AUTO_UPDATE="1", HOMEBREW_NO_ANALYTICS="1")
-    run(["brew", "style", *recipes], env=env)
+    style_homebrew(files, env)
     run(["brew", "ruby", "-e", HOMEBREW_AUDIT, *recipes], env=env)
     if any((folder / name).read_text() != files[name] for name in files if name.endswith(".rb")):
         raise ValueError("Homebrew changed a rendered recipe during its audit")

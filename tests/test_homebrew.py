@@ -337,19 +337,33 @@ class HomebrewTests(unittest.TestCase):
 
     def test_inline_audit_uses_verified_private_recipes_without_mutating_brew(self):
         folder = self.assets()
+        staged = {}
+
+        def inspect_style(command, **kwargs):
+            if command[3] == publish_release.HOMEBREW_STYLE:
+                staged.update(
+                    {str(path.relative_to(kwargs["cwd"])): path.read_text() for path in command[5:]}
+                )
+
         with (
             patch.dict(os.environ, {"GH_TOKEN": "existing-job-token", "GITHUB_TOKEN": "unused"}),
-            patch.object(publish_release, "run") as run,
+            patch.object(publish_release, "run", side_effect=inspect_style) as run,
         ):
             files = publish_release.audit_homebrew(folder, "1.8.1")
             self.assertEqual(os.environ["GH_TOKEN"], "existing-job-token")
         self.assertEqual(run.call_count, 2)
         style, audit = run.call_args_list
-        self.assertEqual(style.args[0][:2], ["brew", "style"])
+        self.assertEqual(style.args[0][:3], ["brew", "ruby", "-e"])
+        self.assertEqual(style.args[0][3], publish_release.HOMEBREW_STYLE)
         self.assertEqual(audit.args[0][:3], ["brew", "ruby", "-e"])
-        self.assertEqual(style.args[0][2:], audit.args[0][4:])
+        self.assertEqual(style.args[0][4], style.kwargs["cwd"] / "release-style.yml")
+        self.assertTrue(str(style.kwargs["cwd"]).startswith("/tmp/ultraconvert-homebrew-style-"))
+        self.assertFalse(style.kwargs["cwd"].exists())
+        self.assertEqual(
+            staged, {name: text for name, text in files.items() if name.endswith(".rb")}
+        )
         self.assertTrue(
-            all(str(path).startswith(str(folder / "tap")) for path in style.args[0][2:])
+            all(str(path).startswith(str(folder / "tap")) for path in audit.args[0][4:])
         )
         for call in [style, audit]:
             env = call.kwargs["env"]
@@ -378,6 +392,32 @@ class HomebrewTests(unittest.TestCase):
             "defaults write",
         ]:
             self.assertNotIn(unsafe, ruby)
+        style_code = style.args[0][3]
+        self.assertIn('HOMEBREW_LIBRARY_PATH.parent/".rubocop.yml"', style_code)
+        self.assertIn('HOMEBREW_LIBRARY_PATH/"utils/rubocop.rb"', style_code)
+        for weakening in [
+            "--except",
+            "--only",
+            "Enabled:",
+            "UseProjectIndex:",
+            "AllowedCrossFilePaths",
+        ]:
+            self.assertNotIn(weakening, style_code)
+
+    def test_failed_style_gate_cleans_its_private_stage_without_changing_recipe_bytes(self):
+        files = {"Formula/ultraconvert-runtime.rb": "approved formula bytes"}
+        stages = []
+
+        def fail_style(command, **kwargs):
+            stages.append(kwargs["cwd"])
+            self.assertEqual(command[5].read_text(), files["Formula/ultraconvert-runtime.rb"])
+            raise subprocess.CalledProcessError(1, ["style failure"])
+
+        with patch.object(publish_release, "run", side_effect=fail_style):
+            with self.assertRaises(subprocess.CalledProcessError):
+                publish_release.style_homebrew(files, {})
+        self.assertFalse(stages[0].exists())
+        self.assertEqual(files, {"Formula/ultraconvert-runtime.rb": "approved formula bytes"})
 
     def test_inline_audit_rejects_corrupt_assets_before_evaluating_recipes(self):
         folder = self.assets()

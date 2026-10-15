@@ -18,11 +18,12 @@ batch, installer, diagnostics, release and runtime suites, and the actual
 setup checks against that fixture home. Native installer tests explicitly use
 the freshly built app. UI tests use unique preference domains.
 
-CI never invokes the user installer or the normal app entrypoint, registers
-owner Finder services, replaces the installed app, reads owner automation
-state, changes system packages, or signs with an owner credential. Temporary
-builds and interpreter are removed. Generated JSON evidence has three-day
-retention; artifact storage is distinct from runner compute billing.
+Validation jobs never invoke the user installer or the normal app entrypoint,
+register owner Finder services, replace the installed app, read owner automation
+state, change system packages, or sign with an owner credential. Temporary
+builds and interpreters are removed. The separate release job uses the local
+Keychain to sign and notarize public artifacts. Generated JSON evidence has
+three-day retention; artifact storage is distinct from runner compute billing.
 
 GitHub-managed Dependabot and Dependency Graph jobs are separate from these
 project workflows. They can still appear on GitHub-hosted Linux infrastructure;
