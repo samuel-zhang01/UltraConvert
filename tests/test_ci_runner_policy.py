@@ -47,6 +47,7 @@ class RunnerPolicyTests(unittest.TestCase):
                 self.assertNotIn("pull_request_target", workflow["on"])
         native = (ROOT / ".github/workflows/ci.yml").read_text()
         self.assertNotIn("brew install", native)
+        self.assertNotIn("actions/setup-python", native)
 
 
 if __name__ == "__main__":
