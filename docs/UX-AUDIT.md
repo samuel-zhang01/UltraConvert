@@ -1,6 +1,6 @@
 # 1.9.0 interface and motion audit — 2026-10-15
 
-The final reviewed interface passes the frozen **overall ≥9.5** gate at **9.53575/10**, rounded **9.54**. Every surface is ≥9.0 and no confirmed blocking overlap, clipping, hidden essential feedback or destructive ambiguity remains in the checked flows. This is an independent developer heuristic assessment, not a novice-user study or a claim of functional perfection. **Release publication and the actual installed Homebrew upgrade remain pending separate checks.** The UI score does not establish either result.
+The final reviewed interface passes the frozen **overall ≥9.5** gate at **9.53575/10**, rounded **9.54**. Every surface is ≥9.0 and no confirmed blocking overlap, clipping, hidden essential feedback or destructive ambiguity remains in the checked flows. This is an independent developer heuristic assessment, not a novice-user study or a claim of functional perfection. **Release publication and the actual installed Homebrew upgrade passed separate checks**, recorded in the [release evidence](../evidence/releases/1.9.0.json) and [upgrade evidence](../evidence/homebrew-upgrade-1.9.0.json). The UI score does not establish either result.
 
 | Surface | Weight | Final score |
 | --- | ---: | ---: |

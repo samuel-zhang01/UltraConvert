@@ -17,37 +17,79 @@
     "surfaces": {
       "converter": {
         "weight": 0.2,
-        "criterion_scores": [9.6, 9.5, 9.6, 9.5, 9.4],
+        "criterion_scores": [
+          9.6,
+          9.5,
+          9.6,
+          9.5,
+          9.4
+        ],
         "score": 9.53
       },
       "settings": {
         "weight": 0.2,
-        "criterion_scores": [9.7, 9.4, 9.5, 9.7, 9.5],
+        "criterion_scores": [
+          9.7,
+          9.4,
+          9.5,
+          9.7,
+          9.5
+        ],
         "score": 9.555
       },
       "puzzle_builder": {
         "weight": 0.25,
-        "criterion_scores": [9.7, 9.5, 9.7, 9.5, 9.4],
+        "criterion_scores": [
+          9.7,
+          9.5,
+          9.7,
+          9.5,
+          9.4
+        ],
         "score": 9.575
       },
       "activity": {
         "weight": 0.1,
-        "criterion_scores": [9.6, 9.2, 9.7, 9.5, 9.3],
+        "criterion_scores": [
+          9.6,
+          9.2,
+          9.7,
+          9.5,
+          9.3
+        ],
         "score": 9.46
       },
       "finder_format_picker": {
         "weight": 0.1,
-        "criterion_scores": [9.6, 9.5, 9.5, 9.6, 9.4],
+        "criterion_scores": [
+          9.6,
+          9.5,
+          9.5,
+          9.6,
+          9.4
+        ],
         "score": 9.525
       },
       "getting_started": {
         "weight": 0.05,
-        "criterion_scores": [9.6, 9.5, 9.5, 9.6, 9.5],
+        "criterion_scores": [
+          9.6,
+          9.5,
+          9.5,
+          9.6,
+          9.5
+        ],
         "score": 9.54
       },
       "menus_and_dialogs": {
         "weight": 0.1,
-        "criterion_scores": [9.6, 9.4, 9.7, 9.4, 9.3],
+        "criterion_scores": [
+          9.6,
+          9.4,
+          9.7,
+          9.4,
+          9.3
+        ],
         "score": 9.495
       }
     },
@@ -66,7 +108,13 @@
     "no_confirmed_blocking_layout_or_safety_defect_in_checked_flows": true,
     "passed": true,
     "report_standalone_review": {
-      "criterion_scores": [9.7, 9.4, 9.7, 9.5, 9.5],
+      "criterion_scores": [
+        9.7,
+        9.4,
+        9.7,
+        9.5,
+        9.5
+      ],
       "score": 9.565,
       "included_in": "menus_and_dialogs",
       "additional_surface_weight": 0
@@ -75,31 +123,61 @@
   "native_visual_review": {
     "capture_method": "Actual native CUA captures of production AppKit views with isolated preferences, disabled folder-rule fixtures and public sample inputs. No bitmap-cached render is used as native UI proof.",
     "raw_captures_published": false,
-    "appearances": ["light", "dark"],
-    "window_sizes": ["normal", "declared minimum"],
+    "appearances": [
+      "light",
+      "dark"
+    ],
+    "window_sizes": [
+      "normal",
+      "declared minimum"
+    ],
     "matrix": {
       "settings": {
-        "states": ["General", "Updates", "Finder"],
+        "states": [
+          "General",
+          "Updates",
+          "Finder"
+        ],
         "captures_reviewed": 12
       },
       "converter": {
-        "states": ["empty", "six categories", "custom quality", "busy fixture", "result and error fixture"],
+        "states": [
+          "empty",
+          "six categories",
+          "custom quality",
+          "busy fixture",
+          "result and error fixture"
+        ],
         "captures_reviewed": 20
       },
       "folder_rules": {
-        "states": ["puzzle builder", "Activity failure fixture", "Activity Details fixture"],
+        "states": [
+          "puzzle builder",
+          "Activity failure fixture",
+          "Activity Details fixture"
+        ],
         "captures_reviewed": 12
       },
       "getting_started": {
-        "states": ["Convert files", "Finder", "Folder rules", "Options and startup"],
+        "states": [
+          "Convert files",
+          "Finder",
+          "Folder rules",
+          "Options and startup"
+        ],
         "captures_reviewed": 16
       },
       "conversion_report": {
-        "states": ["mixed results fixture", "unavailable fixture"],
+        "states": [
+          "mixed results fixture",
+          "unavailable fixture"
+        ],
         "captures_reviewed": 8
       },
       "finder_format_picker": {
-        "states": ["fixed-size chooser"],
+        "states": [
+          "fixed-size chooser"
+        ],
         "captures_reviewed": 2,
         "resizable": false
       }
@@ -114,7 +192,12 @@
       "Save location jump revealing the complete destination card"
     ],
     "context_menu_actual_images_observed": true,
-    "top_menus_opened_and_accessibility_state_observed": ["App", "File", "Window", "Help"],
+    "top_menus_opened_and_accessibility_state_observed": [
+      "App",
+      "File",
+      "Window",
+      "Help"
+    ],
     "top_menu_screenshot_proof_available": false,
     "top_menu_proof_scope": "Coordinator operated native menus; independent reviewer inspected the saved native accessibility transcript and production source. No top-menu image proof is claimed.",
     "real_quality_and_report_observed": "Real six-category batch and a later WAV-to-MP3 quality change with a completed readable report; layout fixture outcomes are simulated and are not conversion evidence.",
@@ -153,8 +236,17 @@
       "Actual formatChanged selection of FLAC during an active fade stays hidden and emits no quality argument"
     ],
     "fresh_native_sequence_review": {
-      "normal_real_qa_app": ["on", "off", "on"],
-      "compact_production_view_fixture": ["before", "on", "off", "on"],
+      "normal_real_qa_app": [
+        "on",
+        "off",
+        "on"
+      ],
+      "compact_production_view_fixture": [
+        "before",
+        "on",
+        "off",
+        "on"
+      ],
       "captures_independently_reviewed": 7,
       "near_bottom_audio_control": true,
       "complete_estimate_and_fixed_footer": true,
@@ -181,12 +273,7 @@
     "https://developer.apple.com/design/human-interface-guidelines/the-menu-bar",
     "https://developer.apple.com/design/human-interface-guidelines/context-menus"
   ],
-  "separate_pending_gates": [
-    "Final committed-source CI and release artifact verification",
-    "Signed and notarized release publication with public download verification",
-    "Hosted Homebrew tap upgrade checks",
-    "Actual installed Homebrew upgrade with settings, folder-rule and Finder-action preservation"
-  ],
+  "separate_pending_gates": [],
   "limits": [
     "Scores are developer heuristic judgments, not a novice-user study or universal certification.",
     "Manual VoiceOver and novice participants were not tested.",
@@ -195,5 +282,16 @@
     "Long-duration energy use, conversion-engine peak memory and animation frame-time distributions were not measured.",
     "QA helpers and disabled fixtures do not establish final installed-package behavior.",
     "Raw CUA captures and the local accessibility transcript remain private; only representative documentation images are referenced."
+  ],
+  "separate_completed_gates": [
+    "Full committed-source release validation on maintainer Mac",
+    "Signed and notarized public release with seven verified downloads",
+    "Inline Homebrew audits and exact published tap/feed verification",
+    "Actual installed Homebrew 1.8.3 to 1.9.0 upgrade preserving settings, rule and Finder actions"
+  ],
+  "completion_evidence": [
+    "verification-1.9.0.json",
+    "releases/1.9.0.json",
+    "homebrew-upgrade-1.9.0.json"
   ]
 }

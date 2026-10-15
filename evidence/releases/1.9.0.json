@@ -55,21 +55,29 @@
     "dmg_integrity_and_developer_id_signature_verified": true,
     "dmg_app_matches_verified_notarized_update_app": true,
     "production_bundle_has_no_test_support_override": true,
+    "signed_release_workflow_passed": true,
+    "all_release_jobs_ran_on_maintainer_mac": true,
+    "inline_homebrew_style_and_online_audits_passed": true,
+    "production_feed_matches_verified_signed_feed": true,
+    "public_tap_recipes_match_verified_artifacts": true,
+    "public_tap_all_audited_files_match": true,
     "native_fingerprint_unchanged_after_ci_repair": true,
-    "inline_homebrew_style_and_online_audits_passed_locally": true
+    "all_job_runner_identities_match_registered_maintainer_mac": true,
+    "all_public_asset_digests_unchanged_after_retry": true,
+    "separate_tap_workflow_disabled": true
   },
   "limitations": {
     "dmg_separately_notarized": false,
     "intel_hardware_tested": false,
     "engines_installed_separately": true
   },
-  "verification_date": "2026-10-15",
+  "release_workflow_url": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38711076280",
+  "release_workflow_commit": "9cd77b8f13f3c8912ab583af82b6960f2f9837c3",
   "publication": {
-    "status": "artifacts_verified_distribution_gate_pending",
-    "release_workflow_url": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38704335346",
-    "release_workflow_conclusion": "failure",
-    "distribution_blocker": "Automatic distribution retry is pending the maintainer-Mac-only pipeline change. The original hosted audit failed its shared-IP GitHub API quota; no hosted retry will run.",
-    "production_feed_updated": false,
-    "prepared_repair": "Run Homebrew style and strict online formula/cask audits inline on the release Mac, then verify the atomic tap commit and exact audited files before publishing the feed. The separate tap workflow is inert; real upgrades remain separately authorized."
-  }
+    "status": "complete",
+    "production_feed_updated": true,
+    "homebrew_gate": "inline audits in the maintainer Mac release job; separate tap workflow is inert"
+  },
+  "homebrew_tap_commit": "44e2c3197681a174a54b03a7c38cb7077f4b3519",
+  "verification_date": "2026-10-15"
 }

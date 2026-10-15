@@ -1,24 +1,23 @@
 {
   "version": "1.9.0",
-  "status": "visual candidate passed; release and actual Homebrew upgrade pending",
+  "status": "passed observed UI, release and real installed Homebrew upgrade gates; validation limits documented",
   "observed_date": "2026-10-15",
   "source_commit": "495569e71c28c4c3e5194408f719872c7098859a",
-  "ci": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38704332840",
+  "ci": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38711076280",
   "ci_conclusion": "success",
   "native_suites": {
     "interface": "passed",
     "guidance": "passed",
     "backend": "passed",
     "automation_checks": 330,
-    "rule_editor_checks": 412,
+    "rule_editor_checks": 418,
     "updater_checks": 37,
     "startup_checks": 283,
     "settings_checks": 646,
     "compression_checks": 85,
     "report_checks": 45,
-    "compression_checks_scope": "Complete source-tag CI passed all85checks, including live layout/motion regression tests.",
-    "rule_editor_diagnostic_checks": 418,
-    "rule_editor_diagnostic_scope": "Test-only first-window settling and split interruption diagnostics passed five focused runs; original combined CI failure cause unproven; complete current CI required."
+    "compression_checks_scope": "All85checks passed complete release CI, including live layout/motion regression tests.",
+    "rule_editor_diagnostic_scope": "First-window settling, split scroll/opacity diagnostics and intermediate/final stability checks passed the complete release CI."
   },
   "python_tests": {
     "security": 18,
@@ -30,7 +29,7 @@
     "compression": 21,
     "source_collection": 4,
     "update_packaging": 4,
-    "homebrew": 34
+    "homebrew": 36
   },
   "engine_round_trips": {
     "targets": 62,
@@ -52,10 +51,7 @@
     "real_conversion_engine_in_fixture": false,
     "scope": "Temporary stress suite, not normal application RAM or a long-duration energy benchmark."
   },
-  "pending": [
-    "Local-only publication pipeline repair and signed production-feed update",
-    "Actual installed Homebrew upgrade with preference/rule/Finder-action preservation"
-  ],
+  "pending": [],
   "limits": [
     "Physical logout/login not performed; login event and native presentation tested with isolated events/preferences.",
     "VoiceOver and novice participants not tested.",
@@ -76,6 +72,14 @@
     ],
     "hosted_fallback": false,
     "pull_request_execution": false,
-    "regression_checks": 4
+    "regression_checks": 5
+  },
+  "validation_commit": "9cd77b8",
+  "release_evidence": "releases/1.9.0.json",
+  "homebrew_upgrade_evidence": "homebrew-upgrade-1.9.0.json",
+  "installed_app_snapshot": {
+    "rss_bytes": 161316864,
+    "sampled_cpu_percent_rounded": 0.0,
+    "scope": "One process snapshot after Settings and saved-rule inspection; excludes external engines/extensions and is not a sustained idle or energy benchmark."
   }
 }

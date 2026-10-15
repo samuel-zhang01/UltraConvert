@@ -1,0 +1,125 @@
+{
+  "date": "2026-10-15",
+  "from_version": "1.8.3",
+  "to_version": "1.9.0",
+  "method": "Real Homebrew runtime-first formula upgrade, runtime brew test, then greedy cask upgrade; no force, adoption, manual app copy or reinstall",
+  "release_ci": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38711076280",
+  "all_project_jobs_on_registered_mac": true,
+  "phases": {
+    "before": {
+      "phase": "before",
+      "app_version": "1.8.3",
+      "runtime_version": "1.8.3",
+      "original_persistent_preference_count": 11,
+      "saved_rule_count": 1,
+      "finder_workflow_count": 2,
+      "minimized_preference_existed_before": false,
+      "assertions": {
+        "installed_app_version": true,
+        "homebrew_cask_version": true,
+        "homebrew_runtime_version": true,
+        "original_preferences_retained": true,
+        "unexpected_preference_additions_absent": true,
+        "minimized_startup_preference_retained": true,
+        "saved_rules_identical": true,
+        "finder_actions_identical": true,
+        "strict_code_signature": true,
+        "expected_developer_team": true,
+        "hardened_runtime": true,
+        "gatekeeper_accepted": true,
+        "notarization_ticket_valid": true
+      },
+      "passed": true
+    },
+    "runtime-upgraded": {
+      "phase": "runtime-upgraded",
+      "app_version": "1.8.3",
+      "runtime_version": "1.9.0",
+      "original_persistent_preference_count": 11,
+      "saved_rule_count": 1,
+      "finder_workflow_count": 2,
+      "minimized_preference_existed_before": false,
+      "assertions": {
+        "installed_app_version": true,
+        "homebrew_cask_version": true,
+        "homebrew_runtime_version": true,
+        "original_preferences_retained": true,
+        "unexpected_preference_additions_absent": true,
+        "minimized_startup_preference_retained": true,
+        "saved_rules_identical": true,
+        "finder_actions_identical": true,
+        "strict_code_signature": true,
+        "expected_developer_team": true,
+        "hardened_runtime": true,
+        "gatekeeper_accepted": true,
+        "notarization_ticket_valid": true
+      },
+      "passed": true
+    },
+    "app-upgraded": {
+      "phase": "app-upgraded",
+      "app_version": "1.9.0",
+      "runtime_version": "1.9.0",
+      "original_persistent_preference_count": 11,
+      "saved_rule_count": 1,
+      "finder_workflow_count": 2,
+      "minimized_preference_existed_before": false,
+      "assertions": {
+        "installed_app_version": true,
+        "homebrew_cask_version": true,
+        "homebrew_runtime_version": true,
+        "original_preferences_retained": true,
+        "unexpected_preference_additions_absent": true,
+        "minimized_startup_preference_retained": true,
+        "saved_rules_identical": true,
+        "finder_actions_identical": true,
+        "strict_code_signature": true,
+        "expected_developer_team": true,
+        "hardened_runtime": true,
+        "gatekeeper_accepted": true,
+        "notarization_ticket_valid": true,
+        "installed_setup_ready": true
+      },
+      "passed": true
+    },
+    "after-launch": {
+      "phase": "after-launch",
+      "app_version": "1.9.0",
+      "runtime_version": "1.9.0",
+      "original_persistent_preference_count": 11,
+      "saved_rule_count": 1,
+      "finder_workflow_count": 2,
+      "minimized_preference_existed_before": false,
+      "assertions": {
+        "installed_app_version": true,
+        "homebrew_cask_version": true,
+        "homebrew_runtime_version": true,
+        "original_preferences_retained": true,
+        "unexpected_preference_additions_absent": true,
+        "minimized_startup_preference_retained": true,
+        "saved_rules_identical": true,
+        "strict_code_signature": true,
+        "expected_developer_team": true,
+        "hardened_runtime": true,
+        "gatekeeper_accepted": true,
+        "notarization_ticket_valid": true,
+        "installed_setup_ready": true
+      },
+      "passed": true
+    }
+  },
+  "native_gui": {
+    "canonical_installed_app_opened": true,
+    "updates_pane_reports_1_9_0": true,
+    "all_three_settings_panes_opened": true,
+    "minimized_login_option_visible": true,
+    "existing_startup_choice_retained": true,
+    "saved_disabled_rule_visible": true,
+    "main_converter_left_ready": true
+  },
+  "limits": [
+    "Ordinary Quit and Homebrew upgrade do not restore a queued batch; baseline queue was empty.",
+    "Exact Finder workflow preservation was checked before GUI launch; optional automatic repair after launch can refresh icons/metadata.",
+    "Physical logout/login and physical Intel hardware were not tested."
+  ]
+}
