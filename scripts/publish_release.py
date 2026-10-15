@@ -270,10 +270,10 @@ def style_homebrew(files, env):
     # Keep the index outside the runner's hidden .github-runners directory:
     # Homebrew's Formula/Casks glob exclusions intentionally skip hidden paths.
     # Only these exact audited bytes are staged; no installed tap is changed.
-    with tempfile.TemporaryDirectory(
-        prefix="ultraconvert-homebrew-style-", dir="/tmp"
-    ) as temporary:
-        folder = Path(temporary)
+    with tempfile.TemporaryDirectory(prefix="ultraconvert-homebrew-style-") as temporary:
+        folder = Path(temporary).resolve()
+        if any(part.startswith(".") for part in folder.parts):
+            raise ValueError("Homebrew style staging must be outside hidden directories")
         recipes = []
         for name, text in files.items():
             if name.endswith(".rb"):

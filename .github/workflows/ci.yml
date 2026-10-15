@@ -41,6 +41,7 @@ jobs:
         if: always()
         run: rm -rf "$RUNNER_TEMP/ultraconvert-static-venv"
   macos:
+    needs: static
     runs-on: [ultraconvert, local-macos]
     if: github.repository == 'samuel-zhang01/UltraConvert' && github.actor == 'samuel-zhang01' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     timeout-minutes: 75

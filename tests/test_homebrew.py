@@ -357,7 +357,8 @@ class HomebrewTests(unittest.TestCase):
         self.assertEqual(style.args[0][3], publish_release.HOMEBREW_STYLE)
         self.assertEqual(audit.args[0][:3], ["brew", "ruby", "-e"])
         self.assertEqual(style.args[0][4], style.kwargs["cwd"] / "release-style.yml")
-        self.assertTrue(str(style.kwargs["cwd"]).startswith("/tmp/ultraconvert-homebrew-style-"))
+        self.assertTrue(style.kwargs["cwd"].name.startswith("ultraconvert-homebrew-style-"))
+        self.assertFalse(any(part.startswith(".") for part in style.kwargs["cwd"].parts))
         self.assertFalse(style.kwargs["cwd"].exists())
         self.assertEqual(
             staged, {name: text for name, text in files.items() if name.endswith(".rb")}
@@ -426,6 +427,18 @@ class HomebrewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "checksum mismatch"):
                 publish_release.audit_homebrew(folder, "1.8.1")
         run.assert_not_called()
+
+    def test_hidden_temporary_parent_cannot_silently_skip_style_cops(self):
+        hidden = self.root / ".hidden-runner"
+        hidden.mkdir()
+        with (
+            patch.object(tempfile, "tempdir", str(hidden)),
+            patch.object(publish_release, "run") as run,
+        ):
+            with self.assertRaisesRegex(ValueError, "outside hidden directories"):
+                publish_release.style_homebrew({"Formula/ultraconvert-runtime.rb": "bytes"}, {})
+        run.assert_not_called()
+        self.assertEqual(list(hidden.iterdir()), [])
 
     def test_inline_audit_rejects_wrong_release_before_running_brew(self):
         folder = self.assets()

@@ -52,6 +52,12 @@ class RunnerPolicyTests(unittest.TestCase):
         self.assertNotIn("brew install", native)
         self.assertNotIn("actions/setup-python", native)
 
+    def test_static_failures_stop_expensive_native_validation(self):
+        workflow = yaml.load(
+            (ROOT / ".github/workflows/ci.yml").read_text(), Loader=yaml.BaseLoader
+        )
+        self.assertEqual(workflow["jobs"]["macos"]["needs"], "static")
+
     def test_installer_tests_use_the_disposable_native_app(self):
         workflow = yaml.load(
             (ROOT / ".github/workflows/ci.yml").read_text(), Loader=yaml.BaseLoader
