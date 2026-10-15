@@ -1,3 +1,19 @@
+# 1.9.0 candidate audit — 2026-10-15
+
+**The whole-app ≥9.5 gate remains open.** The current source is pushed and its [complete CI run](https://github.com/samuel-zhang01/UltraConvert/actions/runs/38667386936) passes. A locked Mac prevents the final screenshot matrix, illustrated-documentation refresh, release and actual Homebrew upgrade checks. This candidate has not been published as 1.9.0.
+
+Two independent agents reviewed all twelve Settings captures: General, Updates and Finder at normal/minimum sizes in light/dark appearances. One scored **9.54/10** with its frozen rubric. The other scored **9.48/10**, holding essential light-mode instructions and status text below the gate. Those notes/statuses now use full semantic label colour; subtitles retain secondary hierarchy. Revised rendering still requires confirmation. These scores cover Settings, not the whole application, and cannot substitute for the remaining converter, puzzle, Activity, report, guide, picker and menu review.
+
+The redesign follows Apple's [Settings](https://developer.apple.com/design/human-interface-guidelines/settings), [buttons](https://developer.apple.com/design/human-interface-guidelines/buttons) and [materials](https://developer.apple.com/design/human-interface-guidelines/materials) guidance: native remembered toolbar panes, stable window geometry, aligned action columns, readable content and restrained glass in navigation/controls. Repairs also address disclosure labels, compact control containment, dependency explanations and feedback beside each action.
+
+Functional changes include optional minimized login startup with a recoverable menu bar icon, per-category lossy quality controls with honest audio estimates, readable local conversion reports and full Activity Details. The audit found and fixed Finder presets leaving stale minimized state and hidden old CRS values reaching later batches. Audio quality/estimates were exercised through a real six-category GUI batch: six successes, no failures/skips, backend-confirmed quality, and unchanged original hashes. [Quality evidence](../evidence/compression-1.9.0.json) describes the exact scope.
+
+The committed native suite passes **646 Settings, 283 startup, 35 compression, 45 report, 412 editor, 330 automation and 37 updater checks**, plus interface, guide and backend checks. All **62 representative format round trips**, ten edge cases, real quality encodes, input-security and packaging/Homebrew recipe checks pass. [Verification record](../evidence/verification-1.9.0.json) separates these completed gates from pending release/installation work. Login tests use isolated official-event fixtures; they do not establish a physical sign-out/sign-in result. VoiceOver, novice participants, physical Intel hardware and long-duration energy use remain untested.
+
+The event-driven automation fixture consumed **0.009952 CPU seconds over five seconds** and scanned 1,000 small files in **0.005585 seconds**. The complete stress suite peaked at about **254 MiB RSS**. This is not a normal idle-app memory or conversion-engine benchmark. Slider movement updates local controls and debounces preference writes; it launches no conversion engine.
+
+---
+
 # Component, layout and motion audit — 2026-10-12
 
 The final 1.7.0 source passes the user's stricter **≥9.5** component gate at **9.585/10** (rounded **9.6**). An independent agent inspected the native app views after the implementation agent's repairs. Every component is ≥9.0 and no checked control overlap or safety blocker remains. This is a scoped developer heuristic assessment; it does not establish functional perfection or replace novice-user research. The earlier 9.0 beginner audit below uses a different rubric.

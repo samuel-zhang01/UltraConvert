@@ -1,0 +1,45 @@
+{
+  "version": "1.9.0",
+  "date": "2026-10-15",
+  "scope": "Manual conversion UI in an isolated native AppKit QA app with public sample inputs; final installed-package verification is separate.",
+  "real_ui_batch": {
+    "input_categories": [
+      "audio",
+      "video",
+      "image",
+      "document",
+      "geospatial",
+      "structured data"
+    ],
+    "files": 6,
+    "converted": 6,
+    "skipped": 0,
+    "failed": 0,
+    "original_sha256_unchanged": true,
+    "custom_audio_quality": 20,
+    "backend_report_confirms_quality_applied": true,
+    "audio_slider_changed_estimate": true
+  },
+  "backend_quality_tests": {
+    "tests": 21,
+    "passed": true,
+    "scope": "Actual encodes for five image, six audio and sixteen video target profiles; low-rate mono audio, short clips, CLI validation, concurrent profiles, unchanged defaults and skip-same precedence."
+  },
+  "controls": {
+    "custom_quality_off_by_default": true,
+    "per_source_category": true,
+    "audio_estimate": "Known duration \u00d7 target bitrate; approximate encoded audio bytes, actual size varies.",
+    "image_video_estimate": "No numeric promise; output size depends on content.",
+    "slider_change_launches_conversion_engine": false,
+    "preference_debounce_milliseconds": 250
+  },
+  "limits": [
+    "No claim of perceived quality for every input or codec.",
+    "Folder rules keep existing encoder defaults.",
+    "A quality setting of 100 can still be lossy.",
+    "Audio estimates do not guarantee total output size.",
+    "Final whole-app visual grade remains pending unlocked-Mac review."
+  ],
+  "committed_source_ci": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38667386936",
+  "committed_source": "a7a7ea1f0e3ac18c29450c8229d72d1dda9a3761"
+}
