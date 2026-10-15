@@ -13,6 +13,10 @@ jobs:
   macos:
     runs-on: macos-26
     timeout-minutes: 45
+    env:
+      # Shared hosted-runner IPs can exhaust GitHub's unauthenticated quota.
+      # Use only this job's existing read-only token; no maintainer PAT is needed.
+      HOMEBREW_GITHUB_API_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:

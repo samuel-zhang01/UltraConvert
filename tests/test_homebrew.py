@@ -476,6 +476,21 @@ class HomebrewTests(unittest.TestCase):
         self.assertIn("merge-base --is-ancestor", str(job["steps"]))
         self.assertEqual(workflow["concurrency"]["cancel-in-progress"], "false")
 
+    def test_hosted_brew_audits_use_only_the_existing_read_only_job_token(self):
+        import yaml
+
+        workflow = yaml.load((ROOT / "homebrew/tap-ci.yml").read_text(), Loader=yaml.BaseLoader)
+        job = workflow["jobs"]["macos"]
+        self.assertEqual(job["env"]["HOMEBREW_GITHUB_API_TOKEN"], "${{ github.token }}")
+        # Authentication fixes shared-IP rate limits without adding a PAT,
+        # secret or repository-write permission to any installation/audit step.
+        self.assertEqual(job.get("permissions", workflow["permissions"]), {"contents": "read"})
+        self.assertNotIn("secrets.", str(job["env"]))
+        audits = [step for step in job["steps"] if "brew audit" in step.get("run", "")]
+        self.assertTrue(audits)
+        for step in audits:
+            self.assertNotIn("HOMEBREW_GITHUB_API_TOKEN", step.get("env", {}))
+
 
 if __name__ == "__main__":
     unittest.main()

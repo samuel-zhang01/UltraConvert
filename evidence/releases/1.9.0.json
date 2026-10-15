@@ -1,0 +1,74 @@
+{
+  "version": "1.9.0",
+  "commit": "495569e71c28c4c3e5194408f719872c7098859a",
+  "release_url": "https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.9.0",
+  "assets": [
+    {
+      "name": "RELEASE-METADATA.json",
+      "bytes": 1023,
+      "sha256": "61fada361126fb6c67b7d940631ac0e47132b9a9375b303a64e68d0e7fdb58ec"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 587,
+      "sha256": "5dd5121c4b9146053c3a21364b6cca5496bdf52b03a43ec66457e4463857ef24"
+    },
+    {
+      "name": "UltraConvert-1.9.0-macos-universal.dmg",
+      "bytes": 8147117,
+      "sha256": "12b7661bd4416ee0c3aa6e2466ce112829440983a7ebb09876def265d08704f3"
+    },
+    {
+      "name": "UltraConvert-1.9.0-macos-universal.zip",
+      "bytes": 7703489,
+      "sha256": "993b862021c8ccb6c370d1edc435e082915f39041e968cf60edc14ac7579e7de"
+    },
+    {
+      "name": "UltraConvert-1.9.0-source.tar.gz",
+      "bytes": 4729251,
+      "sha256": "28d52c1f5ede4d1a270e6f80948ec1f507cc3ffcd586cb065675d88b3bbcb2d2"
+    },
+    {
+      "name": "UltraConvert-1.9.0-update-macos-universal.zip",
+      "bytes": 2787607,
+      "sha256": "bb6c2c725c3d05bb1bd7e358f5312715505d72183715924ac967a86ed488a355"
+    },
+    {
+      "name": "appcast.xml",
+      "bytes": 1523,
+      "sha256": "6e1451f4fe76d224735e611030eb869bca9eda5f4f39419a01874dfa8232aa68"
+    }
+  ],
+  "checks": {
+    "all_seven_public_assets_present": true,
+    "github_asset_digests_match_downloads": true,
+    "checksum_manifest_verified": true,
+    "source_archive_matches_exact_tag": true,
+    "native_provenance_matches_approved_sources": true,
+    "universal_arm64_and_x86_64_verified": true,
+    "developer_id_signature_and_team_verified": true,
+    "hardened_runtime_and_secure_timestamp_verified": true,
+    "app_stapled_notarization_and_gatekeeper_verified": true,
+    "signed_feed_and_archive_verified": true,
+    "feed_url_and_archive_length_match": true,
+    "installer_zip_app_matches_update_app": true,
+    "dmg_integrity_and_developer_id_signature_verified": true,
+    "dmg_app_matches_verified_notarized_update_app": true,
+    "production_bundle_has_no_test_support_override": true,
+    "native_fingerprint_unchanged_after_ci_repair": true
+  },
+  "limitations": {
+    "dmg_separately_notarized": false,
+    "intel_hardware_tested": false,
+    "engines_installed_separately": true
+  },
+  "verification_date": "2026-10-15",
+  "publication": {
+    "status": "artifacts_verified_distribution_gate_pending",
+    "release_workflow_url": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38704335346",
+    "release_workflow_conclusion": "failure",
+    "distribution_blocker": "Hosted Homebrew cask audit hit the shared runner IP unauthenticated GitHub API rate limit. Runtime/app upgrade gates have not run.",
+    "production_feed_updated": false,
+    "prepared_repair": "Authenticate Homebrew GitHub API requests with the existing read-only Actions job token; no new secrets or broader permissions."
+  }
+}
