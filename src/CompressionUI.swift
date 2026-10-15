@@ -68,19 +68,33 @@ final class CompressionControl: NSView {
     }
     @objc func changed(_ sender: NSControl) {
         if sender === custom {
-            persist(); InterfaceMotion.layout(self) { refresh() }
-            if custom.state == .on {
-                window?.contentView?.layoutSubtreeIfNeeded()
-                var ancestor = superview
-                while let view = ancestor {
-                    if let scroll = view as? NSScrollView, let document = scroll.documentView {
-                        let rect = convert(bounds, to: document), visible = scroll.documentVisibleRect
-                        let y = rect.maxY > visible.maxY ? rect.maxY - visible.height + 8 : rect.minY < visible.minY ? rect.minY - 8 : visible.minY
-                        InterfaceMotion.scroll(scroll, to: NSPoint(x: visible.minX, y: max(0, min(y, max(0, document.bounds.height - visible.height)))))
-                        break
+            persist()
+            // NSStackView visibility changes must settle before revealing the
+            // controls. Animating its hidden constraints and clip bounds at
+            // once made repeated toggles stretch and bounce the whole panel.
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0; context.allowsImplicitAnimation = false
+                refresh(); (window?.contentView ?? self).layoutSubtreeIfNeeded()
+            }
+            var ancestor = superview
+            while let view = ancestor {
+                if let scroll = view as? NSScrollView, let document = scroll.documentView {
+                    let visible = scroll.documentVisibleRect, rect = convert(bounds, to: document)
+                    var y = visible.minY
+                    if custom.state == .on {
+                        if rect.maxY > visible.maxY { y = rect.maxY - visible.height + 8 }
+                        else if rect.minY < visible.minY { y = rect.minY - 8 }
                     }
-                    ancestor = view.superview
+                    // One immediate, minimal reveal keeps the checkbox and
+                    // estimate coherent; no second scroll animation competes
+                    // with the native checkmark or the content fade.
+                    InterfaceMotion.snapScroll(scroll, to: NSPoint(x: visible.minX, y: max(0, min(y, max(0, document.bounds.height - visible.height)))))
+                    break
                 }
+                ancestor = view.superview
+            }
+            if custom.state == .on {
+                InterfaceMotion.reveal(adjustment); InterfaceMotion.reveal(estimate)
             }
         } else {
             refresh()

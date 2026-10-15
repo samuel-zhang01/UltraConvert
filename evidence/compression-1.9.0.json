@@ -37,9 +37,33 @@
     "No claim of perceived quality for every input or codec.",
     "Folder rules keep existing encoder defaults.",
     "A quality setting of 100 can still be lossy.",
-    "Audio estimates do not guarantee total output size.",
-    "Final whole-app visual grade remains pending unlocked-Mac review."
+    "Audio estimates do not guarantee total output size."
   ],
   "committed_source_ci": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38667386936",
-  "committed_source": "a7a7ea1f0e3ac18c29450c8229d72d1dda9a3761"
+  "committed_source": "a7a7ea1f0e3ac18c29450c8229d72d1dda9a3761",
+  "final_native_ui_source_fingerprint": "d03e8b85f4d874e5bf10348ff20754e904cf4eb5ff8112f243f30d3b3dee05b3",
+  "final_real_audio_ui_test": {
+    "source": "isolated production QA4 app with public sample",
+    "input": "WAV",
+    "target": "MP3",
+    "bitrate_kbps": 96,
+    "slider_quality_sent": 18,
+    "estimate_changed_from_bytes": 24000,
+    "estimate_changed_to_bytes": 12000,
+    "converted": 1,
+    "failed": 0,
+    "readable_report_opened": true,
+    "original_sha256_unchanged": true
+  },
+  "motion_repair": {
+    "live_native_checks_passed": 85,
+    "sample_intervals_milliseconds": [
+      25,
+      300
+    ],
+    "compact_live_ui_sequence_checked": true,
+    "normal_production_ui_sequence_checked": true,
+    "scope": "Stable layout/scroll endpoints and sampled geometry; no measured frame-time or perceived-smoothness guarantee.",
+    "rapid_toggle_actions": 9
+  }
 }

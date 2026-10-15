@@ -1,0 +1,199 @@
+{
+  "schema": 1,
+  "version": "1.9.0",
+  "audit_date": "2026-10-15",
+  "source_fingerprint": "d03e8b85f4d874e5bf10348ff20754e904cf4eb5ff8112f243f30d3b3dee05b3",
+  "source_fingerprint_method": "scripts.package_app.native_provenance('universal')['source_fingerprint']; covers native, engine and packaging inputs, not documentation.",
+  "motion_qa_manifest_sources_match_current_source": true,
+  "independent_ui_grade": {
+    "scope": "Independent read-only developer heuristic review of current production AppKit source, actual native CUA scene captures and interaction evidence; not a user study or universal certification.",
+    "criteria_weights": {
+      "alignment_and_spacing": 0.25,
+      "comprehension": 0.25,
+      "state_and_recovery": 0.2,
+      "native_behavior": 0.15,
+      "accessibility": 0.15
+    },
+    "surfaces": {
+      "converter": {
+        "weight": 0.2,
+        "criterion_scores": [9.6, 9.5, 9.6, 9.5, 9.4],
+        "score": 9.53
+      },
+      "settings": {
+        "weight": 0.2,
+        "criterion_scores": [9.7, 9.4, 9.5, 9.7, 9.5],
+        "score": 9.555
+      },
+      "puzzle_builder": {
+        "weight": 0.25,
+        "criterion_scores": [9.7, 9.5, 9.7, 9.5, 9.4],
+        "score": 9.575
+      },
+      "activity": {
+        "weight": 0.1,
+        "criterion_scores": [9.6, 9.2, 9.7, 9.5, 9.3],
+        "score": 9.46
+      },
+      "finder_format_picker": {
+        "weight": 0.1,
+        "criterion_scores": [9.6, 9.5, 9.5, 9.6, 9.4],
+        "score": 9.525
+      },
+      "getting_started": {
+        "weight": 0.05,
+        "criterion_scores": [9.6, 9.5, 9.5, 9.6, 9.5],
+        "score": 9.54
+      },
+      "menus_and_dialogs": {
+        "weight": 0.1,
+        "criterion_scores": [9.6, 9.4, 9.7, 9.4, 9.3],
+        "score": 9.495
+      }
+    },
+    "criterion_score_order": [
+      "alignment_and_spacing",
+      "comprehension",
+      "state_and_recovery",
+      "native_behavior",
+      "accessibility"
+    ],
+    "weighted_score": 9.53575,
+    "rounded_score": 9.54,
+    "pass_mark": 9.5,
+    "minimum_surface_pass_mark": 9.0,
+    "minimum_observed_surface_score": 9.46,
+    "no_confirmed_blocking_layout_or_safety_defect_in_checked_flows": true,
+    "passed": true,
+    "report_standalone_review": {
+      "criterion_scores": [9.7, 9.4, 9.7, 9.5, 9.5],
+      "score": 9.565,
+      "included_in": "menus_and_dialogs",
+      "additional_surface_weight": 0
+    }
+  },
+  "native_visual_review": {
+    "capture_method": "Actual native CUA captures of production AppKit views with isolated preferences, disabled folder-rule fixtures and public sample inputs. No bitmap-cached render is used as native UI proof.",
+    "raw_captures_published": false,
+    "appearances": ["light", "dark"],
+    "window_sizes": ["normal", "declared minimum"],
+    "matrix": {
+      "settings": {
+        "states": ["General", "Updates", "Finder"],
+        "captures_reviewed": 12
+      },
+      "converter": {
+        "states": ["empty", "six categories", "custom quality", "busy fixture", "result and error fixture"],
+        "captures_reviewed": 20
+      },
+      "folder_rules": {
+        "states": ["puzzle builder", "Activity failure fixture", "Activity Details fixture"],
+        "captures_reviewed": 12
+      },
+      "getting_started": {
+        "states": ["Convert files", "Finder", "Folder rules", "Options and startup"],
+        "captures_reviewed": 16
+      },
+      "conversion_report": {
+        "states": ["mixed results fixture", "unavailable fixture"],
+        "captures_reviewed": 8
+      },
+      "finder_format_picker": {
+        "states": ["fixed-size chooser"],
+        "captures_reviewed": 2,
+        "resizable": false
+      }
+    },
+    "additional_compact_endpoints_observed": [
+      "Finder Settings last action in light and dark",
+      "Puzzle Match, Actions, Rename, Output and Original sections",
+      "Explicit original-file Trash acknowledgement",
+      "Activity final failure row and its complete Details action",
+      "Guide final startup and update instructions",
+      "Expanded Batch options and concurrency guidance",
+      "Save location jump revealing the complete destination card"
+    ],
+    "context_menu_actual_images_observed": true,
+    "top_menus_opened_and_accessibility_state_observed": ["App", "File", "Window", "Help"],
+    "top_menu_screenshot_proof_available": false,
+    "top_menu_proof_scope": "Coordinator operated native menus; independent reviewer inspected the saved native accessibility transcript and production source. No top-menu image proof is claimed.",
+    "real_quality_and_report_observed": "Real six-category batch and a later WAV-to-MP3 quality change with a completed readable report; layout fixture outcomes are simulated and are not conversion evidence.",
+    "representative_public_images": {
+      "converter": "docs/images/converter.png",
+      "general_settings": "docs/images/settings.png",
+      "updates": "docs/images/app-updates.png",
+      "finder_settings": "docs/images/finder-settings.png",
+      "conversion_report": "docs/images/conversion-report.png",
+      "getting_started": "docs/images/getting-started.png"
+    }
+  },
+  "custom_quality_motion_repair": {
+    "trigger": "User reported an odd animation after the first final UI grade; applicable visual approval was reopened until the repaired source and rebuilt app were checked.",
+    "repair": [
+      "Settle NSStackView visibility and layout immediately with implicit geometry animation disabled.",
+      "Cancel preceding clip-bounds motion and apply one immediate minimal reveal clamped to document bounds.",
+      "Fade only adjustment controls and estimate text using the shared native transition.",
+      "Keep current state immediate; use no completion callback that restores an older state."
+    ],
+    "transition_seconds": 0.18,
+    "transition_curve": "easeInEaseOut",
+    "native_compression_checks": 85,
+    "native_compression_checks_passed": true,
+    "live_appkit_event_loop": true,
+    "rapid_toggle_changes": 9,
+    "intermediate_sample_milliseconds": 25,
+    "settled_sample_milliseconds": 300,
+    "verified_cases": [
+      "Compact 760 by 570 point three-category interface",
+      "Rapid on/off changes across image, video and audio controls",
+      "Pending animated scroll cancellation and clip-bound clamping",
+      "Stable document, control and viewport geometry during the fade",
+      "Visible final checkbox and complete estimate",
+      "Explicit Reduce Motion cancellation at intermediate and settled endpoints",
+      "Actual formatChanged selection of FLAC during an active fade stays hidden and emits no quality argument"
+    ],
+    "fresh_native_sequence_review": {
+      "normal_real_qa_app": ["on", "off", "on"],
+      "compact_production_view_fixture": ["before", "on", "off", "on"],
+      "captures_independently_reviewed": 7,
+      "near_bottom_audio_control": true,
+      "complete_estimate_and_fixed_footer": true,
+      "stable_repeated_endpoints": true,
+      "one_compact_endpoint_capture_lower_resolution": true,
+      "grade_reaffirmed_without_increase": true
+    },
+    "slider_change_launches_conversion_engine": false,
+    "recurring_animation_timer_added": false,
+    "preference_debounce_milliseconds": 250,
+    "perceived_smoothness_or_frame_times_measured": false,
+    "system_reduce_motion_preference_changed": false
+  },
+  "remaining_nonblocking_deductions": [
+    "Nested same-axis scrolling requires discovery even with explicit hints and destination navigation.",
+    "Some quality explanations use subdued semantic secondary text.",
+    "Activity could label its global history scope more explicitly.",
+    "The requested category-to-format context hierarchy exceeds Apple's usual single-submenu preference."
+  ],
+  "apple_design_sources": [
+    "https://developer.apple.com/design/human-interface-guidelines/settings",
+    "https://developer.apple.com/design/human-interface-guidelines/buttons",
+    "https://developer.apple.com/design/human-interface-guidelines/materials",
+    "https://developer.apple.com/design/human-interface-guidelines/the-menu-bar",
+    "https://developer.apple.com/design/human-interface-guidelines/context-menus"
+  ],
+  "separate_pending_gates": [
+    "Final committed-source CI and release artifact verification",
+    "Signed and notarized release publication with public download verification",
+    "Hosted Homebrew tap upgrade checks",
+    "Actual installed Homebrew upgrade with settings, folder-rule and Finder-action preservation"
+  ],
+  "limits": [
+    "Scores are developer heuristic judgments, not a novice-user study or universal certification.",
+    "Manual VoiceOver and novice participants were not tested.",
+    "Physical logout/login was not performed; startup presentation used isolated events and preferences.",
+    "Older macOS appearance and physical Intel hardware or Intel engine installation were not tested.",
+    "Long-duration energy use, conversion-engine peak memory and animation frame-time distributions were not measured.",
+    "QA helpers and disabled fixtures do not establish final installed-package behavior.",
+    "Raw CUA captures and the local accessibility transcript remain private; only representative documentation images are referenced."
+  ]
+}

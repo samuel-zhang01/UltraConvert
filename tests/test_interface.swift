@@ -48,6 +48,16 @@ struct InterfaceSmoke {
                 let help = app.helpButton.convert(app.helpButton.bounds, to: app.window.contentView)
                 precondition(help.minX >= 0 && help.maxX <= size.width && help.width >= app.helpButton.intrinsicContentSize.width)
                 precondition(app.destinationPath.font!.pointSize == 13 && app.destinationPath.textColor == .labelColor)
+                app.here = true; app.refreshDestination()
+                precondition(app.destinationSummary.stringValue == "Save to: Beside source files")
+                let saveSummary = app.destinationSummary.convert(app.destinationSummary.bounds, to: app.window.contentView)
+                let saveAction = app.reviewDestination.convert(app.reviewDestination.bounds, to: app.window.contentView)
+                precondition(saveSummary.minY >= 0 && saveSummary.maxY <= size.height && saveAction.maxX <= size.width)
+                precondition(NSIntersectionRect(saveSummary, saveAction).isEmpty)
+                app.reviewSaveLocation(); app.window.contentView!.layoutSubtreeIfNeeded()
+                let destinationRect = app.destinationCard!.convert(app.destinationCard!.bounds, to: app.bodyScroll!.documentView)
+                precondition(app.bodyScroll!.documentVisibleRect.intersects(destinationRect))
+                precondition(!app.crsLabel.isHidden && app.crsLabel.stringValue.contains("Geospatial"))
             }
         }
         app.optionsDisclosure.state = .on

@@ -14,6 +14,10 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     let reportButton = NSButton(title: "Show Report", target: nil, action: nil)
     let helpButton = NSButton(title: "Help", target: nil, action: nil)
     let destinationPath = NSTextField(wrappingLabelWithString: "")
+    let destinationSummary = NSTextField(labelWithString: "Save to: Beside source files")
+    let reviewDestination = NSButton(title: "Save location…", target: nil, action: nil)
+    weak var destinationCard: NSView?
+    weak var bodyScroll: NSScrollView?
     let formats = NSStackView()
     let location = NSPopUpButton()
     let saveDefault = NSButton(title: "Set as Default", target: nil, action: nil)
@@ -21,6 +25,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     let openAfter = NSButton(checkboxWithTitle: "Open results when finished", target: nil, action: nil)
     let jobs = NSPopUpButton()
     let crs = NSTextField(string: "")
+    let crsLabel = uiLabel("Geospatial input CRS (optional)", size: 13, weight: .medium)
     let queueCount = NSTextField(labelWithString: "0")
     let fileTable = QueueTable()
     let queueScroll = NSScrollView()
@@ -253,6 +258,8 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         if here { location.selectItem(at: 0) }
         else if outputURL == defaultFolder() { location.selectItem(at: 1) }
         destination.title = "Choose…"
+        destinationSummary.stringValue = here ? "Save to: Beside source files" : "Save to: " + (outputURL ?? defaultFolder()).path
+        destinationSummary.toolTip = destinationSummary.stringValue
         destinationPath.stringValue = here ? "Converted files beside the originals. Existing names get a numbered suffix." : "Destination: \((outputURL ?? defaultFolder()).path)"
         destination.toolTip = here ? "Single-file outputs go directly beside their sources. Companion files stay together in one folder." : outputURL?.path
         saveDefault.isEnabled = !busy && !here
@@ -555,7 +562,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             row.widthAnchor.constraint(equalTo: formats.widthAnchor).isActive = true
             selectors[key] = popup
         }
-        crs.isHidden = groups["geo"] == nil
+        crs.isHidden = groups["geo"] == nil; crsLabel.isHidden = crs.isHidden
         formatReviewHint.stringValue = selectors.count > 1 ? "\(selectors.count) file types · scroll this panel to review every format and quality setting." : "Formats are detected from file contents where possible."
         let failed = infos.filter { $0["error"] is String }.count
         status.stringValue = failed == 0 ? "Ready to convert \(infos.count) \(infos.count == 1 ? "file" : "files")." : "\(infos.count - failed) ready · \(failed) unsupported. Review the file queue."

@@ -85,6 +85,8 @@ final class FormatPicker: NSWindowController {
         category.changed { [weak self] in self?.refreshFormats() }; refreshFormats()
         let row = NSStackView(views: [category, format]); row.spacing = 12; stack.addArrangedSubview(row); row.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         format.widthAnchor.constraint(equalTo: row.widthAnchor, multiplier: 0.45).isActive = true
+        category.leadingAnchor.constraint(equalTo: row.leadingAnchor).isActive = true
+        format.trailingAnchor.constraint(equalTo: row.trailingAnchor).isActive = true
         stack.addArrangedSubview(uiLabel("All formats are listed. UltraConvert detects your files and checks compatibility before you click Convert.", size: 13, color: .secondaryLabelColor))
         review.invoke = { [weak self] in guard let self, let value = self.format.selectedItem?.representedObject as? String else { return }; self.choose(value); self.close() }
         let footer = NSStackView(views: [NSView(), cancel, review]); footer.spacing = 8; stack.addArrangedSubview(footer); footer.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true

@@ -1,6 +1,6 @@
 {
   "version": "1.9.0",
-  "status": "candidate; visual and release gates incomplete",
+  "status": "visual candidate passed; release and actual Homebrew upgrade pending",
   "observed_date": "2026-10-15",
   "source_commit": "a7a7ea1f0e3ac18c29450c8229d72d1dda9a3761",
   "ci": "https://github.com/samuel-zhang01/UltraConvert/actions/runs/38667386936",
@@ -14,8 +14,9 @@
     "updater_checks": 37,
     "startup_checks": 283,
     "settings_checks": 646,
-    "compression_checks": 35,
-    "report_checks": 45
+    "compression_checks": 85,
+    "report_checks": 45,
+    "compression_checks_scope": "Final local live suite; complete committed release CI remains required."
   },
   "python_tests": {
     "security": 18,
@@ -50,8 +51,6 @@
     "scope": "Temporary stress suite, not normal application RAM or a long-duration energy benchmark."
   },
   "pending": [
-    "Final contrast and whole-app CUA screenshot matrix and independent >=9.5 grade",
-    "Current illustrated documentation captures",
     "Signed/notarized v1.9.0 artifact publication and public verification",
     "Hosted tap upgrade gate for v1.9.0",
     "Actual installed Homebrew upgrade with preference/rule/Finder-action preservation"
@@ -59,7 +58,13 @@
   "limits": [
     "Physical logout/login not performed; login event and native presentation tested with isolated events/preferences.",
     "VoiceOver and novice participants not tested.",
-    "Physical Intel hardware and Intel engine installation not tested.",
-    "The Mac lock currently prevents the remaining live visual review."
-  ]
+    "Physical Intel hardware and Intel engine installation not tested."
+  ],
+  "final_native_ui_source_fingerprint": "d03e8b85f4d874e5bf10348ff20754e904cf4eb5ff8112f243f30d3b3dee05b3",
+  "ui_grade": {
+    "weighted_score": 9.53575,
+    "pass_mark": 9.5,
+    "passed": true,
+    "scope": "Independent developer heuristic review of observed native UI; see ui-components-1.9.0.json for rubric and limits."
+  }
 }

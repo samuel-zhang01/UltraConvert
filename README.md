@@ -7,7 +7,9 @@ UltraConvert is a native **Swift/AppKit macOS app** for images, audio, video, do
 
 **Start with manual conversion.** Finder shortcuts and automatic folder rules are optional.
 
-![UltraConvert showing the three conversion stages](docs/images/converter.png)
+![UltraConvert showing audio conversion, optional quality controls and the save location](docs/images/converter.png)
+
+Example: WAV → MP3 with optional Custom quality enabled. It is off by default.
 
 [Install](#install) · [First conversion](#convert-your-first-file) · [Finder](#convert-from-finder) · [Folder rules](#automate-a-folder) · [Startup](#startup-and-settings) · [Updates](#update-or-remove) · [Formats](#supported-formats) · [Help](#help-and-troubleshooting)
 
@@ -82,6 +84,8 @@ Manual conversion keeps originals and existing outputs. Name collisions get numb
 
 **Quality and size:** for a supported lossy output, turn on **Custom quality** below its format picker. Drag toward **Smaller** or **Higher quality**; each image/audio/video group has its own setting. Leave it off to use the established encoder defaults. Audio shows a size estimate from duration and target bitrate; actual size varies. Image and video size depends on content and cannot be predicted reliably before encoding. A setting of 100 can still be lossy and cannot restore missing source detail. Custom media profiles use 48 kHz audio. Lossless outputs keep their standard profile. **Skip files already in target format** takes priority and skips re-encoding, including custom quality.
 
+**Save-location reminder:** the bottom bar always shows where the next batch will save. Click **Save location…** to jump to its controls, including in a compact window.
+
 **Saved destination:** choose a folder, then click **Set as Default**. Each destination batch gets a fresh folder there. The initial default is `~/Downloads/UltraConvert`.
 
 ## Convert from Finder
@@ -91,6 +95,8 @@ Enable the actions once:
 1. Open **UltraConvert → Settings… → Finder → Finder Settings…**.
 2. In **System Settings → General → Login Items & Extensions**, find **Finder** under Extensions and open its information button.
 3. Enable **Convert Here with UltraConvert** and **Convert to Destination with UltraConvert**. Older macOS versions place these under **Extensions → Finder**.
+
+![Finder setup, repair and format-shortcut settings](docs/images/finder-settings.png)
 
 Select one or more files in Finder, right-click, and use:
 

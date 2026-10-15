@@ -15,7 +15,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         window.contentMinSize = NSSize(width: 760, height: 570)
         window.center()
         let content = window.contentView!
-        let body = NSScrollView()
+        let body = NSScrollView(); bodyScroll = body
         body.hasVerticalScroller = true
         body.autohidesScrollers = true
         body.drawsBackground = false
@@ -68,7 +68,8 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         queue.heightAnchor.constraint(equalTo: targets.heightAnchor).isActive = true
         targets.heightAnchor.constraint(greaterThanOrEqualToConstant: 335).isActive = true
         addFullWidth(columns)
-        addFullWidth(buildDestinationCard())
+        let destinationCard = buildDestinationCard(); self.destinationCard = destinationCard
+        addFullWidth(destinationCard)
         addFullWidth(buildOptionsCard())
         summary.font = .systemFont(ofSize: 12)
         summary.textColor = .secondaryLabelColor
@@ -206,10 +207,12 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
             formatEmpty.centerXAnchor.constraint(equalTo: holder.centerXAnchor),
             formatEmpty.widthAnchor.constraint(lessThanOrEqualTo: holder.widthAnchor, constant: -10)
         ])
-        crs.placeholderString = "Optional CRS, e.g. EPSG:4326"
+        crs.placeholderString = "e.g. EPSG:4326"
         crs.toolTip = "Applies to selected geospatial files with no coordinate reference system. Leave blank when the source has one. Use a known CRS; never guess."
         crs.setAccessibilityLabel("Optional input CRS for geospatial files missing one")
-        crs.isHidden = true
+        crs.isHidden = true; crsLabel.isHidden = true
+        card.contents.addArrangedSubview(crsLabel)
+        crsLabel.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
         card.contents.addArrangedSubview(crs)
         crs.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
         card.contents.addArrangedSubview(formatReviewHint)
@@ -295,6 +298,15 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         contents.addArrangedSubview(row)
         row.widthAnchor.constraint(equalTo: contents.widthAnchor).isActive = true
         status.widthAnchor.constraint(equalTo: row.widthAnchor, constant: -28).isActive = true
+        destinationSummary.font = .systemFont(ofSize: 13)
+        destinationSummary.lineBreakMode = .byTruncatingMiddle
+        destinationSummary.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        destinationSummary.setAccessibilityLabel("Current conversion save location")
+        reviewDestination.bezelStyle = .rounded; reviewDestination.font = .systemFont(ofSize: 13)
+        reviewDestination.target = self; reviewDestination.action = #selector(reviewSaveLocation)
+        reviewDestination.toolTip = "Review or change the destination in step 3"
+        let saveRow = NSStackView(views: [destinationSummary, NSView(), reviewDestination]); saveRow.spacing = 10
+        contents.addArrangedSubview(saveRow); saveRow.widthAnchor.constraint(equalTo: contents.widthAnchor).isActive = true
         let actions = NSStackView(views: [NSView(), reportButton, reveal, retryButton, cancel, start])
         actions.spacing = 8
         contents.addArrangedSubview(actions)
@@ -322,6 +334,14 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         #endif
         background.heightAnchor.constraint(equalTo: contents.heightAnchor, constant: 32).isActive = true
         return background
+    }
+
+    @objc func reviewSaveLocation() {
+        guard let scroll = bodyScroll, let card = destinationCard, let document = scroll.documentView else { return }
+        window.contentView?.layoutSubtreeIfNeeded()
+        let rect = card.convert(card.bounds, to: document)
+        InterfaceMotion.scroll(scroll, to: NSPoint(x: 0, y: max(0, min(rect.minY - 12, document.bounds.height - scroll.contentView.bounds.height))))
+        InterfaceMotion.reveal(card)
     }
 
     func legacyActionBar(_ contents: NSView) -> NSView {
@@ -445,7 +465,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         resultURL = nil; resultURLs = []; lastSummary = ""
         reportURLs = []; publishedURLs = []; resultsHere = false
         reveal.isHidden = true; reportButton.isHidden = true
-        crs.stringValue = ""; crs.isHidden = true
+        crs.stringValue = ""; crs.isHidden = true; crsLabel.isHidden = true
         status.stringValue = "Drop files or add them to get started."
         summary.stringValue = ""
         start.isEnabled = false

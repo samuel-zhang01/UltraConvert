@@ -41,6 +41,10 @@ For every supported target, use **Services → Convert Here with UltraConvert �
 
 macOS does not expose nested submenus through Quick Actions or Services. [Apple documents that Services have no submenus](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/SysServices/Articles/properties.html). A custom nested Finder menu would require a separately enabled Finder Sync extension scoped to selected folders; this preview uses supported Services and the grouped picker.
 
+![Readable results from a real public-sample conversion](images/conversion-report.png)
+
+Report text stays local. Review paths before copying or sharing it.
+
 ## Choose where results go
 
 | Choice | What happens |
@@ -48,6 +52,8 @@ macOS does not expose nested submenus through Quick Actions or Services. [Apple 
 | **Convert Here with UltraConvert** / **Beside source files** | Places ordinary converted files directly beside their originals, without a batch folder. Files from different folders stay beside their respective sources. |
 | **Convert to Destination with UltraConvert** / **Saved destination** | Starts with your saved default folder, initially `~/Downloads/UltraConvert`. All results go into one fresh batch folder there. |
 | **Choose destination…** or **Choose…** | Opens a folder picker. Select or create a folder, click **Open**, then click **Convert**. Cancelling the picker starts no conversion. |
+
+The bottom conversion bar always shows the current save location. **Save location…** jumps to step 3 without changing your choice, even when that section has scrolled out of view.
 
 To change the default: click **Choose…**, select a folder, then click **Set as Default**. The path displayed below the controls confirms where outputs will go. **File → Open Default Destination** opens the saved folder in Finder.
 

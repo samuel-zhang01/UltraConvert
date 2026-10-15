@@ -5,7 +5,9 @@
 - Optional **Start minimized at login**, with a recoverable menu bar icon even without rules. File opens, Finder presets and update restoration return to the foreground; the option defaults off.
 - Native General, Updates and Finder Settings panes with remembered selection, consistent trailing action columns, readable status messages and explicit disabled-option guidance.
 - Independent Custom quality controls for lossy image/audio/video outputs. Audio shows target bitrate and an approximate duration-based size; image/video estimates explain their limits. Existing encoder defaults remain when Custom quality is off.
+- Fix Custom quality toggle jitter: settle stack layout once, reveal only what is needed and fade the controls, with rapid-toggle and Reduce Motion regressions.
 - Native read-only Conversion Report window with complete errors/notes, Copy and Reveal actions; Activity Details provides full recovery text.
+- Keep the save location visible in the conversion bar, with a shortcut to its controls; label the optional geospatial CRS explicitly.
 - More readable rule/Activity helpers, standard Hide/Window menus, compatible queue context targets and a larger Finder format picker. Hidden stale CRS values cannot affect later conversions.
 - Runtime-first Homebrew upgrade coverage against the real previous cask, including preferences, rule and Finder-action preservation. Normal removal retains owned Finder actions; optional zap removes only those actions.
 - Extended native, startup, quality-encoding, report security, compact-layout and Homebrew regression checks.
