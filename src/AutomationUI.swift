@@ -90,6 +90,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
     private var detailsRule: WatchRule?
     private(set) var previewDetails: String?
     private(set) var previewDetailsWindow: RulePreviewDetails?
+    private(set) var activityDetailsWindow: RulePreviewDetails?
     var previewRunning: Bool { previewID != nil }
     private(set) var previewWorkCount = 0
     var onPreviewFinished: (() -> Void)?
@@ -118,7 +119,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         for title in ["Blank rule", "Audio → MP3", "Images → WebP", "Data → YAML"] { new.addItem(withTitle: title) }
         new.changed { [weak self, weak new] in guard let self, let new, new.indexOfSelectedItem > 0 else { return }; self.newRule(template: new.indexOfSelectedItem); new.selectItem(at: 0) }
         full(new, in: sidebar)
-        setupGuide.font = .systemFont(ofSize: 12); setupGuide.textColor = .labelColor; setupGuide.setAccessibilityLabel("Folder rule setup checklist")
+        setupGuide.font = .systemFont(ofSize: 13); setupGuide.textColor = .labelColor; setupGuide.setAccessibilityLabel("Folder rule setup checklist")
         full(setupGuide, in: sidebar)
         let palette = horizontal([RuleButton("Convert", symbol: "plus", action: { [weak self] in self?.addStep(.convert) }), RuleButton("Rename", symbol: "plus", action: { [weak self] in self?.addStep(.rename) })])
         actionPaletteButtons = palette.arrangedSubviews.compactMap { $0 as? NSButton }
@@ -132,7 +133,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         let tools = horizontal([RuleButton("Duplicate", action: { [weak self] in self?.duplicate() }), RuleButton("Remove", action: { [weak self] in self?.remove() })]); full(tools, in: sidebar)
         let order = horizontal([RuleButton("Move Up", symbol: "arrow.up", action: { [weak self] in self?.reorder(-1) }), RuleButton("Move Down", symbol: "arrow.down", action: { [weak self] in self?.reorder(1) })]); full(order, in: sidebar)
         ruleTools = (tools.arrangedSubviews + order.arrangedSubviews).compactMap { $0 as? NSButton }
-        let lifetime = uiLabel("Close a window to keep rules running. Quit UltraConvert to stop them.", size: 12)
+        let lifetime = uiLabel("Close a window to keep rules running. Quit UltraConvert to stop them.", size: 13)
         lifetime.setAccessibilityLabel("Folder watcher lifetime"); lifetime.toolTip = "Closing the converter keeps enabled rules running. Quit UltraConvert to stop them. Files already present when watching starts are ignored."; full(lifetime, in: sidebar)
         area.addArrangedSubview(sidebar)
         let right = vertical([]); right.spacing = 12; area.addArrangedSubview(right)
@@ -403,6 +404,12 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
         if previewDetailsWindow == nil { previewDetailsWindow = RulePreviewDetails(text: previewDetails) }
         previewDetailsWindow?.showWindow(nil); previewDetailsWindow?.window?.makeKeyAndOrderFront(nil)
     }
+    func showActivityDetails(_ event: AutomationActivity) {
+        activityDetailsWindow?.close()
+        let text = "File: \(event.file)\nRule: \(event.rule)\nDate: \(event.date.formatted(date: .long, time: .standard))\n\n\(event.message)" + (event.output.map { "\n\nOutput: " + $0 } ?? "")
+        activityDetailsWindow = RulePreviewDetails(text: text, windowTitle: "Activity Details — UltraConvert", heading: "Recorded folder-rule result · read only", accessibilityLabel: "Complete folder-rule activity result and file locations")
+        if let panel = activityDetailsWindow?.window { InterfaceMotion.present(panel) }
+    }
     private func textValue(_ field: NSTextField) -> String { field.currentEditor()?.string ?? field.stringValue }
     private func controlValue(_ control: NSControl) -> String { (control as? NSPopUpButton)?.selectedItem?.representedObject as? String ?? (control as? NSTextField).map(textValue) ?? "" }
     @discardableResult func saveRule() -> Bool {
@@ -541,6 +548,7 @@ final class FolderRulesWindow: NSWindowController, NSTableViewDataSource, NSTabl
             let identifier = NSUserInterfaceItemIdentifier("automationActivityCell")
             let cell = tableView.makeView(withIdentifier: identifier, owner: nil) as? ActivityCell ?? ActivityCell()
             cell.identifier = identifier
+            cell.onDetails = { [weak self] event in self?.showActivityDetails(event) }
             if runtime.activities.isEmpty { cell.configure(nil) }
             else if runtime.activities.indices.contains(row) { cell.configure(runtime.activities[runtime.activities.count - 1 - row]) }
             else { cell.configure(nil) }
@@ -608,12 +616,12 @@ final class RulePreviewDetails: NSWindowController {
     let text = NSTextView(frame: NSRect(x: 0, y: 0, width: 640, height: 300))
     let scroll = NSScrollView()
     let done: RuleButton
-    init(text plan: String) {
+    init(text plan: String, windowTitle: String = "Rule Preview Details — UltraConvert", heading: String = "Read-only preview · no files changed", accessibilityLabel: String = "Complete rule preview, destination and original-file actions") {
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 680, height: 440), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-        window.title = "Rule Preview Details — UltraConvert"; window.minSize = NSSize(width: 540, height: 320); window.isReleasedWhenClosed = false
+        window.title = windowTitle; window.minSize = NSSize(width: 540, height: 320); window.isReleasedWhenClosed = false
         done = RuleButton("Done", action: { [weak window] in window?.performClose(nil) }); done.keyEquivalent = "\u{1b}"; done.keyEquivalentModifierMask = []
         super.init(window: window)
-        let title = uiLabel("Read-only preview · no files changed", size: 15, weight: .semibold)
+        let title = uiLabel(heading, size: 15, weight: .semibold)
         let content = window.contentView!
         for view in [title, scroll, done] as [NSView] { view.translatesAutoresizingMaskIntoConstraints = false; content.addSubview(view) }
         scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.borderType = .bezelBorder
@@ -621,7 +629,7 @@ final class RulePreviewDetails: NSWindowController {
         text.isVerticallyResizable = true; text.isHorizontallyResizable = false; text.autoresizingMask = [.width]
         text.minSize = .zero; text.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         text.textContainer?.widthTracksTextView = true; text.textContainer?.containerSize = NSSize(width: 640, height: CGFloat.greatestFiniteMagnitude)
-        text.setAccessibilityLabel("Complete rule preview, destination and original-file actions")
+        text.setAccessibilityLabel(accessibilityLabel)
         scroll.documentView = text
         NSLayoutConstraint.activate([
             title.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 20), title.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -20), title.topAnchor.constraint(equalTo: content.topAnchor, constant: 20),
@@ -640,34 +648,41 @@ final class ActivityCell: NSTableCellView {
     let title = NSTextField(labelWithString: "")
     let details = NSTextField(wrappingLabelWithString: "")
     let reveal = RuleButton()
+    let detailsButton = RuleButton()
+    var onDetails: ((AutomationActivity) -> Void)?
     override init(frame: NSRect) {
         super.init(frame: frame)
         title.font = .systemFont(ofSize: 13, weight: .semibold); title.lineBreakMode = .byTruncatingMiddle
-        details.font = .systemFont(ofSize: 12); details.textColor = .secondaryLabelColor; details.maximumNumberOfLines = 3; details.isSelectable = true
+        details.font = .systemFont(ofSize: 13); details.textColor = .secondaryLabelColor; details.maximumNumberOfLines = 3; details.isSelectable = true
         let text = NSStackView(views: [title, details]); text.orientation = .vertical; text.alignment = .leading; text.spacing = 4
         reveal.title = "Reveal"; reveal.bezelStyle = .rounded; reveal.target = reveal; reveal.action = #selector(RuleButton.performAction)
-        text.translatesAutoresizingMaskIntoConstraints = false; reveal.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(text); addSubview(reveal)
+        detailsButton.title = "Details…"; detailsButton.bezelStyle = .rounded; detailsButton.target = detailsButton; detailsButton.action = #selector(RuleButton.performAction)
+        let actions = NSStackView(views: [detailsButton, reveal]); actions.orientation = .vertical; actions.alignment = .leading; actions.spacing = 6
+        for button in [detailsButton, reveal] { button.widthAnchor.constraint(equalTo: actions.widthAnchor).isActive = true }
+        text.translatesAutoresizingMaskIntoConstraints = false; actions.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(text); addSubview(actions)
         NSLayoutConstraint.activate([
             text.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            text.trailingAnchor.constraint(equalTo: reveal.leadingAnchor, constant: -12),
+            text.trailingAnchor.constraint(equalTo: actions.leadingAnchor, constant: -12),
             text.topAnchor.constraint(equalTo: topAnchor, constant: 12),
             text.bottomAnchor.constraint(lessThanOrEqualTo: bottomAnchor, constant: -12),
-            reveal.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
-            reveal.widthAnchor.constraint(equalToConstant: 72),
-            reveal.centerYAnchor.constraint(equalTo: centerYAnchor)
+            actions.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            actions.widthAnchor.constraint(equalToConstant: 82),
+            actions.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
         title.widthAnchor.constraint(equalTo: text.widthAnchor).isActive = true; details.widthAnchor.constraint(equalTo: text.widthAnchor).isActive = true
         text.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
     }
     required init?(coder: NSCoder) { fatalError() }
     func configure(_ event: AutomationActivity?) {
-        guard let event else { title.stringValue = "No files processed yet"; details.stringValue = "Test your rule, then add a new file to its inbox. Activity stays local; the last 200 outcomes are retained."; details.toolTip = details.stringValue; reveal.isHidden = true; reveal.invoke = {}; setAccessibilityLabel(title.stringValue); return }
+        guard let event else { title.stringValue = "No files processed yet"; details.stringValue = "Preview a rule, then add a new inbox file. Activity keeps the last 200 results on this Mac."; details.toolTip = details.stringValue; reveal.isHidden = true; reveal.invoke = {}; detailsButton.isHidden = true; detailsButton.invoke = {}; setAccessibilityLabel(title.stringValue); return }
         title.stringValue = event.file
         let date = Self.timestamp.string(from: event.date)
         details.stringValue = event.rule + " · " + date + "\n" + event.message; details.toolTip = event.message
         reveal.isHidden = event.output == nil; reveal.setAccessibilityLabel("Reveal output for " + event.file)
         reveal.invoke = { if let output = event.output { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: output)]) } }
+        detailsButton.isHidden = false; detailsButton.setAccessibilityLabel("View activity details for " + event.file)
+        detailsButton.invoke = { [weak self] in self?.onDetails?(event) }
         setAccessibilityLabel(event.file + ", " + event.message)
     }
 }

@@ -1,11 +1,13 @@
 """Distribution integrity and data-preserving Homebrew uninstall checks."""
 
 import hashlib
+import io
 import json
 import plistlib
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -162,6 +164,64 @@ class HomebrewTests(unittest.TestCase):
             0,
         )
         self.assertTrue(folder.exists())
+
+    def test_legacy_cask_cleanup_during_upgrade_retains_actions_without_automatic_repair(self):
+        folder = self.action()
+        original = {p.name: p.read_bytes() for p in (folder / "Contents").iterdir()}
+        # Installed 1.8.3 casks invoke the updated runtime helper this way during
+        # upgrade. No app launch or automatic Finder repair is involved.
+        with (
+            patch.object(sys, "argv", ["cleanup", "--app", "/Applications/UltraConvert.app"]),
+            patch.object(Path, "home", return_value=self.root),
+            redirect_stdout(io.StringIO()),
+        ):
+            homebrew_integrations.main()
+        self.assertEqual(
+            {p.name: p.read_bytes() for p in (folder / "Contents").iterdir()}, original
+        )
+        self.assertFalse((self.root / ".Trash").exists())
+
+    def test_explicit_cleanup_removes_owned_actions_but_keeps_rules_preferences_and_other_services(
+        self,
+    ):
+        folder = self.action()
+        rule = self.root / "Library/Application Support/UltraConvert/Automation/rules.json"
+        rule.parent.mkdir(parents=True)
+        rule.write_bytes(b'{"saved":"keep"}')
+        preferences = self.root / "Library/Preferences/local.ultraconvert.plist"
+        preferences.parent.mkdir()
+        preferences.write_bytes(plistlib.dumps({"autoRegisterFinderActions": False}))
+        original_preferences = preferences.read_bytes()
+        other = folder.parent / "Unrelated.workflow"
+        other.mkdir()
+        with (
+            patch.object(
+                sys,
+                "argv",
+                ["cleanup", "--app", "/Applications/UltraConvert.app", "--confirm-removal"],
+            ),
+            patch.object(Path, "home", return_value=self.root),
+            redirect_stdout(io.StringIO()),
+        ):
+            homebrew_integrations.main()
+        self.assertFalse(folder.exists())
+        self.assertEqual(rule.read_bytes(), b'{"saved":"keep"}')
+        self.assertEqual(preferences.read_bytes(), original_preferences)
+        self.assertTrue(other.is_dir())
+        self.assertEqual(len(list((self.root / ".Trash").rglob("document.wflow"))), 1)
+
+    def test_cask_requires_explicit_optional_cleanup_and_does_not_zap_user_data(self):
+        assets = self.assets()
+        render_homebrew.render(assets, self.root / "tap")
+        cask = (self.root / "tap/Casks/ultraconvert.rb").read_text()
+        ordinary_uninstall = cask.split("  uninstall ", 1)[1].split("  zap ", 1)[0]
+        self.assertIn('quit: "local.ultraconvert"', ordinary_uninstall)
+        self.assertNotIn("script:", ordinary_uninstall)
+        zap = cask.split("  zap ", 1)[1].split("  caveats", 1)[0]
+        self.assertIn("--confirm-removal", zap)
+        self.assertNotIn("trash:", zap)
+        self.assertNotIn("delete:", zap)
+        self.assertNotIn("Library/", zap)
 
     def test_unmanaged_and_symlinked_actions_are_retained(self):
         folder = self.action(owner="Other")

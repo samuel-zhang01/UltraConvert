@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.9.0 — 2026-10-15
+
+- Optional **Start minimized at login**, with a recoverable menu bar icon even without rules. File opens, Finder presets and update restoration return to the foreground; the option defaults off.
+- Native General, Updates and Finder Settings panes with remembered selection, consistent trailing action columns, readable status messages and explicit disabled-option guidance.
+- Independent Custom quality controls for lossy image/audio/video outputs. Audio shows target bitrate and an approximate duration-based size; image/video estimates explain their limits. Existing encoder defaults remain when Custom quality is off.
+- Native read-only Conversion Report window with complete errors/notes, Copy and Reveal actions; Activity Details provides full recovery text.
+- More readable rule/Activity helpers, standard Hide/Window menus, compatible queue context targets and a larger Finder format picker. Hidden stale CRS values cannot affect later conversions.
+- Runtime-first Homebrew upgrade coverage against the real previous cask, including preferences, rule and Finder-action preservation. Normal removal retains owned Finder actions; optional zap removes only those actions.
+- Extended native, startup, quality-encoding, report security, compact-layout and Homebrew regression checks.
+
 ## 1.8.3 — 2026-10-14
 
 - Homebrew runtime installation uses verified cached wheel downloads without a redundant fetch inside its build sandbox. The app cask checks published GitHub releases for its latest version.

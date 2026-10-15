@@ -73,7 +73,7 @@ struct BackendSmoke {
         let sealed = resources.appendingPathComponent("Source")
         try fm.createDirectory(at: sealed, withIntermediateDirectories: true)
         do { _ = try BackendPaths(contents: contents, support: support, brewPrefixes: []); preconditionFailure("Incomplete sealed source fell back to legacy code") } catch {}
-        for name in ["convert.py", "diagnostics.py", "runtime_tools.py", "structured.py", "geospatial.py", "guards.py", "policy.xml"] { try Data(name.utf8).write(to: sealed.appendingPathComponent(name)) }
+        for name in ["convert.py", "compression_profiles.py", "diagnostics.py", "runtime_tools.py", "structured.py", "geospatial.py", "guards.py", "policy.xml"] { try Data(name.utf8).write(to: sealed.appendingPathComponent(name)) }
         let sourceUpdate = try BackendPaths(contents: contents, support: support, brewPrefixes: [])
         precondition(sourceUpdate.source.path == sealed.resolvingSymlinksInPath().standardizedFileURL.path && !sourceUpdate.bundled && sourceUpdate.python == legacy.python)
         try fm.removeItem(at: sealed.appendingPathComponent("convert.py"))
@@ -161,15 +161,6 @@ struct BackendSmoke {
         let login = TestLoginService()
         var repairs = 0
         let settings = IntegrationSettings(preferences: preferences, login: login, registerFinder: { repairs += 1 })
-        precondition(settings.window!.contentMinSize == NSSize(width: 600, height: 520))
-        precondition(settings.loginStatus.font!.pointSize >= 13 && settings.integrationStatus.font!.pointSize >= 13)
-        func settingsButtons(_ view: NSView) -> [NSButton] {
-            (view as? NSButton).map { [$0] } ?? [] + view.subviews.flatMap(settingsButtons)
-        }
-        let integrationTitles: Set<String> = ["Open Login Items Settings…", "Install or Repair Quick Actions", "Enable Quick Actions in macOS…", "Refresh Format Shortcuts", "Enable Format Shortcuts in macOS…"]
-        let integrationButtons = settingsButtons(settings.window!.contentView!).filter { integrationTitles.contains($0.title) }
-        precondition(integrationButtons.count == 5)
-        precondition(integrationButtons.allSatisfy { $0.accessibilityLabel() == $0.title })
         precondition(settings.loginToggle.state == .off && login.enableCount == 0)
         precondition(settings.finderToggle.state == .on)
         settings.finderToggle.state = .off; settings.changeFinderPreference(); settings.refresh()
@@ -186,43 +177,6 @@ struct BackendSmoke {
         precondition(settings.loginToggle.state == .off && settings.loginStatus.stringValue.contains("off") && !settings.loginStatus.stringValue.contains("could not"))
         login.state = .enabled; settings.refresh()
         precondition(settings.loginToggle.state == .on)
-        settings.window!.contentView!.layoutSubtreeIfNeeded()
-        let scroll = settings.window!.contentView!.subviews.compactMap { $0 as? NSScrollView }.first!
-        let settingsDocument = scroll.documentView!
-        let statusBounds = settings.integrationStatus.convert(settings.integrationStatus.bounds, to: settingsDocument)
-        precondition(scroll.hasVerticalScroller && statusBounds.minY >= 0 && statusBounds.maxY <= settingsDocument.bounds.height && statusBounds.maxX <= settingsDocument.bounds.width)
-        settings.integrationStatus.scrollToVisible(settings.integrationStatus.bounds)
-        precondition(scroll.documentVisibleRect.intersects(statusBounds))
-        func settingsLabels(_ view: NSView) -> [NSTextField] {
-            if let label = view as? NSTextField { return [label] }
-            return view.subviews.flatMap(settingsLabels)
-        }
-        // Larger instructional text must still wrap and remain reachable at
-        // the declared content minimum in either native appearance.
-        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
-            settings.window!.appearance = NSAppearance(named: appearance)
-            for size in [NSSize(width: 600, height: 520), NSSize(width: 640, height: 690)] {
-                settings.window!.setContentSize(size)
-                settings.window!.contentView!.layoutSubtreeIfNeeded()
-                for button in integrationButtons {
-                    precondition(abs(button.frame.width - button.intrinsicContentSize.width) < 1, "Settings icons and titles retain native intrinsic spacing")
-                    let bounds = button.convert(button.bounds, to: settingsDocument)
-                    precondition(bounds.minX >= 0 && bounds.maxX <= settingsDocument.bounds.width)
-                }
-                for label in settingsLabels(settingsDocument) {
-                    precondition(label.font!.pointSize >= 13)
-                    // AppKit label frames include a two-point optical inset;
-                    // constrain their text alignment area rather than that inset.
-                    let bounds = label.superview!.convert(label.alignmentRect(forFrame: label.frame), to: settingsDocument)
-                    precondition(bounds.minX >= -0.5 && bounds.maxX <= settingsDocument.bounds.width + 0.5, "Settings label outside canvas: \(label.stringValue) \(bounds) canvas \(settingsDocument.bounds)")
-                    precondition(bounds.minY >= -0.5 && bounds.maxY <= settingsDocument.bounds.height + 0.5)
-                    precondition(label.textColor == .labelColor)
-                }
-                settings.integrationStatus.scrollToVisible(settings.integrationStatus.bounds)
-                let bounds = settings.integrationStatus.convert(settings.integrationStatus.bounds, to: settingsDocument)
-                precondition(scroll.documentVisibleRect.intersects(bounds))
-            }
-        }
         print("Native backend checks passed: legacy/bundled selection, missing/escaping paths, loader environment, safe Finder dispatch, idempotence and foreign-action preservation.")
     }
 }

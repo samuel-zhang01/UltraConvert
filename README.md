@@ -28,6 +28,18 @@ The custom tap installs the signed app into Applications, a conversion-runtime f
 
 Use **Check for Updates…** for app updates. Use `brew upgrade ultraconvert-runtime` for the conversion runtime. Existing manual installations retain their working per-user environment. Normal `brew uninstall --cask ultraconvert` preserves preferences, folder rules and converted files; shared engines and the runtime remain installed. [Tap guide](https://github.com/samuel-zhang01/homebrew-ultraconvert).
 
+**Update with Homebrew instead:** finish active work and quit UltraConvert, then run these in order:
+
+```sh
+brew update
+brew upgrade samuel-zhang01/ultraconvert/ultraconvert-runtime
+brew upgrade --cask --greedy samuel-zhang01/ultraconvert/ultraconvert
+```
+
+Open UltraConvert from Applications afterward. The runtime-first order protects Finder actions when upgrading an older cask; `--greedy` explicitly includes the app even when it has its own updater. Settings and folder rules stay in place. Finish or clear any queued batch before quitting: Homebrew does not perform the in-app updater’s queue restoration.
+
+Normal cask removal also retains Finder actions so upgrades can preserve them. To remove this app’s owned actions as well, use `brew uninstall --zap --cask ultraconvert`; this tap’s optional cleanup still preserves preferences, saved rules, converted files and unrelated Finder actions.
+
 ### Manual installer
 
 The app uses separately installed open source conversion engines. **Dragging the `.app` into Applications alone does not install those engines.** This installer sets up the app, engines and Finder actions:
@@ -62,11 +74,13 @@ The installer accepts macOS’s Python 3.9 bootstrap and provisions Homebrew Pyt
 1. **Add files:** click **Add Files…** (⌘O), or drop files into the window. Recognition uses file contents where possible.
 2. **Choose formats:** pick an output for each detected category, such as audio → MP3 and photos → WebP. Advice below each choice explains the format.
 3. **Save to:** leave **Beside source files** selected for results directly beside the originals. For another folder, select a destination and click **Choose…**.
-4. Click **Convert**. **Show Results** reveals the outputs; **Report** explains failures or skipped files.
+4. Click **Convert**. **Show Results** reveals the outputs; **Report** opens readable results, full errors and preservation notes; **Reveal Report…** locates the original JSON.
 
 Manual conversion keeps originals and existing outputs. Name collisions get numbered suffixes, such as `Recording (2).mp3`. Formats with companion files use one folder to keep their resources together. With **Beside source files**, different source folders retain their respective results.
 
 **Batches:** add multiple files at once. Mixed types get separate format selectors; up to 1,000 files can share a batch. **Remove Selected** and **Clear** remove queue entries without deleting files.
+
+**Quality and size:** for a supported lossy output, turn on **Custom quality** below its format picker. Drag toward **Smaller** or **Higher quality**; each image/audio/video group has its own setting. Leave it off to use the established encoder defaults. Audio shows a size estimate from duration and target bitrate; actual size varies. Image and video size depends on content and cannot be predicted reliably before encoding. A setting of 100 can still be lossy and cannot restore missing source detail. Custom media profiles use 48 kHz audio. Lossless outputs keep their standard profile. **Skip files already in target format** takes priority and skips re-encoding, including custom quality.
 
 **Saved destination:** choose a folder, then click **Set as Default**. Each destination batch gets a fresh folder there. The initial default is `~/Downloads/UltraConvert`.
 
@@ -74,7 +88,7 @@ Manual conversion keeps originals and existing outputs. Name collisions get numb
 
 Enable the actions once:
 
-1. Open **UltraConvert → Settings… → Enable Quick Actions in macOS…**.
+1. Open **UltraConvert → Settings… → Finder → Finder Settings…**.
 2. In **System Settings → General → Login Items & Extensions**, find **Finder** under Extensions and open its information button.
 3. Enable **Convert Here with UltraConvert** and **Convert to Destination with UltraConvert**. Older macOS versions place these under **Extensions → Finder**.
 
@@ -121,14 +135,17 @@ Rules run in priority order. A nonmatch tries the next eligible rule. A failed c
 
 Open **UltraConvert → Settings…** (⌘,).
 
-![UltraConvert startup and Finder settings](docs/images/settings.png)
+Settings has three native panes: **General**, **Updates** and **Finder**. It reopens the pane you last used. The actions share one aligned button column; their results appear beside the relevant controls.
+
+![UltraConvert startup settings](docs/images/settings.png)
 
 Navigation uses short, consistent native transitions. UltraConvert respects **System Settings → Accessibility → Display → Reduce motion**; enable it for immediate transitions.
 
 - **Launch at login:** opens UltraConvert when you sign in; off by default. Check any approval requested by macOS.
-- **Start in the menu bar when folder rules are enabled:** keeps the converter out of the way at startup. The menu bar icon opens the converter/rules and pauses watching.
-- **Install or Repair Quick Actions:** restores the two owned workflows using this app’s location.
-- **Refresh Format Shortcuts:** registers preset Services; enable their switches separately in macOS settings.
+- **Start minimized at login:** in **General**, enable Launch at login first, then select this option. The converter stays closed at login; the menu bar icon offers **Open Converter**, **Settings** and **Quit**, even without saved folder rules. Opening files or recovering an in-app update still shows the converter. Off by default.
+- **Folder-rule startup → Open quietly with active folder rules:** retains the earlier optional behavior on other launches while enabled rules run.
+- **Finder → Install or Repair:** restores the two owned Quick Actions using this app’s location. **Repair Quick Actions automatically** checks them when the installed app opens; turning it off leaves existing actions installed.
+- **Finder → Refresh Shortcuts:** registers preset Services; open **Services Settings…** to enable their switches separately.
 
 Full Disk Access and Accessibility are not setup requirements. Use native pickers and respond to macOS access prompts for the locations you choose.
 
@@ -167,7 +184,7 @@ Reopen **Getting Started…** for the offline guide. [Full usage and troubleshoo
 
 **From version 1.8 onward, update inside the app:**
 
-1. Choose **UltraConvert → Check for Updates…**, or open **Settings** (⌘,) and click **Check for Updates…**.
+1. Choose **UltraConvert → Check for Updates…**, or open **Settings → Updates** (⌘,) and click **Check for Updates…**.
 2. Read the release notes and click **Install Update**. Keep the app open while the download is verified and prepared.
 3. Click **Install and Relaunch**. UltraConvert installs the update and reopens with your queued files, selected formats and destination.
 
@@ -181,13 +198,13 @@ These screenshots show real update tests; version numbers change with each relea
 
 ![App update settings with daily checks and optional background downloads](docs/images/app-updates.png)
 
-**Automatic updates:** Settings → **App updates** has three options:
+**Automatic updates:** **Settings → Updates** has three options:
 
 - **Automatically check for updates daily** is on by default. Checks run while UltraConvert is open; no separate background monitor is installed.
 - **Download updates and install when I quit** is optional and off by default. It downloads verified updates in the background and installs on a normal quit. You can still use Check for Updates to install and relaunch sooner.
 - **Include preview releases** is optional and off by default for this full release. Stable releases remain available in either setting.
 
-The Settings screenshot shows an example with background downloads and Launch at Login enabled; these options are your choice.
+The Settings screenshots show example preferences; login, minimized startup and background installation are your choices.
 
 **Coming from 1.7 or earlier, repairing engines, or updating manually:** quit UltraConvert, extract the full installer ZIP (or copy its folder out of the DMG), and run `python3 install.py` from that folder once. Future app updates are available in the menu. Source installs can use `git pull --ff-only` followed by `python3 install.py --build-from-source`. The manual installer backs up old components and rolls back failed component swaps.
 

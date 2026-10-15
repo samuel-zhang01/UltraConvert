@@ -22,6 +22,7 @@ from urllib.parse import unquote, urlsplit
 
 from defusedxml import ElementTree
 
+import compression_profiles as compression
 import guards
 import structured
 from runtime_tools import runtime_environment, tool
@@ -205,6 +206,7 @@ def inspect(path):
         if not path.is_file():
             raise ValueError("Select files; folders are not converted recursively")
         metadata = path.stat()
+        info["size_bytes"] = metadata.st_size
         info["fingerprint"] = [
             metadata.st_dev,
             metadata.st_ino,
@@ -292,9 +294,15 @@ def inspect(path):
                 safe_input = Path(temp) / ("input." + (ext if ext in FORMATS["image"] else "img"))
                 safe_input.symlink_to(path)
                 identified = run(
-                    ["magick", "identify", "-ping", "-format", "%m\n", safe_input], timeout=60
+                    ["magick", "identify", "-ping", "-format", "%m\t%w\t%h\n", safe_input],
+                    timeout=60,
                 ).splitlines()
-            image_fmt = identified[0].lower()
+            image_metadata = identified[0].split("\t")
+            image_fmt = image_metadata[0].lower()
+            if len(image_metadata) == 3:
+                for key, raw in zip(("width", "height"), image_metadata[1:], strict=True):
+                    if raw.isdecimal() and 0 < int(raw) <= 1_000_000:
+                        info[key] = int(raw)
             image_fmt = {"jpeg": "jpg", "heif": "heic", "icon": "ico"}.get(image_fmt, image_fmt)
             if image_fmt == "gif":
                 fmt, category = "gif", "video"
@@ -358,6 +366,8 @@ def inspect(path):
             media = media or probe(path)
             if any(s["codec_type"] == "audio" for s in media.get("streams", [])):
                 targets += FORMATS["audio"]
+        if media:
+            info.update(compression.media_metadata(media))
         if category == "config":
             structured.signature(structured.load(path, fmt))
         if (
@@ -372,7 +382,7 @@ def inspect(path):
     return info
 
 
-def image_convert(source, fmt, dest, target, stage, execute):
+def image_convert(source, fmt, dest, target, stage, execute, quality=None):
     notes = []
     # A safe basename prevents ImageMagick treating brackets/colons in filenames as image syntax.
     link = stage / f"_input.{fmt}"
@@ -418,7 +428,7 @@ def image_convert(source, fmt, dest, target, stage, execute):
                 notes.append("Destination flattens transparency onto white.")
             if target == "ico":
                 args += ["-resize", "256x256", "-define", "icon:auto-resize=256,128,64,48,32,16"]
-            execute([*args, str(dest)])
+            execute([*args, *compression.image_options(target, quality), str(dest)])
             outputs = list(stage.glob(f"*.{target}"))
             for path in outputs:
                 execute(["magick", "identify", "-ping", str(path)])
@@ -432,7 +442,7 @@ def image_convert(source, fmt, dest, target, stage, execute):
     return notes
 
 
-def media_convert(source, dest, target, stage, execute):
+def media_convert(source, dest, target, stage, execute, quality=None):
     base = [
         "ffmpeg",
         "-nostdin",
@@ -461,7 +471,17 @@ def media_convert(source, dest, target, stage, execute):
             execute(["mac", str(wav), str(dest), "-c2000"])
             wav.unlink()
         else:
-            execute([*base, "-map", "0:a:0", "-vn", *AUDIO[target], str(dest)])
+            audio = compression.audio_options(target, quality)
+            execute(
+                [
+                    *base,
+                    "-map",
+                    "0:a:0",
+                    "-vn",
+                    *(audio if audio is not None else AUDIO[target]),
+                    str(dest),
+                ]
+            )
         if target == "alac":
             notes.append(
                 "ALAC is Apple Lossless audio in an M4A container; the saved extension is .m4a."
@@ -543,6 +563,7 @@ def media_convert(source, dest, target, stage, execute):
                 args += ["-ar", "44100", "-ac", "2", "-f", "3gp"]
             elif target == "flv":
                 args += ["-f", "flv"]
+        args = compression.override_options(args, compression.video_options(target, quality))
         execute(base + args + [str(dest)])
     data = probe(dest)
     required = "audio" if target in FORMATS["audio"] else "video"
@@ -755,7 +776,9 @@ def publish_here(stage, parent, label, target):
     raise ValueError("Too many existing output names; choose another destination")
 
 
-def convert_one(info, target, batch, index, source_crs=None, skip_same=False, here=False):
+def convert_one(
+    info, target, batch, index, source_crs=None, skip_same=False, here=False, quality=None
+):
     source = Path(info["path"])
     label = guards.output_name(source.stem)
     final = batch / f"{index + 1:03d}-{label}-{target}"
@@ -774,6 +797,10 @@ def convert_one(info, target, batch, index, source_crs=None, skip_same=False, he
         return result
     equivalent = {"jpeg": "jpg", "yml": "yaml", "mpeg": "mpg"}
     try:
+        compression.validate_quality(quality)
+        if quality is not None:
+            result["quality"] = quality
+            result["quality_applied"] = False
         metadata = source.stat()
         if info.get("fingerprint") != [
             metadata.st_dev,
@@ -816,14 +843,17 @@ def convert_one(info, target, batch, index, source_crs=None, skip_same=False, he
                     temporary.unlink(missing_ok=True)
             elif cat == "image":
                 result["notes"] = image_convert(
-                    source, info["format"], dest, target, stage, execute
+                    source, info["format"], dest, target, stage, execute, quality
                 )
             elif cat in ("audio", "video"):
-                result["notes"] = media_convert(source, dest, target, stage, execute)
+                result["notes"] = media_convert(source, dest, target, stage, execute, quality)
             elif cat == "document":
                 result["notes"] = document_convert(
                     source, info["format"], dest, target, stage, execute
                 )
+            if quality is not None:
+                result["quality_applied"] = compression.supported(cat, target)
+                result["notes"].append(compression.note(cat, target, quality))
             outputs = [p for p in stage.rglob("*") if p.is_file() and not p.name.startswith("_")]
             if not outputs or not any(p.stat().st_size for p in outputs):
                 raise ValueError("Conversion produced no readable output")
@@ -880,6 +910,24 @@ def main():
         "--source-crs", help="Assign CRS only when it is known to be correct, e.g. EPSG:4326"
     )
     parser.add_argument("--jobs", type=int, choices=range(1, 5), default=2)
+
+    def quality_argument(raw):
+        try:
+            return compression.validate_quality(int(raw))
+        except ValueError as exc:
+            raise argparse.ArgumentTypeError(str(exc)) from exc
+
+    parser.add_argument(
+        "--quality",
+        type=quality_argument,
+        help="Optional lossy quality, 1 (smaller) to 100 (higher quality); omitted uses the standard profile",
+    )
+    for category in ("image", "audio", "video"):
+        parser.add_argument(
+            f"--quality-{category}",
+            type=quality_argument,
+            help=f"Override --quality for {category} source files",
+        )
     args = parser.parse_args()
     if not args.files:
         parser.error("Select at least one file")
@@ -989,6 +1037,7 @@ def main():
                 args.source_crs,
                 args.skip_same,
                 args.here,
+                getattr(args, "quality_" + info["category"], None) or args.quality,
             ): i
             for i, info in enumerate(infos)
         }

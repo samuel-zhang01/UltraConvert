@@ -428,10 +428,32 @@ struct RuleEditorTests {
         try runtime.save([])
         check(editor.tableView(editor.table, viewFor: editor.table.tableColumns.first, row: removedIndex) == nil && editor.tableView(editor.table, viewFor: editor.table.tableColumns.first, row: -1) == nil, "Stale rule table rows return no cell instead of indexing removed rules")
         check(!editor.tableView(editor.table, shouldSelectRow: removedIndex) && !editor.tableView(editor.table, shouldSelectRow: -1), "Stale rule row selection is rejected before attempting an unsaved-change prompt")
-        runtime.activities = [.init(rule: "Flow", file: "Example.wav", message: "Done", output: output.path)]
+        let longActivityMessage = String(repeating: "The conversion could not finish; the original was retained. ", count: 30) + "Recovery details remain complete."
+        let longActivity = AutomationActivity(rule: "Flow", file: "Example.wav", message: longActivityMessage, output: output.path)
+        runtime.activities = [longActivity]
+        let activityCell = editor.tableView(editor.activityTable, viewFor: editor.activityTable.tableColumns.first, row: 0) as! ActivityCell
+        for width in [520.0, 660.0] {
+            activityCell.frame = NSRect(x: 0, y: 0, width: width, height: editor.activityTable.rowHeight)
+            activityCell.layoutSubtreeIfNeeded()
+            for button in [activityCell.detailsButton, activityCell.reveal] {
+                let frame = button.convert(button.bounds, to: activityCell)
+                check(frame.minX >= 0 && frame.maxX <= width && frame.minY >= 0 && frame.maxY <= activityCell.bounds.height, "Activity Details and Reveal remain inside a compact history row")
+                check(button.bounds.width >= button.intrinsicContentSize.width, "Activity action labels fit without truncation")
+            }
+            check(activityCell.details.font!.pointSize == 13, "Activity results use legible body text")
+        }
+        activityCell.detailsButton.invoke()
+        let activityDetails = editor.activityDetailsWindow!
+        check(activityDetails.text.string.contains(longActivityMessage) && activityDetails.text.string.contains(output.path), "Details retains the entire long activity result and output location")
+        check(!activityDetails.text.isEditable && activityDetails.text.isSelectable && activityDetails.window!.title == "Activity Details — UltraConvert", "Activity Details is selectable, read only and distinguished from a preview")
+        activityDetails.window!.setFrame(NSRect(origin: activityDetails.window!.frame.origin, size: activityDetails.window!.minSize), display: false)
+        activityDetails.window!.contentView!.layoutSubtreeIfNeeded()
+        let detailsDone = activityDetails.done.convert(activityDetails.done.bounds, to: activityDetails.window!.contentView!)
+        check(detailsDone.minX >= 0 && detailsDone.maxX <= activityDetails.window!.contentView!.bounds.width && detailsDone.minY >= 0, "Activity Details keeps its close action visible at minimum size")
+        activityDetails.close()
         editor.refreshActivity(); runtime.activities = []
         let emptyCell = editor.tableView(editor.activityTable, viewFor: editor.activityTable.tableColumns.first, row: 7) as! ActivityCell
-        check(emptyCell.reveal.isHidden && emptyCell.accessibilityLabel() == "No files processed yet", "A stale activity row clears its old output when history shrinks")
+        check(emptyCell.reveal.isHidden && emptyCell.detailsButton.isHidden && emptyCell.accessibilityLabel() == "No files processed yet", "A stale activity row clears its old output and Details action when history shrinks")
         editor.selectedID = nil; editor.draft = WatchRule(); editor.rebuildEditor(); editor.reloadList()
         check(editor.conditions.isEmpty && editor.steps.isEmpty && editor.exampleLabels.isEmpty && !editor.save.isEnabled && editor.flowSummary.stringValue.contains("IF it matches"), "Returning to no rules clears all prior examples and editor state")
         check(["Inbox", "Match", "Actions", "Output", "Original"].allSatisfy { !button(editor, "Jump to " + $0 + " block").isEnabled }, "The flow navigator disables targets when there is no selected rule")

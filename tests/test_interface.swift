@@ -66,6 +66,22 @@ struct InterfaceSmoke {
             precondition(bounds.minX >= 0 && bounds.maxX <= app.window.contentView!.bounds.width)
             precondition(bounds.minY >= 0 && bounds.maxY <= app.window.contentView!.bounds.height)
         }
+        // Being inside a window is insufficient if controls overlap or their
+        // labels are squeezed. Exercise the complete recovery toolbar together.
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            app.window.appearance = NSAppearance(named: appearance)
+            app.status.stringValue = "Some files could not be converted. Read Report for details, retry the failed files, or show successful results."
+            app.window.contentView!.layoutSubtreeIfNeeded()
+            let actions = [app.reportButton, app.reveal, app.retryButton, app.start]
+            for (index, button) in actions.enumerated() {
+                precondition(button.bounds.width + 0.5 >= button.intrinsicContentSize.width)
+                let frame = button.convert(button.bounds, to: app.window.contentView)
+                for other in actions.dropFirst(index + 1) {
+                    let otherFrame = other.convert(other.bounds, to: app.window.contentView)
+                    precondition(NSIntersectionRect(frame, otherFrame).isEmpty)
+                }
+            }
+        }
         // Presets choose compatible targets without starting a conversion and
         // surface an unavailable target rather than silently selecting it.
         let image = inspected.first { $0["category"] as? String == "image" }!

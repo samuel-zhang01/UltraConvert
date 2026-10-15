@@ -16,6 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: Install the checked-out tap
         run: |
@@ -33,20 +34,91 @@ jobs:
         run: |
           brew install --build-from-source samuel-zhang01/ultraconvert/ultraconvert-runtime
           brew test samuel-zhang01/ultraconvert/ultraconvert-runtime
-      - name: Install and test the signed app and preserve user data on uninstall
+      - name: Upgrade the previous signed app and preserve user data and Finder actions
         env:
           UC_TEST_APPDIR: ${{ runner.temp }}/UltraConvertApplications
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+          HOMEBREW_NO_ASK: '1'
         run: |
           mkdir -p "$UC_TEST_APPDIR" "$HOME/Library/Application Support/UltraConvert/Automation"
           printf '%s\n' '{"schema":1,"rules":[],"homebrew_test":"keep"}' > "$HOME/Library/Application Support/UltraConvert/Automation/rules.json"
+          cp "$HOME/Library/Application Support/UltraConvert/Automation/rules.json" "$RUNNER_TEMP/ultraconvert-rules-before.json"
           defaults write local.ultraconvert HomebrewCITestValue -string keep
+          defaults write local.ultraconvert autoRegisterFinderActions -bool false
+          defaults write local.ultraconvert startMinimizedAtLogin -bool true
+          UC_TAP="$(brew --repo samuel-zhang01/ultraconvert)"
+          cp Casks/ultraconvert.rb "$RUNNER_TEMP/ultraconvert-current.rb"
+          # Select a real older, checksum-pinned recipe from this trusted tap's
+          # history, rather than changing the version of the current archive.
+          python3.14 <<'PY'
+          import os, pathlib, re, subprocess
+          recipe = pathlib.Path("Casks/ultraconvert.rb")
+          def version(text):
+              match = re.search(r'^\s*version "([0-9]+\.[0-9]+\.[0-9]+)"', text, re.M)
+              if not match:
+                  raise ValueError("Expected a stable pinned cask version")
+              return tuple(map(int, match[1].split(".")))
+          current = version(recipe.read_text())
+          commits = subprocess.check_output(["git", "rev-list", "HEAD", "--", str(recipe)], text=True).splitlines()
+          for commit in commits:
+              previous = subprocess.check_output(["git", "show", commit + ":" + str(recipe)], text=True)
+              if version(previous) < current:
+                  target = pathlib.Path(os.environ["RUNNER_TEMP"]) / "ultraconvert-previous.rb"
+                  target.write_text(previous)
+                  print("Testing signed cask upgrade", version(previous), "→", current)
+                  break
+          else:
+              raise ValueError("No previous pinned release is available for the upgrade gate")
+          PY
+          cp "$RUNNER_TEMP/ultraconvert-previous.rb" "$UC_TAP/Casks/ultraconvert.rb"
           brew install --cask --appdir="$UC_TEST_APPDIR" samuel-zhang01/ultraconvert/ultraconvert
+          # Do not launch the app: preservation must not depend on its optional
+          # automatic repair. Include a separate service that must never move.
+          python3.14 <<'PY'
+          import json, os, pathlib, plistlib, shlex
+          services = pathlib.Path.home() / "Library/Services"
+          folder = services / "Convert Here with UltraConvert.workflow" / "Contents"
+          folder.mkdir(parents=True)
+          (folder / "ultraconvert-managed.json").write_text(json.dumps({"owner": "UltraConvert"}))
+          app = os.environ["UC_TEST_APPDIR"] + "/UltraConvert.app"
+          command = "/usr/bin/open -a " + shlex.quote(app) + ' --args --mode here -- "$@"'
+          (folder / "document.wflow").write_bytes(plistlib.dumps({"actions": [{"action": {"ActionParameters": {"COMMAND_STRING": command}}}]}))
+          (services / "Unrelated Homebrew Test.workflow").mkdir()
+          PY
+          cp "$HOME/Library/Services/Convert Here with UltraConvert.workflow/Contents/document.wflow" "$RUNNER_TEMP/ultraconvert-action-before.plist"
+          cp "$HOME/Library/Services/Convert Here with UltraConvert.workflow/Contents/ultraconvert-managed.json" "$RUNNER_TEMP/ultraconvert-action-owner-before.json"
+          cp "$RUNNER_TEMP/ultraconvert-current.rb" "$UC_TAP/Casks/ultraconvert.rb"
+          brew upgrade --cask --greedy samuel-zhang01/ultraconvert/ultraconvert
+          cmp "$RUNNER_TEMP/ultraconvert-action-before.plist" "$HOME/Library/Services/Convert Here with UltraConvert.workflow/Contents/document.wflow"
+          cmp "$RUNNER_TEMP/ultraconvert-action-owner-before.json" "$HOME/Library/Services/Convert Here with UltraConvert.workflow/Contents/ultraconvert-managed.json"
+          test -d "$HOME/Library/Services/Unrelated Homebrew Test.workflow"
+          test "$(defaults read local.ultraconvert autoRegisterFinderActions)" = 0
+          test "$(defaults read local.ultraconvert startMinimizedAtLogin)" = 1
+          cmp "$RUNNER_TEMP/ultraconvert-rules-before.json" "$HOME/Library/Application Support/UltraConvert/Automation/rules.json"
+          test "$(defaults read local.ultraconvert HomebrewCITestValue)" = keep
           "$UC_TEST_APPDIR/UltraConvert.app/Contents/MacOS/UltraConvert" --version
+          python3.14 <<'PY'
+          import os, pathlib, plistlib, re
+          current = pathlib.Path(os.environ["RUNNER_TEMP"], "ultraconvert-current.rb").read_text()
+          expected = re.search(r'^\s*version "([0-9.]+)"', current, re.M)[1]
+          info = pathlib.Path(os.environ["UC_TEST_APPDIR"], "UltraConvert.app/Contents/Info.plist")
+          assert plistlib.loads(info.read_bytes())["CFBundleShortVersionString"] == expected
+          PY
           "$UC_TEST_APPDIR/UltraConvert.app/Contents/MacOS/UltraConvert" --check-setup > "$RUNNER_TEMP/ultraconvert-setup.json" || true
           python3.14 -c 'import json,os; d=json.load(open(os.environ["RUNNER_TEMP"]+"/ultraconvert-setup.json")); checks=[x for x in d["checks"] if "UltraConvert" not in x["name"]]; assert len(checks)==8 and all(x["ok"] for x in checks), d'
           codesign --verify --deep --strict "$UC_TEST_APPDIR/UltraConvert.app"
           spctl --assess --type execute "$UC_TEST_APPDIR/UltraConvert.app"
           brew uninstall --cask samuel-zhang01/ultraconvert/ultraconvert
           test ! -e "$UC_TEST_APPDIR/UltraConvert.app"
-          grep -q '"homebrew_test":"keep"' "$HOME/Library/Application Support/UltraConvert/Automation/rules.json"
+          cmp "$RUNNER_TEMP/ultraconvert-action-before.plist" "$HOME/Library/Services/Convert Here with UltraConvert.workflow/Contents/document.wflow"
+          cmp "$RUNNER_TEMP/ultraconvert-rules-before.json" "$HOME/Library/Application Support/UltraConvert/Automation/rules.json"
           test "$(defaults read local.ultraconvert HomebrewCITestValue)" = keep
+          test "$(defaults read local.ultraconvert startMinimizedAtLogin)" = 1
+          # Optional cleanup removes only the exact app's owned Finder actions.
+          brew install --cask --appdir="$UC_TEST_APPDIR" samuel-zhang01/ultraconvert/ultraconvert
+          brew uninstall --zap --cask samuel-zhang01/ultraconvert/ultraconvert
+          test ! -e "$HOME/Library/Services/Convert Here with UltraConvert.workflow"
+          test -d "$HOME/Library/Services/Unrelated Homebrew Test.workflow"
+          cmp "$RUNNER_TEMP/ultraconvert-rules-before.json" "$HOME/Library/Application Support/UltraConvert/Automation/rules.json"
+          test "$(defaults read local.ultraconvert HomebrewCITestValue)" = keep
+          test "$(defaults read local.ultraconvert startMinimizedAtLogin)" = 1

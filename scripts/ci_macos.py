@@ -76,7 +76,18 @@ def main():
                 stdout=output,
             )
         sources = sorted((ROOT / "src").glob("*.swift"))
-        for name in ("interface", "guidance", "backend", "automation", "rule_editor", "updates"):
+        for name in (
+            "interface",
+            "guidance",
+            "backend",
+            "automation",
+            "rule_editor",
+            "updates",
+            "startup",
+            "settings",
+            "compression",
+            "report",
+        ):
             binary = work / ("test-" + name)
             run(
                 [
@@ -96,7 +107,15 @@ def main():
             )
             arguments = [report] if name == "interface" else [actions] if name == "backend" else []
             run([binary, *arguments])
-        for name in ("security", "batch", "installer", "diagnostics", "release", "runtime"):
+        for name in (
+            "security",
+            "batch",
+            "installer",
+            "diagnostics",
+            "release",
+            "runtime",
+            "compression",
+        ):
             run(
                 [
                     sys.executable,

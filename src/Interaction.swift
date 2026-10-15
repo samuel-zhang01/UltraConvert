@@ -90,8 +90,7 @@ extension ConverterApp: NSMenuDelegate {
         here = true
         refreshDestination()
         loadFiles(paths)
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        showConverter()
     }
 
     func uniquePaths(_ paths: [String]) -> [String] {
@@ -162,6 +161,36 @@ extension ConverterApp: NSMenuDelegate {
         let row = fileTable.clickedRow
         if queueRows.indices.contains(row) && !fileTable.selectedRowIndexes.contains(row) {
             fileTable.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+        }
+        refreshContextMenu(menu)
+    }
+    func refreshContextMenu(_ menu: NSMenu) {
+        let paths = selectedQueuePaths
+        if let formats = menu.items.first?.submenu {
+            for group in formats.items {
+                guard let submenu = group.submenu else { continue }
+                for item in submenu.items {
+                    let target = item.representedObject as? String ?? ""
+                    item.isHidden = paths.isEmpty || !paths.allSatisfy { path in
+                        guard let row = rowByPath[path], queueRows.indices.contains(row), queueRows[row]["error"] is NSNull else { return false }
+                        return (queueRows[row]["targets"] as? [String])?.contains(target) == true
+                    }
+                }
+                group.isHidden = submenu.items.allSatisfy(\.isHidden)
+            }
+            menu.items.first?.isHidden = formats.items.allSatisfy(\.isHidden)
+        }
+        for item in menu.items where item.action == #selector(revealSelectedOutputs) || item.action == #selector(copyErrors) {
+            item.isHidden = contextActionEnabled(item.action) != true
+        }
+        var previousSeparator = true
+        for item in menu.items {
+            if item.isSeparatorItem { item.isHidden = previousSeparator; previousSeparator = true }
+            else if !item.isHidden { previousSeparator = false }
+        }
+        for item in menu.items.reversed() {
+            if item.isHidden { continue }
+            if item.isSeparatorItem { item.isHidden = true } else { break }
         }
     }
 

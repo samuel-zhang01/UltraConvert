@@ -248,7 +248,8 @@ struct AutomationTests {
         picker.window!.contentView!.layoutSubtreeIfNeeded()
         for button in [picker.cancel, picker.review] {
             let frame = button.convert(button.bounds, to: picker.window!.contentView)
-            check(frame.minX >= 0 && frame.maxX <= 560 && frame.minY >= 0 && frame.maxY <= 265, "Finder chooser actions stay inside their window")
+            let bounds = picker.window!.contentView!.bounds
+            check(bounds.width >= 600 && bounds.height >= 300 && frame.minX >= 0 && frame.maxX <= bounds.width && frame.minY >= 0 && frame.maxY <= bounds.height, "Finder chooser actions stay inside their actual window")
         }
         picker.window!.orderFront(nil)
         let escape = NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: picker.window!.windowNumber, context: nil, characters: "\u{1b}", charactersIgnoringModifiers: "\u{1b}", isARepeat: false, keyCode: 53)!
@@ -263,7 +264,9 @@ struct AutomationTests {
         let activityCell = ActivityCell(frame: NSRect(x: 0, y: 0, width: 600, height: 90))
         activityCell.configure(AutomationActivity(rule: "Audio → MP3", file: "Arrival.wav", message: "Finished · original kept", output: outbox.path))
         activityCell.layoutSubtreeIfNeeded()
-        check(activityCell.details.frame.width > 400 && activityCell.reveal.frame.maxX == 588, "Activity text fills the row with a trailing Reveal control")
+        let activityRevealBounds = activityCell.reveal.convert(activityCell.reveal.bounds, to: activityCell)
+        let activityDetailsBounds = activityCell.detailsButton.convert(activityCell.detailsButton.bounds, to: activityCell)
+        check(activityCell.details.frame.width > 400 && abs(activityRevealBounds.maxX - 588) < 0.01 && abs(activityDetailsBounds.maxX - 588) < 0.01, "Activity text fills the row beside aligned Details and Reveal controls")
         let detailFrame = activityCell.details.convert(activityCell.details.bounds, to: activityCell)
         check(detailFrame.minY >= 0 && detailFrame.maxY <= 90 && activityCell.details.stringValue.contains("Finished"), "Activity outcome stays visible within the row")
         activityCell.configure(nil)

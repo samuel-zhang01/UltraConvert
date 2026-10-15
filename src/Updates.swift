@@ -176,6 +176,7 @@ extension ConverterApp {
     }
     @objc func checkForUpdates() { updater.checkNow() }
     func rememberConversionOptions() {
+        flushQualityPreferences()
         var remembered = preferences.dictionary(forKey: "formats") as? [String: String] ?? [:]
         for (key, popup) in selectors { if let value = popup.selectedItem?.representedObject as? String { remembered[key] = value } }
         preferences.set(remembered, forKey: "formats")

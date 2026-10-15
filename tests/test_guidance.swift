@@ -53,6 +53,12 @@ struct GuidanceSmoke {
         isolated.openTopic(2)
         let rules = isolated.actions.arrangedSubviews.compactMap { $0 as? RuleButton }.first { $0.title == "Open Folder Rules…" }!
         rules.invoke(); precondition(destinations == [.rules])
+        isolated.openTopic(1)
+        let finder = isolated.actions.arrangedSubviews.compactMap { $0 as? RuleButton }.first { $0.title == "Open Finder Setup…" }!
+        finder.invoke(); precondition(destinations == [.rules, .finderSettings])
+        isolated.openTopic(3)
+        let startupText = isolated.body.arrangedSubviews.compactMap { $0 as? RoundedCard }.flatMap { $0.contents.arrangedSubviews.compactMap { ($0 as? NSTextField)?.stringValue } }.joined(separator: "\n")
+        precondition(startupText.contains("Start minimized at login") && startupText.contains("even without folder rules") && startupText.contains("Use Open Converter"))
         print("Guidance tests passed: first-use gating/persistence, queue/preferences preservation, topic bounds, Escape, explicit task routing and advice for all 62 formats.")
     }
 }

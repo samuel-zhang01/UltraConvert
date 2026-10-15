@@ -37,7 +37,7 @@ struct BackendPaths {
                 let root = contents!.resolvingSymlinksInPath().standardizedFileURL
                 let resolved = sealedSource.resolvingSymlinksInPath().standardizedFileURL
                 guard resolved.path.hasPrefix(root.path + "/") else { throw CocoaError(.fileReadInvalidFileName) }
-                for name in ["convert.py", "diagnostics.py", "runtime_tools.py", "structured.py", "geospatial.py", "guards.py", "policy.xml"] {
+                for name in ["convert.py", "compression_profiles.py", "diagnostics.py", "runtime_tools.py", "structured.py", "geospatial.py", "guards.py", "policy.xml"] {
                     let script = resolved.appendingPathComponent(name).resolvingSymlinksInPath().standardizedFileURL
                     guard script.path.hasPrefix(resolved.path + "/"), FileManager.default.fileExists(atPath: script.path) else { throw CocoaError(.fileReadCorruptFile) }
                 }
@@ -88,9 +88,12 @@ extension ConverterApp {
                 try FormatServices.register(app: Bundle.main.bundleURL)
             }, updates: updater)
         }
+        NSApp.setActivationPolicy(.regular)
         if let panel = settingsController?.window { InterfaceMotion.present(panel) }
+        NSApp.activate(ignoringOtherApps: true)
         settingsController?.refresh()
     }
+    func showSettingsPane(_ pane: SettingsPane) { showSettings(); settingsController?.selectPane(pane) }
     func backendPaths() throws -> BackendPaths {
         try BackendPaths(contents: Bundle.main.bundleURL.appendingPathComponent("Contents"), support: support)
     }
@@ -259,174 +262,4 @@ enum FormatServices {
         guard result == noErr else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(result)) }
         NSUpdateDynamicServices()
     }
-}
-
-final class IntegrationSettings: NSWindowController, NSWindowDelegate {
-    let preferences: UserDefaults
-    let login: any LoginService
-    let registerFinder: () throws -> Void
-    let updates: (any UpdateManaging)?
-    let updateChecks = NSButton(checkboxWithTitle: "Automatically check for updates daily", target: nil, action: nil)
-    let updateDownloads = NSButton(checkboxWithTitle: "Download updates and install when I quit", target: nil, action: nil)
-    let previewUpdates = NSButton(checkboxWithTitle: "Include preview releases", target: nil, action: nil)
-    let updateStatus = NSTextField(wrappingLabelWithString: "")
-    let updateNow = NSButton(title: "Check for Updates…", target: nil, action: nil)
-    let loginToggle = NSButton(checkboxWithTitle: "Launch at login", target: nil, action: nil)
-    let menuBarToggle = NSButton(checkboxWithTitle: "Start in the menu bar when folder rules are enabled", target: nil, action: nil)
-    let finderToggle = NSButton(checkboxWithTitle: "Keep Finder Quick Actions installed", target: nil, action: nil)
-    let loginStatus = NSTextField(wrappingLabelWithString: "")
-    let integrationStatus = NSTextField(wrappingLabelWithString: "")
-
-    init(preferences: UserDefaults, login: any LoginService, registerFinder: @escaping () throws -> Void, updates: (any UpdateManaging)? = nil) {
-        self.preferences = preferences
-        self.login = login
-        self.registerFinder = registerFinder
-        self.updates = updates
-        let panel = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: min(690, (NSScreen.main?.visibleFrame.height ?? 900) - 90)), styleMask: [.titled, .closable, .resizable], backing: .buffered, defer: false)
-        panel.title = "UltraConvert Settings"
-        panel.isReleasedWhenClosed = false; panel.contentMinSize = NSSize(width: 600, height: 520)
-        super.init(window: panel)
-        panel.delegate = self
-        let scroll = NSScrollView(); scroll.hasVerticalScroller = true; scroll.autohidesScrollers = true; scroll.drawsBackground = false
-        pin(scroll, in: panel.contentView!, inset: 24)
-        let canvas = FlippedView(); canvas.translatesAutoresizingMaskIntoConstraints = false; scroll.documentView = canvas
-        let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 14
-        stack.translatesAutoresizingMaskIntoConstraints = false; canvas.addSubview(stack)
-        NSLayoutConstraint.activate([canvas.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor), stack.leadingAnchor.constraint(equalTo: canvas.leadingAnchor), stack.trailingAnchor.constraint(equalTo: canvas.trailingAnchor, constant: -8), stack.topAnchor.constraint(equalTo: canvas.topAnchor), stack.bottomAnchor.constraint(equalTo: canvas.bottomAnchor, constant: -12)])
-        func add(_ view: NSView) {
-            stack.addArrangedSubview(view)
-            view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
-        }
-        func addAction(_ button: NSButton) {
-            button.setContentHuggingPriority(.required, for: .horizontal)
-            let row = NSStackView(views: [button, NSView()])
-            row.spacing = 0
-            add(row)
-        }
-        func note(_ text: String) -> NSTextField { uiLabel(text, size: 13, color: .labelColor) }
-        add(uiLabel("Settings", size: 25, weight: .semibold))
-        add(note("Manage updates, startup and Finder shortcuts."))
-        if let updates {
-            add(uiLabel("App updates · signed and verified", size: 15, weight: .semibold))
-            let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development"
-            add(note("Installed version: \(version). New releases come from UltraConvert’s GitHub repository."))
-            for toggle in [updateChecks, updateDownloads, previewUpdates] { toggle.target = self; add(toggle) }
-            updateChecks.action = #selector(changeUpdateChecks)
-            updateDownloads.action = #selector(changeUpdateDownloads)
-            previewUpdates.action = #selector(changePreviewUpdates)
-            add(note("Install and Relaunch reopens the app with your queued files. Active conversions and previews finish first; save rule edits before updating. Conversion engines and your saved rules stay on this Mac."))
-            updateNow.target = self; updateNow.action = #selector(checkUpdates); updateNow.bezelStyle = .rounded
-            updateNow.image = NSImage(systemSymbolName: "arrow.down.circle", accessibilityDescription: nil); updateNow.imagePosition = .imageLeading
-            updateNow.setAccessibilityLabel("Check for Updates")
-            addAction(updateNow)
-            addAction(button("Open Download Page…", #selector(openReleaseDownloads), symbol: "safari"))
-            updateStatus.font = .systemFont(ofSize: 13); add(updateStatus)
-            add(note("App updates do not upgrade Homebrew or conversion engines. Use Help → Check Setup if an engine needs repair."))
-            let updateDivider = NSBox(); updateDivider.boxType = .separator; add(updateDivider)
-            updates.onChange = { [weak self] in self?.refreshUpdates() }
-        }
-        loginToggle.target = self; loginToggle.action = #selector(changeLogin)
-        add(uiLabel("Startup · optional", size: 15, weight: .semibold))
-        add(loginToggle)
-        loginStatus.font = .systemFont(ofSize: 13); loginStatus.textColor = .labelColor
-        add(loginStatus)
-        menuBarToggle.target = self; menuBarToggle.action = #selector(changeMenuBarPreference)
-        add(menuBarToggle)
-        add(note("Enabled folder rules keep running when the converter window closes. Quit UltraConvert from its menu bar icon to stop watching."))
-        addAction(button("Open Login Items Settings…", #selector(openLoginSettings), symbol: "person.crop.circle.badge.checkmark"))
-        let divider = NSBox(); divider.boxType = .separator; add(divider)
-        add(uiLabel("Finder Quick Actions · review any batch", size: 15, weight: .semibold))
-        finderToggle.target = self; finderToggle.action = #selector(changeFinderPreference)
-        add(finderToggle)
-        add(note("Quick Actions open a batch for review: right-click files → Quick Actions → Convert Here with UltraConvert, or Convert to Destination with UltraConvert. This option repairs their installation when the app opens from Applications. Turning it off keeps existing actions installed."))
-        addAction(button("Install or Repair Quick Actions", #selector(repairFinder), symbol: "arrow.clockwise"))
-        add(note("To show these actions: System Settings → General → Login Items & Extensions → Finder (ⓘ). Enable both UltraConvert actions. Installing an action does not enable its macOS switch."))
-        addAction(button("Enable Quick Actions in macOS…", #selector(openFinderSettings), symbol: "folder"))
-        let servicesDivider = NSBox(); servicesDivider.boxType = .separator; add(servicesDivider)
-        add(uiLabel("Format shortcuts · Finder Services", size: 15, weight: .semibold))
-        add(note("Right-click files → Services → Convert Here with UltraConvert — Choose Format… for a grouped format picker, or use shortcuts such as Convert to MP3. You review the batch before clicking Convert."))
-        addAction(button("Refresh Format Shortcuts", #selector(refreshServices), symbol: "arrow.triangle.2.circlepath"))
-        add(note("To show these shortcuts: System Settings → Keyboard → Keyboard Shortcuts → Services. macOS filters shortcuts by selected file type; use a general Quick Action if a misnamed file hides a preset."))
-        addAction(button("Enable Format Shortcuts in macOS…", #selector(openServicesSettings), symbol: "keyboard"))
-        integrationStatus.font = .systemFont(ofSize: 13); integrationStatus.textColor = .labelColor
-        add(integrationStatus)
-        panel.center()
-        refresh()
-        panel.contentView!.layoutSubtreeIfNeeded()
-
-    }
-
-    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-
-    func button(_ title: String, _ action: Selector, symbol: String) -> NSButton {
-        let button = NSButton(title: title, target: self, action: action)
-        button.bezelStyle = .rounded
-        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
-        button.imagePosition = .imageLeading
-        button.setAccessibilityLabel(title)
-        return button
-    }
-
-    func refresh() {
-        let state = login.state
-        loginToggle.state = state.requested ? .on : .off
-        loginStatus.stringValue = state.message
-        menuBarToggle.state = preferences.bool(forKey: "startInMenuBar") ? .on : .off
-        finderToggle.state = preferences.object(forKey: "autoRegisterFinderActions") as? Bool != false ? .on : .off
-        refreshUpdates()
-    }
-
-    func windowDidBecomeKey(_ notification: Notification) { refresh() }
-    func refreshUpdates() {
-        guard let updates else { return }
-        updateChecks.state = updates.automaticallyChecks ? .on : .off
-        updateDownloads.state = updates.automaticallyDownloads ? .on : .off
-        updateDownloads.isEnabled = updates.automaticallyChecks
-        previewUpdates.state = updates.includesPreviews ? .on : .off
-        updateNow.isEnabled = updates.canCheck
-        updateStatus.stringValue = updates.status
-    }
-    @objc func changeUpdateChecks() { updates?.automaticallyChecks = updateChecks.state == .on; refreshUpdates() }
-    @objc func changeUpdateDownloads() { updates?.automaticallyDownloads = updateDownloads.state == .on; refreshUpdates() }
-    @objc func changePreviewUpdates() { updates?.includesPreviews = previewUpdates.state == .on; refreshUpdates() }
-    @objc func checkUpdates() { updates?.checkNow(); refreshUpdates() }
-    @objc func openReleaseDownloads() {
-        NSWorkspace.shared.open(URL(string: "https://github.com/samuel-zhang01/UltraConvert/releases/latest")!)
-    }
-
-    @objc func changeLogin() {
-        do {
-            if loginToggle.state == .on { try login.enable() }
-            else { try login.disable() }
-            refresh()
-        } catch {
-            refresh()
-            loginStatus.stringValue = "Could not change launch at login: " + error.localizedDescription
-        }
-    }
-
-    @objc func changeMenuBarPreference() { preferences.set(menuBarToggle.state == .on, forKey: "startInMenuBar") }
-
-    @objc func changeFinderPreference() {
-        preferences.set(finderToggle.state == .on, forKey: "autoRegisterFinderActions")
-        integrationStatus.stringValue = finderToggle.state == .on ? "Finder actions will be checked the next time this app opens from Applications." : "Automatic registration is off. You can still repair actions manually."
-    }
-
-    @objc func repairFinder() {
-        do {
-            try registerFinder()
-            integrationStatus.stringValue = "Quick Actions installed. Enable both in System Settings → General → Login Items & Extensions → Finder (ⓘ)."
-        } catch { integrationStatus.stringValue = "Could not install Quick Actions: " + error.localizedDescription }
-    }
-
-    @objc func refreshServices() {
-        do {
-            try FormatServices.register(app: Bundle.main.bundleURL)
-            integrationStatus.stringValue = "Format shortcuts refreshed. Enable them in System Settings → Keyboard → Keyboard Shortcuts → Services."
-        } catch { integrationStatus.stringValue = "Could not refresh format shortcuts: " + error.localizedDescription }
-    }
-
-    @objc func openLoginSettings() { SMAppService.openSystemSettingsLoginItems() }
-    @objc func openFinderSettings() { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.LoginItems-Settings.extension")!) }
-    @objc func openServicesSettings() { NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Keyboard-Settings.extension")!) }
 }

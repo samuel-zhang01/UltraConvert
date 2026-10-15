@@ -206,13 +206,14 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
             formatEmpty.centerXAnchor.constraint(equalTo: holder.centerXAnchor),
             formatEmpty.widthAnchor.constraint(lessThanOrEqualTo: holder.widthAnchor, constant: -10)
         ])
-        crs.placeholderString = "Input CRS, e.g. EPSG:4326"
-        crs.toolTip = "Required for WKT without a .prj file or SRID. Use the known source CRS; never guess."
-        crs.setAccessibilityLabel("Known input coordinate reference system")
+        crs.placeholderString = "Optional CRS, e.g. EPSG:4326"
+        crs.toolTip = "Applies to selected geospatial files with no coordinate reference system. Leave blank when the source has one. Use a known CRS; never guess."
+        crs.setAccessibilityLabel("Optional input CRS for geospatial files missing one")
         crs.isHidden = true
         card.contents.addArrangedSubview(crs)
         crs.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
-        card.contents.addArrangedSubview(uiLabel("Formats are detected from file contents where possible.", size: 12))
+        card.contents.addArrangedSubview(formatReviewHint)
+        formatReviewHint.widthAnchor.constraint(equalTo: card.contents.widthAnchor).isActive = true
         return card
     }
 
@@ -439,7 +440,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         files = []; infos = []; fileIcons = [:]
         resetOutcomes()
         presetFormat = nil; rejectedPreset = nil
-        selectors.removeAll(); formatExplanations.removeAll()
+        flushQualityPreferences(); selectors.removeAll(); formatExplanations.removeAll(); qualityControls.removeAll()
         formats.arrangedSubviews.forEach { formats.removeArrangedSubview($0); $0.removeFromSuperview() }
         resultURL = nil; resultURLs = []; lastSummary = ""
         reportURLs = []; publishedURLs = []; resultsHere = false
@@ -467,7 +468,11 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
             phase = infos.contains { $0["error"] is String } ? .attention : .ready
             status.stringValue = "Review each category's format and save location, then click Convert."
         }
-        if let category = selectors.first(where: { $0.value === sender })?.key { formatExplanations[category]?.stringValue = FormatCatalog.advice(sender.selectedItem?.representedObject as? String ?? "") }
+        if let category = selectors.first(where: { $0.value === sender })?.key {
+            let format = sender.selectedItem?.representedObject as? String ?? ""
+            formatExplanations[category]?.stringValue = FormatCatalog.advice(format)
+            qualityControls[category]?.target = format; qualityControls[category]?.refresh()
+        }
         if let entry = selectors.first(where: { $0.value === sender }), let value = sender.selectedItem?.representedObject as? String {
             draftTargets[entry.key] = value
         }

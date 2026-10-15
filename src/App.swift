@@ -51,12 +51,15 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     var phase = BatchPhase.empty { didSet { refreshPresentation() } }
     var selectors: [String: NSPopUpButton] = [:]
     var formatExplanations: [String: NSTextField] = [:]
+    var qualityControls: [String: CompressionControl] = [:]
+    let formatReviewHint = uiLabel("Formats are detected from file contents where possible.", size: 13, color: .secondaryLabelColor)
     var files: [String] = []
     var infos: [[String: Any]] = []
     var outputURL: URL?
     var resultURL: URL?
     var resultURLs: [URL] = []
     var reportURLs: [URL] = []
+    var reportController: ConversionReportWindow?
     var publishedURLs: [URL] = []
     var resultsHere = false
     var process: Process?
@@ -74,6 +77,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     var automationError: String?
     var rulesController: FolderRulesWindow?
     var watcherStatusItem: NSStatusItem?
+    var minimizedStartup = false
     var formatPicker: FormatPicker?
     var waitingForAutomationQuit = false
 #if ULTRACONVERT_UPDATE_TESTS
@@ -83,8 +87,10 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
 #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let launchedAtLogin = StartupPolicy.launchedAtLogin(event: NSAppleEventManager.shared().currentAppleEvent)
         preferences.register(defaults: ["autoRegisterFinderActions": true])
-        NSApp.setActivationPolicy(.regular)
+        let initiallyQuiet = StartupPolicy.startsInMenuBar(preferences: preferences, launchedAtLogin: launchedAtLogin, hasFiles: !CommandLine.arguments.dropFirst().filter { !$0.hasPrefix("-psn_") }.isEmpty || !files.isEmpty, restoringUpdate: preferences.object(forKey: "updateRestoreFiles") != nil, rulesKeepRunning: false)
+        NSApp.setActivationPolicy(initiallyQuiet ? .accessory : .regular)
         let menu = NSMenu()
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu()
@@ -95,6 +101,11 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         appMenu.addItem(settingsItem)
         addMenuItem(appMenu, "Folder Rules…", #selector(showFolderRules), symbol: "square.stack.3d.up")
         addMenuItem(appMenu, "Check for Updates…", #selector(checkForUpdates), symbol: "arrow.down.circle")
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: "Hide UltraConvert", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        let hideOthers = appMenu.addItem(withTitle: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
+        hideOthers.keyEquivalentModifierMask = [.command, .option]
+        appMenu.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
         appMenu.addItem(.separator())
         let servicesItem = NSMenuItem(title: "Services", action: nil, keyEquivalent: "")
         servicesItem.submenu = NSMenu(title: "Services")
@@ -136,6 +147,13 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         }
         editMenuItem.submenu = editMenu
         menu.addItem(editMenuItem)
+        let windowMenuItem = NSMenuItem()
+        let windowMenu = NSMenu(title: "Window")
+        windowMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        windowMenu.addItem(withTitle: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
+        windowMenu.addItem(.separator())
+        windowMenu.addItem(withTitle: "Bring All to Front", action: #selector(NSApplication.arrangeInFront(_:)), keyEquivalent: "")
+        windowMenuItem.submenu = windowMenu; menu.addItem(windowMenuItem); NSApp.windowsMenu = windowMenu
         let helpMenuItem = NSMenuItem()
         let helpMenu = NSMenu(title: "Help")
         addMenuItem(helpMenu, "Getting Started…", #selector(showQuickStart), symbol: "questionmark.circle")
@@ -152,8 +170,6 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         start.isEnabled = false
         reveal.isHidden = true
         reportButton.isHidden = true
-        window.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
         var args = Array(CommandLine.arguments.dropFirst()).filter { !$0.hasPrefix("-psn_") }
         here = preferences.string(forKey: "outputMode") != "destination"
         if args.count >= 2 && args[0] == "--mode" {
@@ -161,6 +177,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             args.removeFirst(2)
         }
         if args.first == "--" { args.removeFirst() }
+        let restoringUpdate = preferences.object(forKey: "updateRestoreFiles") != nil
         let restored = preferences.stringArray(forKey: "updateRestoreFiles") ?? []
         preferences.removeObject(forKey: "updateRestoreFiles")
         if args.isEmpty { args = restored.filter { FileManager.default.fileExists(atPath: $0) } }
@@ -175,7 +192,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             catch { status.stringValue = "The app is ready. Finder actions need attention; use Help → Install Finder Quick Actions." }
         }
         startFolderAutomation()
-        if args.isEmpty && preferences.bool(forKey: "startInMenuBar") && automation?.keepsRunning == true { window.orderOut(nil); NSApp.setActivationPolicy(.accessory) }
+        applyStartupPresentation(launchedAtLogin: launchedAtLogin, hasFiles: !args.isEmpty || !files.isEmpty || !pendingFiles.isEmpty, restoringUpdate: restoringUpdate)
         if !args.isEmpty { loadFiles(args) }
         else if !files.isEmpty { loadFiles(files) }
         startUpdater()
@@ -311,11 +328,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     }
 
     @objc func showReport() {
-        let reports = (reportURLs.isEmpty ? (resultURLs.isEmpty ? [resultURL].compactMap { $0 } : resultURLs)
-            .map { $0.appendingPathComponent("conversion-report.json") } : reportURLs)
-            .filter { FileManager.default.fileExists(atPath: $0.path) }
-        if reports.isEmpty { status.stringValue = "The report was moved or removed. Use Show Results to find the output folder." }
-        else { NSWorkspace.shared.activateFileViewerSelecting(Array(reports.prefix(8))) }
+        presentConversionReport()
     }
 
     @objc func copySummary() {
@@ -384,6 +397,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         start.isEnabled = !value && !selectors.isEmpty && rejectedPreset == nil
         cancel.isEnabled = value
         for control in selectors.values { control.isEnabled = !value }
+        for control in qualityControls.values { control.setEnabled(!value) }
         crs.isEnabled = !value
         location.isEnabled = !value
         jobs.isEnabled = !value
@@ -496,8 +510,9 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     }
 
     func buildSelectors() {
+        flushQualityPreferences()
         formats.arrangedSubviews.forEach { formats.removeArrangedSubview($0); $0.removeFromSuperview() }
-        selectors.removeAll(); formatExplanations.removeAll()
+        selectors.removeAll(); formatExplanations.removeAll(); qualityControls.removeAll()
         var groups: [String: [[String: Any]]] = [:]
         for info in infos where info["error"] is NSNull {
             groups[info["category"] as? String ?? "", default: []].append(info)
@@ -530,12 +545,18 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             let advice = uiLabel(FormatCatalog.advice(popup.selectedItem?.representedObject as? String ?? ""), size: 13, color: .labelColor)
             advice.isSelectable = true; advice.setAccessibilityLabel("Format advice for " + names[key]!)
             row.addArrangedSubview(advice); advice.widthAnchor.constraint(equalTo: row.widthAnchor).isActive = true; formatExplanations[key] = advice
+            if ["audio", "video", "image"].contains(key) {
+                let quality = CompressionControl(category: key, target: popup.selectedItem?.representedObject as? String ?? "", infos: items, preferences: preferences)
+                row.addArrangedSubview(quality); quality.widthAnchor.constraint(equalTo: row.widthAnchor).isActive = true
+                qualityControls[key] = quality
+            }
             formats.addArrangedSubview(row)
             popup.widthAnchor.constraint(equalTo: formats.widthAnchor).isActive = true
             row.widthAnchor.constraint(equalTo: formats.widthAnchor).isActive = true
             selectors[key] = popup
         }
         crs.isHidden = groups["geo"] == nil
+        formatReviewHint.stringValue = selectors.count > 1 ? "\(selectors.count) file types · scroll this panel to review every format and quality setting." : "Formats are detected from file contents where possible."
         let failed = infos.filter { $0["error"] is String }.count
         status.stringValue = failed == 0 ? "Ready to convert \(infos.count) \(infos.count == 1 ? "file" : "files")." : "\(infos.count - failed) ready · \(failed) unsupported. Review the file queue."
         if let presetFormat {
@@ -575,7 +596,8 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         var args = ["--plan", planURL.path, "--jobs", String(jobs.indexOfSelectedItem + 1)]
         args += here ? ["--here"] : ["--output", (outputURL ?? defaultFolder()).path]
         if skipSame.state == .on { args += ["--skip-same"] }
-        if !crs.stringValue.trimmingCharacters(in: .whitespaces).isEmpty { args += ["--source-crs", crs.stringValue.trimmingCharacters(in: .whitespaces)] }
+        args += qualityArguments
+        args += sourceCRSArguments
         launch(args + ["--"] + files) { code, output, error in
             defer { self.loadPendingFiles() }
             try? FileManager.default.removeItem(at: planURL)
@@ -669,6 +691,13 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         automation?.stop()
         if automation?.running == true || (rulesController?.previewWorkCount ?? 0) > 0 { waitingForAutomationQuit = true; return .terminateLater }
         return .terminateNow
+    }
+    func applicationWillTerminate(_ notification: Notification) {
+        flushQualityPreferences()
+    }
+    var sourceCRSArguments: [String] {
+        let value = crs.stringValue.trimmingCharacters(in: .whitespaces)
+        return !crs.isHidden && !value.isEmpty ? ["--source-crs", value] : []
     }
 }
 

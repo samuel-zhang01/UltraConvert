@@ -1,4 +1,4 @@
-"""Remove only owned Finder actions for the cask's exact app; retain all user data."""
+"""Explicitly remove owned Finder actions; retain preferences, rules and files."""
 
 import argparse
 import datetime
@@ -63,7 +63,18 @@ def remove_actions(app, home=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--app", type=Path, required=True)
+    parser.add_argument(
+        "--confirm-removal",
+        action="store_true",
+        help="Move this app's owned Finder actions to Trash (used by brew uninstall --zap)",
+    )
     args = parser.parse_args()
+    # Old casks call this helper from their uninstall stanza during upgrades too.
+    # Homebrew does not pass that lifecycle context to scripts. Requiring an
+    # explicit flag preserves those actions even when automatic repair is off.
+    if not args.confirm_removal:
+        print("Finder actions retained. Explicit removal requires --confirm-removal.")
+        return
     print(
         f"Moved {remove_actions(args.app)} owned Finder actions to Trash; settings and folder rules retained."
     )

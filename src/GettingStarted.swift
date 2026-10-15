@@ -1,6 +1,6 @@
 import AppKit
 
-enum GuideDestination: Equatable { case addFiles, rules, settings, setup, fullGuide }
+enum GuideDestination: Equatable { case addFiles, rules, settings, finderSettings, setup, fullGuide }
 
 /// An optional, nonmodal task map. Reading help never alters a batch or a rule.
 final class GettingStarted: NSWindowController {
@@ -55,8 +55,8 @@ final class GettingStarted: NSWindowController {
         case 1:
             card("Quick Actions · convert any supported batch", "In Finder, select one or more files, right-click → Quick Actions → Convert Here with UltraConvert. The app opens for review. ‘Here’ saves single-file results beside each original. Convert to Destination with UltraConvert uses your saved output folder.")
             card("Services · choose a format first", "Right-click files → Services → Convert Here with UltraConvert — Choose Format… Select a category and format, then Review Conversion. Convert to MP3 with UltraConvert is a preset shortcut. Click Convert in the app to start; choosing a shortcut starts no conversion.")
-            card("If an action is missing", "Open Settings and use Install or Repair Quick Actions. Enable them in System Settings → General → Login Items & Extensions → Finder (ⓘ). For format shortcuts, use System Settings → Keyboard → Keyboard Shortcuts → Services. macOS chooses which Services suit your selected file types; use the general Quick Action for a misnamed file.")
-            action("Open Finder Setup…", .settings)
+            card("If an action is missing", "Open Settings → Finder to install or repair Quick Actions. Enable them in System Settings → General → Login Items & Extensions → Finder (ⓘ). For format shortcuts, use System Settings → Keyboard → Keyboard Shortcuts → Services. macOS chooses which Services suit your selected file types; use the general Quick Action for a misnamed file.")
+            action("Open Finder Setup…", .finderSettings)
         case 2:
             card("1. Choose a template and two folders", "Open Folder Rules → New Rule → Audio → MP3, Images → WebP or Data → YAML. WHEN is the inbox to watch; SAVE is a separate output folder outside every watched inbox. Templates start off. Files already present are ignored when watching starts.")
             card("2. Match files and order the actions", "IF checks the detected file format, category or filename. ALL means every condition must match; ANY means at least one. DO actions run from top to bottom. Convert sets the current format; Rename changes the output name. After Convert to MP3, {name}-{format} makes Recording-mp3.mp3. Move Rename before Convert and {format} uses the input format instead. The wait time lets a file finish copying before inspection.")
@@ -66,7 +66,7 @@ final class GettingStarted: NSWindowController {
         case 3:
             card("Where results go", "Beside source files saves single-file outputs next to their originals. Saved destination uses the folder remembered with Set as Default. Choose destination selects a folder for this batch. Destination batches use a Converted folder; files that need companions stay together. Existing names receive a numbered suffix.")
             card("Batch options", "Skip files already in target format leaves matching files unchanged and records them as skipped. Open results when finished reveals successful outputs. Files at a time controls simultaneous conversion: 2 suits most batches; 1 reduces peak resource use for large media or geospatial files. These settings do not affect folder-rule jobs.")
-            card("Startup and recovery", "Launch at login opens UltraConvert after signing in to macOS. Start in the menu bar applies when enabled folder rules exist. Both are optional. If something fails, Report contains details, Retry Failed prepares those files for review, and Help → Check Setup checks the local engines.")
+            card("Startup and recovery", "In Settings → General, Launch at login starts UltraConvert after you sign in. Start minimized at login keeps the converter window closed and provides a menu bar icon, even without folder rules. Use Open Converter in the menu bar whenever you need it. Both options are optional. Report explains failures, Retry Failed prepares those files for review, and Help → Check Setup checks the local engines.")
             card("Keep the app up to date", "Use UltraConvert → Check for Updates to download, install and relaunch. Settings controls daily checks, downloading in the background and optional preview releases. Updates wait for active conversions and rule previews; save rule edits first. Your queued files reopen after relaunch. Conversion engines are updated separately.")
             action("Open Settings…", .settings); action("Check Setup…", .setup)
         default:
@@ -93,6 +93,7 @@ extension ConverterApp {
             case .addFiles: self.showConverter(); self.pickFiles()
             case .rules: self.showFolderRules()
             case .settings: self.showSettings()
+            case .finderSettings: self.showSettingsPane(.finder)
             case .setup: self.showConverter(); self.checkSetup()
             case .fullGuide: self.openGuide()
             }
