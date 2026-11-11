@@ -201,7 +201,10 @@ def install_payload(payload):
                 run(["/usr/bin/ditto", source, fresh])
             else:
                 shutil.copytree(
-                    source, fresh, ignore=shutil.ignore_patterns("__pycache__", "*.pyc")
+                    source,
+                    fresh,
+                    symlinks=dest == SUPPORT / ".venv",
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
                 )
             if dest.exists() and dest.suffix == ".app":
                 backup.mkdir(parents=True, exist_ok=True)
@@ -287,42 +290,45 @@ def main():
         brew = shutil.which("brew")
         if not brew:
             raise RuntimeError("Install Homebrew first from https://brew.sh")
-        for name in ("ffmpeg-full", "imagemagick", "pandoc", "gdal", "mac", "python@3.14"):
+        for name in ("ffmpeg-full", "imagemagick", "pandoc", "gdal", "mac", "python@3.15"):
             if subprocess.run(
                 [brew, "list", "--versions", name], stdout=subprocess.DEVNULL, check=False
             ).returncode:
                 run([brew, "install", name])
         if not Path("/Applications/calibre.app").exists():
             run([brew, "install", "--cask", "calibre"])
-    python = Path("/opt/homebrew/opt/python@3.14/bin/python3.14")
+    python = Path("/opt/homebrew/opt/python@3.15/bin/python3.15")
     if not python.exists():
-        python = Path("/usr/local/opt/python@3.14/bin/python3.14")
+        python = Path("/usr/local/opt/python@3.15/bin/python3.15")
     if not python.exists():
-        raise RuntimeError("Homebrew Python 3.14 is required for the installed GDAL bindings")
-    SUPPORT.mkdir(parents=True, exist_ok=True)
-    if not (SUPPORT / ".venv/bin/python").exists():
-        run([python, "-m", "venv", "--system-site-packages", SUPPORT / ".venv"])
-    runtime = SUPPORT / ".venv/bin/python"
-    run(
-        [
-            runtime,
-            "-m",
-            "pip",
-            "install",
-            "--disable-pip-version-check",
-            "-r",
-            ROOT / "requirements.txt",
-        ]
-    )
-    run(
-        [
-            runtime,
-            "-c",
-            "from osgeo import gdal; import yaml, tomli_w, defusedxml; print('GDAL', gdal.VersionInfo())",
-        ]
-    )
+        raise RuntimeError("Homebrew Python 3.15 is required for the installed GDAL bindings")
     with tempfile.TemporaryDirectory(prefix="ultraconvert-convert-install-") as temp:
         build = Path(temp)
+        # Build and verify a fresh matching runtime before replacing an older
+        # Python environment; an interrupted install leaves the old one intact.
+        staged_runtime = build / ".venv"
+        run([python, "-m", "venv", "--system-site-packages", staged_runtime])
+        runtime = staged_runtime / "bin/python"
+        run(
+            [
+                runtime,
+                "-m",
+                "pip",
+                "install",
+                "--disable-pip-version-check",
+                "-r",
+                ROOT / "requirements.txt",
+            ]
+        )
+        run(
+            [
+                runtime,
+                "-I",
+                "-B",
+                "-c",
+                "from osgeo import gdal; import yaml, tomli_w, defusedxml; print('GDAL', gdal.VersionInfo())",
+            ]
+        )
         prebuilt = ROOT / "prebuilt/UltraConvert.app"
         app = (
             validate_prebuilt(prebuilt)
@@ -338,6 +344,7 @@ def main():
         # Compile/validate and stage everything before replacing a working installation.
         install_payload(
             [
+                (staged_runtime, SUPPORT / ".venv"),
                 (ROOT / "src", SUPPORT / "src"),
                 (app, APP),
                 *[(source, path) for path, source in prepared_services.items()],

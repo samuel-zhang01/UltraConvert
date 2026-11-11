@@ -13,21 +13,14 @@ class UltraconvertRuntime < Formula
   depends_on "ffmpeg-full"
   depends_on "gdal"
   depends_on "imagemagick"
-  depends_on "libyaml"
   depends_on "mac"
   depends_on macos: :ventura
   depends_on "pandoc"
-  depends_on "python@3.14"
+  depends_on "python@3.15"
 
   resource "pyyaml" do
-    on_arm do
-      url "https://files.pythonhosted.org/packages/bd/9c/4d95bb87eb2063d20db7b60faa3840c1b18025517ae857371c4dd55a6b3a/pyyaml-6.0.3-cp314-cp314-macosx_11_0_arm64.whl"
-      sha256 "34d5fcd24b8445fadc33f9cf348c1047101756fd760b4dacb5c3e99755703310"
-    end
-    on_intel do
-      url "https://files.pythonhosted.org/packages/9d/8c/f4bd7f6465179953d3ac9bc44ac1a8a3e6122cf8ada906b4f96c60172d43/pyyaml-6.0.3-cp314-cp314-macosx_10_13_x86_64.whl"
-      sha256 "8d1fab6bb153a416f9aeb4b8763bc0f22a5586065f86f7664fc23339fc1c1fac"
-    end
+    url "https://files.pythonhosted.org/packages/05/8e/961c0007c59b8dd7729d542c61a4d537767a59645b82a0b521206e1e25c2/pyyaml-6.0.3.tar.gz"
+    sha256 "d76623373421df22fb4cf8817020cbb7ef15c725b9d5e45f17e189bfc384190f"
   end
 
   resource "tomli-w" do
@@ -41,9 +34,15 @@ class UltraconvertRuntime < Formula
   end
 
   def install
-    venv = virtualenv_create(libexec, "python3.14", system_site_packages: true)
+    venv = virtualenv_create(libexec, "python3.15", system_site_packages: true)
+    # PyYAML's pure-Python implementation works without ABI-specific wheels.
+    resource("pyyaml").stage do
+      venv.site_packages.install "lib/yaml"
+      (pkgshare/"licenses").install "LICENSE" => "PyYAML.txt"
+    end
     # Homebrew verifies and fetches resources before entering the build sandbox.
-    resources.each do |resource|
+    %w[tomli-w defusedxml].each do |name|
+      resource = resource(name)
       wheel = buildpath/resource.downloader.basename
       cp resource.cached_download, wheel
       venv.pip_install wheel, build_isolation: false

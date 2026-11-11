@@ -1,6 +1,8 @@
 # Changelog
 
-## 1.9.1 — 2026-11-11
+## 1.9.2 — 2026-11-11
+
+- Match the current Homebrew GDAL bindings with Python 3.15. Build and verify a replacement runtime before swapping a manual installation.
 
 - Show live encoding progress for a single audio or video file when its duration is known. The progress bar animates while waiting for a measurable update.
 - Estimate the size of one video at the selected custom quality by encoding short temporary samples. Changing the slider requires a fresh estimate.

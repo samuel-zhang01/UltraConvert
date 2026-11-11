@@ -1,5 +1,11 @@
 # Local CI
 
+To test directly on the Mac without dispatching an Actions run, use a
+Python 3.15 virtual environment with the project's requirements and the
+Homebrew GDAL bindings available. Run its Python with `scripts/ci_macos.py`
+from a clean checkout. The same suite runs the native, conversion, and
+recovery checks.
+
 All project-defined checks and releases run on Samuel’s registered Mac runner
 `samuel-mac-ultraconvert`, selected by `[ultraconvert, local-macos]`.
 There are no GitHub-hosted runner fallbacks. Jobs queue while this Mac is
@@ -10,7 +16,7 @@ run on this Mac. Public pull requests do not start CI: review external changes
 and run them in a disposable environment before merging. Runner labels select
 jobs; they do not isolate repositories sharing the same user or host.
 
-Native CI uses the installed Python 3.14 and public conversion engines with a
+Native CI uses the installed Python 3.15 and public conversion engines with a
 temporary virtual environment. It compiles an ad-hoc development app, creates
 Finder actions in a disposable fixture home, runs both complete generated
 format/edge suites, all maintained Swift smoke suites, the security,

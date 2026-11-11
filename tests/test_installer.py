@@ -23,6 +23,25 @@ APP_FIXTURE = Path(os.environ.get("ULTRACONVERT_TEST_APP", str(installer.APP)))
 
 
 class InstallerTests(unittest.TestCase):
+    def test_staged_python_runtime_is_runnable_after_transaction(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            staged = base / "staged-runtime"
+            support = base / "support"
+            destination = support / ".venv"
+            destination.mkdir(parents=True)
+            (destination / "old-runtime").write_text("retain for rollback")
+            installer.run([sys.executable, "-m", "venv", "--without-pip", "--symlinks", staged])
+            with patch.object(installer, "SUPPORT", support):
+                installer.install_payload([(staged, destination)])
+            python = destination / "bin/python"
+            self.assertTrue(python.is_symlink())
+            prefix = subprocess.check_output(
+                [str(python), "-I", "-B", "-c", "import sys; print(sys.prefix)"], text=True
+            ).strip()
+            self.assertEqual(Path(prefix).resolve(), destination.resolve())
+            self.assertEqual(len(list((support / "backups").glob("*/.venv/old-runtime"))), 1)
+
     def owned_app(self, path):
         marker = path / "Contents/Resources/ultraconvert-managed.json"
         marker.parent.mkdir(parents=True)

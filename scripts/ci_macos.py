@@ -21,8 +21,8 @@ def run(args, **kwargs):
 
 
 def main():
-    if sys.platform != "darwin" or sys.version_info[:2] != (3, 14):
-        raise RuntimeError("Native CI requires macOS with Python 3.14 and installed public engines")
+    if sys.platform != "darwin" or sys.version_info[:2] != (3, 15):
+        raise RuntimeError("Native CI requires macOS with Python 3.15 and installed public engines")
     os.umask(0o077)
     parent = os.environ.get("RUNNER_TEMP")
     with tempfile.TemporaryDirectory(prefix="ultraconvert-native-ci-", dir=parent) as temporary:

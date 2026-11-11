@@ -20,9 +20,9 @@ jobs:
           persist-credentials: false
       - name: Prepare disposable static-check interpreter
         run: |
-          ci_python=/opt/homebrew/bin/python3.14
+          ci_python=/opt/homebrew/bin/python3.15
           if [[ ! -x "$ci_python" ]]; then
-            ci_python=/usr/local/opt/python@3.14/bin/python3.14
+            ci_python=/usr/local/opt/python@3.15/bin/python3.15
           fi
           "$ci_python" -m venv "$RUNNER_TEMP/ultraconvert-static-venv"
           echo "$RUNNER_TEMP/ultraconvert-static-venv/bin" >> "$GITHUB_PATH"
@@ -52,9 +52,9 @@ jobs:
       - name: Prepare disposable native CI interpreter
         run: |
           set -euo pipefail
-          ci_python=/opt/homebrew/bin/python3.14
+          ci_python=/opt/homebrew/bin/python3.15
           if [[ ! -x "$ci_python" ]]; then
-            ci_python=/usr/local/opt/python@3.14/bin/python3.14
+            ci_python=/usr/local/opt/python@3.15/bin/python3.15
           fi
           # Use existing local engines; never install packages on the owner Mac.
           "$ci_python" -m venv --system-site-packages "$RUNNER_TEMP/ultraconvert-venv"
