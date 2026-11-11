@@ -284,6 +284,53 @@ class RealCompressionTests(unittest.TestCase):
         for source in self.originals:
             self.assertEqual(self.infos[source]["size_bytes"], source.stat().st_size)
 
+    def test_misnamed_transport_stream_estimates_and_converts_to_mp4(self):
+        mislabeled = self.work / "transport.mkv"
+        convert.run(
+            ["ffmpeg", "-v", "error", "-i", self.video, "-c", "copy", "-f", "mpegts", mislabeled]
+        )
+        digest = hashlib.sha256(mislabeled.read_bytes()).hexdigest()
+        info = convert.inspect(mislabeled)
+        self.assertEqual(info["format"], "ts")
+        low = convert.estimate_video(info, "mp4", 10)
+        high = convert.estimate_video(info, "mp4", 90)
+        self.assertGreater(high["estimated_bytes"], low["estimated_bytes"])
+        self.assertAlmostEqual(high["sample_seconds"], info["duration"], delta=0.2)
+        batch = self.work / "transport-output"
+        batch.mkdir()
+        result = convert.convert_one(info, "mp4", batch, 0, quality=90)
+        self.assertTrue(result["success"], result["error"])
+        output = next(Path(result["output"]).glob("*.mp4"))
+        self.assertAlmostEqual(
+            high["estimated_bytes"], output.stat().st_size, delta=output.stat().st_size * 0.15
+        )
+        self.assertEqual(hashlib.sha256(mislabeled.read_bytes()).hexdigest(), digest)
+
+    def test_live_ffmpeg_progress_reports_encoded_time_before_exit(self):
+        observed = []
+        convert.run(
+            [
+                "ffmpeg",
+                "-v",
+                "error",
+                "-progress",
+                "pipe:1",
+                "-stats_period",
+                "0.2",
+                "-re",
+                "-f",
+                "lavfi",
+                "-i",
+                "testsrc2=size=64x64:rate=25:duration=1.2",
+                "-f",
+                "null",
+                "-",
+            ],
+            timeout=10,
+            progress=observed.append,
+        )
+        self.assertTrue(any(0 < seconds < 1.2 for seconds in observed), observed)
+
     def test_real_image_quality_changes_output_without_resizing(self):
         for target in ("jpg", "jpeg", "webp", "avif", "heic"):
             with self.subTest(target=target):

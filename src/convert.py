@@ -68,6 +68,7 @@ AUDIO = {
 CANCEL = threading.Event()
 PROCESSES = set()
 LOCK = threading.Lock()
+EVENT_LOCK = threading.Lock()
 ENGINE_ENV = {
     "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin",
     "PYTHONDONTWRITEBYTECODE": "1",
@@ -94,7 +95,7 @@ for key in (
     os.environ[key] = ENGINE_ENV[key]
 
 
-def run(args, cwd=None, log=None, timeout=21600):
+def run(args, cwd=None, log=None, timeout=21600, progress=None):
     if CANCEL.is_set():
         raise InterruptedError("Conversion cancelled")
     args = [tool(args[0]), *map(str, args[1:])]
@@ -110,6 +111,8 @@ def run(args, cwd=None, log=None, timeout=21600):
         started = time.monotonic()
         stopping = None
         timed_out = False
+        offset = 0
+        pending = b""
         try:
             while process.poll() is None:
                 now = time.monotonic()
@@ -126,13 +129,26 @@ def run(args, cwd=None, log=None, timeout=21600):
                             os.killpg(process.pid, signal.SIGKILL)
                         except ProcessLookupError:
                             pass
-                if out.tell() > 32 * 1024 * 1024 or err.tell() > 8 * 1024 * 1024:
+                if (
+                    os.fstat(out.fileno()).st_size > 32 * 1024 * 1024
+                    or os.fstat(err.fileno()).st_size > 8 * 1024 * 1024
+                ):
                     try:
                         os.killpg(process.pid, signal.SIGKILL)
                     except ProcessLookupError:
                         pass
                     process.wait()
                     raise ValueError("Engine output exceeded the safety limit")
+                if progress is not None and stopping is None:
+                    chunk = os.pread(out.fileno(), 4096, offset)
+                    offset += len(chunk)
+                    *lines, pending = (pending + chunk).split(b"\n")
+                    if len(pending) > 1024:
+                        pending = b""
+                    for line in lines:
+                        key, _, value = line.partition(b"=")
+                        if key == b"out_time_us" and len(value) <= 16 and value.isdigit():
+                            progress(int(value) / 1_000_000)
                 try:
                     process.wait(timeout=0.1)
                 except subprocess.TimeoutExpired:
@@ -442,7 +458,7 @@ def image_convert(source, fmt, dest, target, stage, execute, quality=None):
     return notes
 
 
-def media_convert(source, dest, target, stage, execute, quality=None):
+def media_convert(source, dest, target, stage, execute, quality=None, sample=None):
     base = [
         "ffmpeg",
         "-nostdin",
@@ -458,6 +474,7 @@ def media_convert(source, dest, target, stage, execute, quality=None):
         "2",
         "-protocol_whitelist",
         "file,pipe",
+        *(["-ss", f"{sample[0]:.6f}"] if sample else []),
         "-i",
         str(source),
     ]
@@ -564,12 +581,52 @@ def media_convert(source, dest, target, stage, execute, quality=None):
             elif target == "flv":
                 args += ["-f", "flv"]
         args = compression.override_options(args, compression.video_options(target, quality))
-        execute(base + args + [str(dest)])
+        execute(base + args + (["-t", f"{sample[1]:.6f}"] if sample else []) + [str(dest)])
     data = probe(dest)
     required = "audio" if target in FORMATS["audio"] else "video"
     if not any(s["codec_type"] == required for s in data.get("streams", [])):
         raise ValueError(f"Output has no {required} stream")
     return notes
+
+
+def estimate_video(info, target, quality):
+    if info["error"] or info["category"] != "video" or target not in compression.VIDEO_TARGETS:
+        raise ValueError("Choose one supported video and a lossy video format.")
+    duration = info.get("duration")
+    if not duration:
+        raise ValueError("The video duration could not be read.")
+    source = Path(info["path"])
+    # Encode at most twelve seconds, with the same output profile used by
+    # Convert. Short clips are sampled once; longer clips sample three scenes.
+    samples = (
+        [(0, duration)]
+        if duration <= 12
+        else [((duration - 4) * fraction, 4) for fraction in (0.15, 0.5, 0.85)]
+    )
+    total_bytes = 0
+    total_seconds = 0
+    with tempfile.TemporaryDirectory(prefix="ultraconvert-size-") as temporary:
+        stage = Path(temporary)
+        for index, sample in enumerate(samples):
+            dest = stage / f"sample-{index}.{target}"
+            media_convert(
+                source, dest, target, stage, lambda args: run(args, timeout=30), quality, sample
+            )
+            seconds = compression.media_metadata(probe(dest)).get("duration", 0)
+            if not 0 < seconds <= sample[1] + 1 or seconds < sample[1] * 0.8:
+                raise ValueError("A sample could not be read near its requested position.")
+            total_seconds += seconds
+            total_bytes += dest.stat().st_size
+            dest.unlink()
+    metadata = source.stat()
+    if [metadata.st_dev, metadata.st_ino, metadata.st_size, metadata.st_mtime_ns] != info[
+        "fingerprint"
+    ]:
+        raise ValueError("The source changed during estimation. Add it again and retry.")
+    return {
+        "estimated_bytes": round(total_bytes * duration / total_seconds),
+        "sample_seconds": total_seconds,
+    }
 
 
 def document_convert(source, fmt, dest, target, stage, execute):
@@ -777,7 +834,15 @@ def publish_here(stage, parent, label, target):
 
 
 def convert_one(
-    info, target, batch, index, source_crs=None, skip_same=False, here=False, quality=None
+    info,
+    target,
+    batch,
+    index,
+    source_crs=None,
+    skip_same=False,
+    here=False,
+    quality=None,
+    progress=False,
 ):
     source = Path(info["path"])
     label = guards.output_name(source.stem)
@@ -825,6 +890,23 @@ def convert_one(
             dest = stage / f"{label}.{extension}"
 
             def execute(args):
+                if progress and args[0] == "ffmpeg" and info.get("duration"):
+                    return run(
+                        [
+                            args[0],
+                            "-progress",
+                            "pipe:1",
+                            "-nostats",
+                            "-stats_period",
+                            "1",
+                            *args[1:],
+                        ],
+                        cwd=stage,
+                        log=result["commands"],
+                        progress=lambda seconds: emit(
+                            {"event": "encoding", "fraction": min(0.99, seconds / info["duration"])}
+                        ),
+                    )
                 return run(args, cwd=stage, log=result["commands"])
 
             cat = info["category"]
@@ -882,7 +964,8 @@ def cancel(signum=None, frame=None):
 
 
 def emit(data):
-    print(json.dumps(data, ensure_ascii=False), flush=True)
+    with EVENT_LOCK:
+        print(json.dumps(data, ensure_ascii=False), flush=True)
 
 
 def main():
@@ -892,6 +975,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("files", nargs="*")
     parser.add_argument("--inspect", action="store_true")
+    parser.add_argument("--estimate-video-size", action="store_true")
+    parser.add_argument(
+        "--progress", action="store_true", help="Report encoding progress for a single file"
+    )
     parser.add_argument("--to", choices=[fmt for group in FORMATS.values() for fmt in group])
     parser.add_argument("--plan", type=Path, help="JSON mapping category names to output formats")
     parser.add_argument("--output", type=Path)
@@ -935,6 +1022,8 @@ def main():
         parser.error("Select at most 1000 files per batch")
     if args.here and args.output:
         parser.error("Choose either --here or --output")
+    if args.estimate_video_size and (len(args.files) != 1 or not args.to or args.quality is None):
+        parser.error("Size estimation needs one video, --to FORMAT and --quality")
     files = list(dict.fromkeys(str(Path(p).expanduser().resolve()) for p in args.files))
     # Finder selections often include all Shapefile components: don't convert those separately.
     shp_stems = {
@@ -956,6 +1045,13 @@ def main():
     if args.inspect:
         emit({"files": infos, "formats": FORMATS})
         return 130 if CANCEL.is_set() else 0
+    if args.estimate_video_size:
+        try:
+            emit(estimate_video(infos[0], args.to, args.quality))
+            return 0
+        except (ValueError, RuntimeError, OSError, TimeoutError, InterruptedError) as exc:
+            emit({"error": str(exc)})
+            return 130 if CANCEL.is_set() else 1
     if not args.to and not args.plan:
         parser.error("Use --to FORMAT or --plan PLAN.json")
     if args.plan:
@@ -1038,6 +1134,7 @@ def main():
                 args.skip_same,
                 args.here,
                 getattr(args, "quality_" + info["category"], None) or args.quality,
+                args.progress and len(infos) == 1,
             ): i
             for i, info in enumerate(infos)
         }

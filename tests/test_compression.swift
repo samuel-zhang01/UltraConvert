@@ -53,6 +53,20 @@ import AppKit
             item.custom.state = .on; item.changed(item.custom)
             expect(item.estimate.stringValue.contains("no reliable estimate"))
         }
+        let video = CompressionControl(category: "video", target: "mp4", infos: [["duration": 60.0]], preferences: isolated)
+        var estimateRequests = 0
+        video.estimateAction = { _ in estimateRequests += 1 }
+        video.custom.state = .on; video.refresh()
+        expect(!video.sampleButton.isHidden && video.estimate.stringValue.contains("Estimate Size"))
+        video.requestEstimate()
+        expect(estimateRequests == 1)
+        video.sampleResult = ("mp4", 75, "Estimated MP4 size")
+        video.refresh()
+        expect(video.estimate.stringValue == "Estimated MP4 size")
+        video.slider.doubleValue = 76; video.refresh()
+        expect(video.estimate.stringValue != "Estimated MP4 size")
+        video.infos.append(["duration": 60.0]); video.refresh()
+        expect(video.sampleButton.isHidden)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 280), styleMask: [.titled], backing: .buffered, defer: false)
         let content = NSView(); window.contentView = content; pin(control, in: content, inset: 16)
         window.contentView!.layoutSubtreeIfNeeded()

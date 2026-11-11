@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.1 — 2026-11-11
+
+- Show live encoding progress for a single audio or video file when its duration is known. The progress bar animates while waiting for a measurable update.
+- Estimate the size of one video at the selected custom quality by encoding short temporary samples. Changing the slider requires a fresh estimate.
+- Regression coverage for MPEG transport streams named as MKV, sampled estimates, and live progress.
+
 ## 1.9.0 — 2026-10-15
 
 - Optional **Start minimized at login**, with a recoverable menu bar icon even without rules. File opens, Finder presets and update restoration return to the foreground; the option defaults off.

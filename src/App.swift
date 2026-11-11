@@ -399,6 +399,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
 
     func setBusy(_ value: Bool) {
         busy = value
+        if !value { progress.stopAnimation(nil); progress.isIndeterminate = false }
         choose.isEnabled = !value
         destination.isEnabled = !value
         start.isEnabled = !value && !selectors.isEmpty && rejectedPreset == nil
@@ -554,6 +555,8 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             row.addArrangedSubview(advice); advice.widthAnchor.constraint(equalTo: row.widthAnchor).isActive = true; formatExplanations[key] = advice
             if ["audio", "video", "image"].contains(key) {
                 let quality = CompressionControl(category: key, target: popup.selectedItem?.representedObject as? String ?? "", infos: items, preferences: preferences)
+                quality.estimateAction = { [weak self] in self?.estimateVideoSize($0) }
+                quality.refresh()
                 row.addArrangedSubview(quality); quality.widthAnchor.constraint(equalTo: row.widthAnchor).isActive = true
                 qualityControls[key] = quality
             }
@@ -598,9 +601,10 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
         phase = .converting
         fileTable.reloadData()
         progress.doubleValue = 0
+        progress.isIndeterminate = true; progress.startAnimation(nil)
         status.stringValue = "Converting…"
         summary.stringValue = "You can cancel. Completed outputs will be kept."
-        var args = ["--plan", planURL.path, "--jobs", String(jobs.indexOfSelectedItem + 1)]
+        var args = ["--plan", planURL.path, "--jobs", String(jobs.indexOfSelectedItem + 1), "--progress"]
         args += here ? ["--here"] : ["--output", (outputURL ?? defaultFolder()).path]
         if skipSame.state == .on { args += ["--skip-same"] }
         args += qualityArguments
@@ -658,7 +662,14 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             let data = eventBuffer[..<newline]
             eventBuffer.removeSubrange(...newline)
             guard let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+            if event["event"] as? String == "encoding", phase == .converting, cancel.isEnabled,
+               let fraction = event["fraction"] as? Double, fraction.isFinite, (0...0.99).contains(fraction) {
+                progress.stopAnimation(nil); progress.isIndeterminate = false
+                progress.doubleValue = max(progress.doubleValue, fraction)
+                status.stringValue = "Encoding video/audio… \(Int(progress.doubleValue * 100))%"
+            }
             if event["event"] as? String == "file", let completed = event["completed"] as? Double, let total = event["total"] as? Double {
+                progress.stopAnimation(nil); progress.isIndeterminate = false
                 progress.doubleValue = completed / max(total, 1)
                 let result = event["result"] as? [String: Any] ?? [:]
                 updateOutcome(result)

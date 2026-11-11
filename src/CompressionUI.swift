@@ -30,10 +30,13 @@ final class CompressionControl: NSView {
     let slider = NSSlider(value: 75, minValue: 1, maxValue: 100, target: nil, action: nil)
     let valueLabel = uiLabel("", size: 13, weight: .medium)
     let estimate = uiLabel("", size: 13, color: .secondaryLabelColor)
+    let sampleButton = NSButton(title: "Estimate Size…", target: nil, action: nil)
     let adjustment = NSStackView()
     var target: String
     var infos: [[String: Any]]
     var pendingSave: DispatchWorkItem?
+    var estimateAction: ((CompressionControl) -> Void)?
+    var sampleResult: (target: String, quality: Int, text: String)?
     var quality: Int? { !custom.isHidden && custom.state == .on ? Int(slider.doubleValue.rounded()) : nil }
 
     init(category: String, target: String, infos: [[String: Any]], preferences: UserDefaults) {
@@ -53,13 +56,16 @@ final class CompressionControl: NSView {
         adjustment.addArrangedSubview(slider); adjustment.addArrangedSubview(ends)
         slider.widthAnchor.constraint(equalTo: adjustment.widthAnchor).isActive = true
         ends.widthAnchor.constraint(equalTo: adjustment.widthAnchor).isActive = true
-        let stack = NSStackView(views: [header, adjustment, estimate]); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 6
+        sampleButton.target = self; sampleButton.action = #selector(requestEstimate)
+        sampleButton.toolTip = "Encode short temporary samples to estimate the size at this quality."
+        let stack = NSStackView(views: [header, adjustment, estimate, sampleButton]); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 6
         pin(stack, in: self, inset: 0)
         for view in [header, adjustment, estimate] { view.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true }
         estimate.isSelectable = true
         refresh()
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+    @objc func requestEstimate() { estimateAction?(self) }
     func persist() {
         pendingSave?.cancel(); pendingSave = nil
         var saved = preferences.dictionary(forKey: "compressionQuality") as? [String: Int] ?? [:]
@@ -115,6 +121,9 @@ final class CompressionControl: NSView {
             valueLabel.stringValue = "\(Int(slider.doubleValue.rounded())) / 100"
         }
         estimate.isHidden = !supported || custom.state == .off
+        let videoEstimate = category == "video" && CompressionQuality.video.contains(target) &&
+            infos.count == 1 && (infos.first?["duration"] as? Double ?? 0) > 0 && estimateAction != nil
+        sampleButton.isHidden = estimate.isHidden || !videoEstimate
         guard supported, let quality else { estimate.stringValue = ""; return }
         if let bitrate = CompressionQuality.bitrate(target, quality: quality) {
             let durations = infos.compactMap { $0["duration"] as? Double }.filter { $0.isFinite && $0 > 0 }
@@ -123,14 +132,48 @@ final class CompressionControl: NSView {
                 let amount = ByteCountFormatter.string(fromByteCount: Int64(min(bytes, Double(Int64.max / 2))), countStyle: .file)
                 estimate.stringValue = "\(bitrate) kb/s · estimated audio size ≈ \(amount)\nBased on duration and bitrate; actual size varies. Custom audio uses 48 kHz."
             } else { estimate.stringValue = "\(bitrate) kb/s target. Size estimate needs a known duration; actual size varies. Custom audio uses 48 kHz." }
+        } else if videoEstimate {
+            if let sampleResult, sampleResult.target == target, sampleResult.quality == quality {
+                estimate.stringValue = sampleResult.text
+            } else {
+                estimate.stringValue = "\(target.uppercased()) quality \(quality) · Estimate Size samples the video at this setting. Changing quality needs a new estimate."
+            }
         } else {
             estimate.stringValue = "\(target.uppercased()) quality \(quality). Even 100 may be lossy. Size depends on \(CompressionQuality.images.contains(target) ? "image detail" : "picture detail and motion"); no reliable estimate before encoding.\(CompressionQuality.video.contains(target) ? " Audio, if present, uses 48 kHz." : "")"
         }
     }
-    func setEnabled(_ enabled: Bool) { custom.isEnabled = enabled; slider.isEnabled = enabled }
+    func setEnabled(_ enabled: Bool) { custom.isEnabled = enabled; slider.isEnabled = enabled; sampleButton.isEnabled = enabled }
 }
 
 extension ConverterApp {
+    func estimateVideoSize(_ control: CompressionControl) {
+        guard !busy, let quality = control.quality, control.infos.count == 1,
+              let path = control.infos.first?["path"] as? String else { return }
+        let target = control.target
+        let previousStatus = status.stringValue
+        setBusy(true)
+        progress.isIndeterminate = true; progress.startAnimation(nil)
+        status.stringValue = "Estimating size from short video samples…"
+        launch(["--estimate-video-size", "--to", target, "--quality", String(quality), "--", path]) { code, output, _ in
+            let result = (try? JSONSerialization.jsonObject(with: Data(output.utf8))) as? [String: Any]
+            let text: String
+            if code == 0, let bytes = result?["estimated_bytes"] as? Double, bytes.isFinite, bytes > 0,
+               let seconds = result?["sample_seconds"] as? Double, seconds.isFinite, seconds > 0 {
+                let amount = ByteCountFormatter.string(fromByteCount: Int64(min(bytes, Double(Int64.max / 2))), countStyle: .file)
+                text = "Estimated \(target.uppercased()) size ≈ \(amount) at quality \(quality)\nBased on \(seconds.formatted(.number.precision(.fractionLength(0...1)))) seconds of sample encoding. Actual size may vary by scene."
+            } else if code == 130 {
+                text = "Size estimate cancelled. You can try again."
+            } else {
+                text = "Size estimate unavailable. " + (result?["error"] as? String ?? "The video could not be sampled.")
+            }
+            control.sampleResult = (target, quality, String(text.prefix(360)))
+            control.refresh()
+            self.status.stringValue = previousStatus
+            self.setBusy(false)
+            self.loadPendingFiles()
+        }
+    }
+
     func flushQualityPreferences() { for control in qualityControls.values { control.persist() } }
     var qualityArguments: [String] {
         flushQualityPreferences()
