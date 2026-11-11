@@ -1,5 +1,9 @@
 # Local CI
 
+The maintainer disabled the project CI and release Actions workflows on
+2026-11-11. Run tests and release tools directly on this Mac. The retained
+workflow definitions are optional and must be explicitly re-enabled to run.
+
 To test directly on the Mac without dispatching an Actions run, use a
 Python 3.15 virtual environment with the project's requirements and the
 Homebrew GDAL bindings available. Run its Python with `scripts/ci_macos.py`

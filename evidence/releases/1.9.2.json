@@ -1,0 +1,72 @@
+{
+  "version": "1.9.2",
+  "date": "2026-11-11",
+  "release_url": "https://github.com/samuel-zhang01/UltraConvert/releases/tag/v1.9.2",
+  "source_commit": "2d27548ce3d7458728bff5415cc4d032805f6f37",
+  "native_source_fingerprint": "01dd77d1d7567359d2ef9e6e5c3147fdb0b0abacb5a596d153b83e6dab6c4fa6",
+  "test_execution": "Direct local processes on the maintainer Mac; Actions run canceled and project workflows disabled.",
+  "github_hosted_runner_used": false,
+  "direct_native_suite_passed": true,
+  "compression_python_tests": 23,
+  "compression_native_checks": 90,
+  "installer_tests": 21,
+  "homebrew_regression_tests": 36,
+  "runner_policy_tests": 5,
+  "real_media_progress_and_sample_estimates_verified_in_native_ui": true,
+  "app_developer_id_signed_notarized_stapled_and_gatekeeper_accepted": true,
+  "all_seven_public_assets_match_local_sizes_and_sha256": true,
+  "assets": [
+    {
+      "name": "RELEASE-METADATA.json",
+      "bytes": 1023,
+      "sha256": "e323af1b5c57efaf6046a44479d7a152e9d09fde7ca85068807a4ab01110276a"
+    },
+    {
+      "name": "SHA256SUMS.txt",
+      "bytes": 587,
+      "sha256": "c98f37269df7b3f0efe330cc28989e3da512481fcade024b066722eca4889514"
+    },
+    {
+      "name": "UltraConvert-1.9.2-macos-universal.dmg",
+      "bytes": 8277490,
+      "sha256": "d5befd7a56eaf7d678ab506d7f2971da9c7be5c1eb809f115b3192add7d997f0"
+    },
+    {
+      "name": "UltraConvert-1.9.2-macos-universal.zip",
+      "bytes": 7728322,
+      "sha256": "c9152c3767887a01c76657ce4bbf225e2f242c714a4b7388f21104cb39726be3"
+    },
+    {
+      "name": "UltraConvert-1.9.2-source.tar.gz",
+      "bytes": 4738611,
+      "sha256": "33879baac539dba592b273a6fb62d3b3b747f4e8ceda7dd1bb7da1d4b9893fc9"
+    },
+    {
+      "name": "UltraConvert-1.9.2-update-macos-universal.zip",
+      "bytes": 2799194,
+      "sha256": "e235ee84d7feefbdb5f7f75c42ba2dacfd9c9f4b503d6e4a0f7085ab856df042"
+    },
+    {
+      "name": "appcast.xml",
+      "bytes": 1523,
+      "sha256": "a23ba3f2e61ceb36a6f0c4c7804bb30064342da1f55b0a7ca294d59d34348a25"
+    }
+  ],
+  "homebrew_tap_commit": "c6832b23f3ae5f8f91a18f458f78356b58e77110",
+  "homebrew_style_and_online_audits_passed": true,
+  "real_runtime_and_cask_upgrade_from_1_9_0_passed": true,
+  "installed_setup_checks_passed": 10,
+  "python_version": "3.15",
+  "gdal_version": "3.13.3",
+  "original_persistent_preferences_preserved": 15,
+  "saved_rules_and_two_quick_actions_preserved": true,
+  "legacy_manual_runtime_backed_up": true,
+  "duplicate_service_providers_removed_and_finder_menu_verified": true,
+  "production_signed_feed_published_and_verified": true,
+  "limits": [
+    "Sampled video size is approximate and can differ materially when scenes vary.",
+    "Numeric video estimates cover one selected video with a known duration, not a mixed batch.",
+    "Intel compilation is verified; physical Intel hardware is untested.",
+    "The app is notarized and stapled; the signed DMG is not separately notarized."
+  ]
+}
