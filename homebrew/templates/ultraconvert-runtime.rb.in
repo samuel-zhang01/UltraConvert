@@ -13,6 +13,7 @@ class UltraconvertRuntime < Formula
   depends_on "ffmpeg-full"
   depends_on "gdal"
   depends_on "imagemagick"
+  depends_on "libyaml"
   depends_on "mac"
   depends_on macos: :ventura
   depends_on "pandoc"
