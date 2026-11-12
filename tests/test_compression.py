@@ -183,6 +183,80 @@ class CompressionPolicyTests(unittest.TestCase):
         self.assertEqual(convert.AUDIO, audio_before)
 
 
+class EstimateFailureTests(unittest.TestCase):
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix="ultraconvert-estimate-errors-")
+        self.source = Path(self.temporary.name) / "source.mp4"
+        self.source.write_bytes(b"fixture")
+        metadata = self.source.stat()
+        self.info = {
+            "path": str(self.source),
+            "category": "video",
+            "error": None,
+            "duration": 20.0,
+            "fingerprint": [
+                metadata.st_dev,
+                metadata.st_ino,
+                metadata.st_size,
+                metadata.st_mtime_ns,
+            ],
+        }
+        convert.CANCEL.clear()
+
+    def tearDown(self):
+        convert.CANCEL.clear()
+        self.temporary.cleanup()
+
+    def test_invalid_duration_quality_or_changed_source_never_starts_encoding(self):
+        with patch.object(convert, "media_convert") as encode:
+            for duration in (None, 0, -1, True, "20", float("nan"), float("inf"), 1e13):
+                with self.subTest(duration=duration), self.assertRaises(ValueError):
+                    convert.estimate_video({**self.info, "duration": duration}, "mp4", 50)
+            for quality in (None, 0, 101, True, "50"):
+                with self.subTest(quality=quality), self.assertRaises(ValueError):
+                    convert.estimate_video(self.info, "mp4", quality)
+            self.source.write_bytes(b"changed source")
+            with self.assertRaisesRegex(ValueError, "source changed"):
+                convert.estimate_video(self.info, "mp4", 50)
+            encode.assert_not_called()
+
+    def test_failure_cancellation_and_changed_source_remove_all_samples(self):
+        for scenario in ("timeout", "invalid-duration", "cancel", "changed-source"):
+            with self.subTest(scenario=scenario):
+                stages = []
+
+                def sample(
+                    source,
+                    dest,
+                    target,
+                    stage,
+                    execute,
+                    quality,
+                    interval,
+                    stages=stages,
+                    scenario=scenario,
+                ):
+                    stages.append(stage)
+                    dest.write_bytes(b"temporary sample")
+                    if scenario == "timeout":
+                        raise TimeoutError("sample timed out")
+                    if scenario == "cancel":
+                        convert.CANCEL.set()
+                    if scenario == "changed-source":
+                        source.write_bytes(b"source was replaced")
+
+                duration = 0.1 if scenario == "invalid-duration" else 4.0
+                with (
+                    patch.object(convert, "media_convert", side_effect=sample),
+                    patch.object(convert, "probe", return_value={"format": {"duration": duration}}),
+                    self.assertRaises((ValueError, TimeoutError, InterruptedError)),
+                ):
+                    convert.estimate_video(self.info, "mp4", 50)
+                self.assertTrue(stages)
+                self.assertTrue(all(not stage.exists() for stage in stages))
+                convert.CANCEL.clear()
+
+
 class RealCompressionTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -330,6 +404,47 @@ class RealCompressionTests(unittest.TestCase):
             progress=observed.append,
         )
         self.assertTrue(any(0 < seconds < 1.2 for seconds in observed), observed)
+
+    def test_long_video_cli_samples_three_scenes_and_keeps_json_without_progress(self):
+        source = self.work / "long-silent.mp4"
+        convert.run(
+            [
+                "ffmpeg",
+                "-v",
+                "error",
+                "-stream_loop",
+                "7",
+                "-i",
+                self.video,
+                "-t",
+                "14",
+                "-an",
+                "-c:v",
+                "copy",
+                source,
+            ]
+        )
+        original = hashlib.sha256(source.read_bytes()).hexdigest()
+        command = [
+            sys.executable,
+            ROOT / "src/convert.py",
+            "--estimate-video-size",
+            "--to",
+            "mp4",
+            "--quality",
+            "50",
+        ]
+        output = subprocess.check_output([*command, "--progress", "--", source], text=True)
+        records = [json.loads(line) for line in output.splitlines()]
+        self.assertEqual(
+            records[:-1],
+            [{"event": "estimating", "sample": index, "total": 3} for index in (1, 2, 3)],
+        )
+        self.assertAlmostEqual(records[-1]["sample_seconds"], 12, delta=0.3)
+        self.assertGreater(records[-1]["estimated_bytes"], 0)
+        plain = json.loads(subprocess.check_output([*command, "--", source], text=True))
+        self.assertEqual(plain, records[-1])
+        self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(), original)
 
     def test_real_image_quality_changes_output_without_resizing(self):
         for target in ("jpg", "jpeg", "webp", "avif", "heic"):

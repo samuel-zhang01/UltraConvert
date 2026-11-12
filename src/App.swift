@@ -57,6 +57,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
     var selectors: [String: NSPopUpButton] = [:]
     var formatExplanations: [String: NSTextField] = [:]
     var qualityControls: [String: CompressionControl] = [:]
+    var isEstimatingSize = false
     let formatReviewHint = uiLabel("Formats are detected from file contents where possible.", size: 13, color: .secondaryLabelColor)
     var files: [String] = []
     var infos: [[String: Any]] = []
@@ -556,6 +557,7 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             if ["audio", "video", "image"].contains(key) {
                 let quality = CompressionControl(category: key, target: popup.selectedItem?.representedObject as? String ?? "", infos: items, preferences: preferences)
                 quality.estimateAction = { [weak self] in self?.estimateVideoSize($0) }
+                quality.skipsMatchingFiles = skipSame.state == .on
                 quality.refresh()
                 row.addArrangedSubview(quality); quality.widthAnchor.constraint(equalTo: row.widthAnchor).isActive = true
                 qualityControls[key] = quality
@@ -662,6 +664,11 @@ final class ConverterApp: NSObject, NSApplicationDelegate, NSWindowDelegate, NSM
             let data = eventBuffer[..<newline]
             eventBuffer.removeSubrange(...newline)
             guard let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+            if event["event"] as? String == "estimating", isEstimatingSize, cancel.isEnabled,
+               let sample = event["sample"] as? Int, let total = event["total"] as? Int,
+               (1...3).contains(total), (1...total).contains(sample) {
+                status.stringValue = "Estimating size · sampling scene \(sample) of \(total)…"
+            }
             if event["event"] as? String == "encoding", phase == .converting, cancel.isEnabled,
                let fraction = event["fraction"] as? Double, fraction.isFinite, (0...0.99).contains(fraction) {
                 progress.stopAnimation(nil); progress.isIndeterminate = false

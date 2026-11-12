@@ -83,6 +83,8 @@ Audio estimates use the total known duration and target bitrate. They are estima
 
 **Skip files already in target format** skips re-encoding even when custom quality is enabled. Turn it off to recompress an existing MP3/JPEG/etc. Manual conversions continue to keep originals. Folder rules retain their existing encoder defaults; these sliders apply to manual batches.
 
+In the next release (currently on `main`), the quality panel explains which files will be skipped and excludes them from estimates. Estimated sizes include the original size and an approximate smaller/larger comparison. **Estimate Again…** refreshes a sampled estimate after changing its settings or selection. Sampling reports its current scene; **Cancel** stops it and removes temporary samples. Source files and existing outputs stay untouched. The percentage comparison is an estimate, not a size guarantee, and short audio clips can be larger than their bitrate estimate because of file overhead.
+
 ## Folder rules
 
 Use the stage buttons above the pieces to jump to Inbox, Match, Actions, Output or Original. The footer stays available while the canvas scrolls.

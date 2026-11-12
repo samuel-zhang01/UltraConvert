@@ -84,6 +84,8 @@ Manual conversion keeps originals and existing outputs. Name collisions get numb
 
 **Quality and size:** for a supported lossy output, turn on **Custom quality** below its format picker. Drag toward **Smaller** or **Higher quality**; each image/audio/video group has its own setting. Leave it off to use the established encoder defaults. Audio shows a size estimate from duration and target bitrate; actual size varies. For one video, **Estimate Size…** encodes short temporary samples at the chosen quality and shows a rough size. Re-estimate after moving the slider. Image size depends on content and has no numeric estimate. A setting of 100 can still be lossy and cannot restore missing source detail. Custom media profiles use 48 kHz audio. Lossless outputs keep their standard profile. **Skip files already in target format** takes priority and skips re-encoding, including custom quality.
 
+**Coming in the next release:** estimates exclude skipped files, compare the expected size with the original, and show when an estimate needs refreshing. Sampling displays its current scene and keeps the result and **Estimate Again…** button visible. These changes are on `main`; the current download remains 1.9.2.
+
 **Save-location reminder:** the bottom bar always shows where the next batch will save. Click **Save location…** to jump to its controls, including in a compact window.
 
 **Saved destination:** choose a folder, then click **Set as Default**. Each destination batch gets a fresh folder there. The initial default is `~/Downloads/UltraConvert`.

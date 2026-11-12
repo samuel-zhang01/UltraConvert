@@ -7,6 +7,7 @@ import concurrent.futures
 import datetime
 import errno
 import json
+import math
 import os
 import shutil
 import signal
@@ -589,13 +590,28 @@ def media_convert(source, dest, target, stage, execute, quality=None, sample=Non
     return notes
 
 
-def estimate_video(info, target, quality):
+def estimate_video(info, target, quality, progress=None):
     if info["error"] or info["category"] != "video" or target not in compression.VIDEO_TARGETS:
         raise ValueError("Choose one supported video and a lossy video format.")
+    if compression.validate_quality(quality) is None:
+        raise ValueError("Choose a custom quality before estimating size.")
     duration = info.get("duration")
-    if not duration:
+    if (
+        type(duration) not in (int, float)
+        or not math.isfinite(duration)
+        or not 0 < duration <= 1e12
+    ):
         raise ValueError("The video duration could not be read.")
     source = Path(info["path"])
+
+    def check_source():
+        metadata = source.stat()
+        if [metadata.st_dev, metadata.st_ino, metadata.st_size, metadata.st_mtime_ns] != info.get(
+            "fingerprint"
+        ):
+            raise ValueError("The source changed. Add it again and retry the estimate.")
+
+    check_source()
     # Encode at most twelve seconds, with the same output profile used by
     # Convert. Short clips are sampled once; longer clips sample three scenes.
     samples = (
@@ -608,6 +624,10 @@ def estimate_video(info, target, quality):
     with tempfile.TemporaryDirectory(prefix="ultraconvert-size-") as temporary:
         stage = Path(temporary)
         for index, sample in enumerate(samples):
+            if CANCEL.is_set():
+                raise InterruptedError("Size estimate cancelled")
+            if progress:
+                progress(index, len(samples))
             dest = stage / f"sample-{index}.{target}"
             media_convert(
                 source, dest, target, stage, lambda args: run(args, timeout=30), quality, sample
@@ -618,11 +638,9 @@ def estimate_video(info, target, quality):
             total_seconds += seconds
             total_bytes += dest.stat().st_size
             dest.unlink()
-    metadata = source.stat()
-    if [metadata.st_dev, metadata.st_ino, metadata.st_size, metadata.st_mtime_ns] != info[
-        "fingerprint"
-    ]:
-        raise ValueError("The source changed during estimation. Add it again and retry.")
+    if CANCEL.is_set():
+        raise InterruptedError("Size estimate cancelled")
+    check_source()
     return {
         "estimated_bytes": round(total_bytes * duration / total_seconds),
         "sample_seconds": total_seconds,
@@ -1047,7 +1065,20 @@ def main():
         return 130 if CANCEL.is_set() else 0
     if args.estimate_video_size:
         try:
-            emit(estimate_video(infos[0], args.to, args.quality))
+            emit(
+                estimate_video(
+                    infos[0],
+                    args.to,
+                    args.quality,
+                    progress=(
+                        lambda index, total: emit(
+                            {"event": "estimating", "sample": index + 1, "total": total}
+                        )
+                    )
+                    if args.progress
+                    else None,
+                )
+            )
             return 0
         except (ValueError, RuntimeError, OSError, TimeoutError, InterruptedError) as exc:
             emit({"error": str(exc)})

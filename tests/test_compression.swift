@@ -7,7 +7,13 @@ import AppKit
         let isolated = UserDefaults(suiteName: domain)!
         defer { isolated.removePersistentDomain(forName: domain) }
         var count = 0
-        func expect(_ value: @autoclosure () -> Bool) { precondition(value()); count += 1 }
+        func expect(_ value: @autoclosure () -> Bool, line: UInt = #line) {
+            guard value() else {
+                FileHandle.standardError.write(Data("Compression check failed at line \(line)\n".utf8))
+                exit(1)
+            }
+            count += 1
+        }
         expect(CompressionQuality.bitrate("mp3", quality: 1) == 64)
         expect(CompressionQuality.bitrate("mp3", quality: 100) == 320)
         expect(CompressionQuality.bitrate("opus", quality: 50) == 96)
@@ -20,7 +26,7 @@ import AppKit
         expect(control.quality == nil && control.adjustment.isHidden)
         control.custom.state = .on; control.changed(control.custom)
         control.slider.doubleValue = 100; control.changed(control.slider)
-        expect(control.quality == 100 && control.estimate.stringValue.contains("estimated audio size"))
+        expect(control.quality == 100 && control.estimate.stringValue.contains("Estimated audio size"))
         expect(control.estimate.stringValue.contains("actual size varies"))
         control.infos = [[:]]; control.refresh()
         expect(control.estimate.stringValue.contains("known duration") && control.estimate.stringValue.contains("48 kHz"))
@@ -60,19 +66,82 @@ import AppKit
         expect(!video.sampleButton.isHidden && video.estimate.stringValue.contains("Estimate Size"))
         video.requestEstimate()
         expect(estimateRequests == 1)
-        video.sampleResult = ("mp4", 75, "Estimated MP4 size")
+        video.sampleResult = (video.estimateKey!, "Estimated MP4 size")
         video.refresh()
         expect(video.estimate.stringValue == "Estimated MP4 size")
         video.slider.doubleValue = 76; video.refresh()
         expect(video.estimate.stringValue != "Estimated MP4 size")
         video.infos.append(["duration": 60.0]); video.refresh()
         expect(video.sampleButton.isHidden)
+        video.infos = [["duration": 60.0, "path": "/changed.mp4"]]; video.refresh()
+        expect(video.estimate.stringValue.contains("changed") && video.sampleButton.title == "Estimate Again…")
+        for duration in [Double.nan, Double.infinity, 0, -1] {
+            video.infos = [["duration": duration]]; video.refresh(); video.requestEstimate()
+            expect(video.sampleButton.isHidden && !video.canSample && estimateRequests == 1)
+        }
+        expect(CompressionQuality.sameFormat("jpeg", "jpg") && CompressionQuality.sameFormat("mpeg", "mpg"))
+        expect(!CompressionQuality.sameFormat("m4a", "alac"))
+        let comparisonInfos: [[String: Any]] = [["size_bytes": 1_000_000]]
+        expect(CompressionQuality.sourceComparison(bytes: 500_000, infos: comparisonInfos).contains("50% smaller"))
+        expect(CompressionQuality.sourceComparison(bytes: 2_000_000, infos: comparisonInfos).contains("100% larger"))
+        expect(CompressionQuality.sourceComparison(bytes: 1_000_001, infos: comparisonInfos).contains("same size"))
+        expect(CompressionQuality.sourceComparison(bytes: .nan, infos: comparisonInfos).isEmpty)
+        expect(CompressionQuality.sourceComparison(bytes: 5, infos: [[:]]).isEmpty)
+        let mixedAudio = CompressionControl(category: "audio", target: "mp3", infos: [
+            ["format": "mp3", "duration": 600.0, "size_bytes": 10_000_000],
+            ["format": "wav", "duration": 60.0, "size_bytes": 5_000_000]
+        ], preferences: isolated)
+        mixedAudio.custom.state = .on; mixedAudio.slider.doubleValue = 100
+        app.qualityControls["audio"] = mixedAudio
+        app.skipSame.state = .on; app.skipOptionChanged()
+        expect(mixedAudio.conversionInfos.count == 1 && !mixedAudio.skipNotice.isHidden)
+        expect(mixedAudio.estimate.stringValue.contains("2.4 MB") && !mixedAudio.estimate.stringValue.contains("2 files"))
+        mixedAudio.infos.removeLast(); mixedAudio.refresh()
+        expect(mixedAudio.estimate.stringValue.contains("No output") && mixedAudio.sampleButton.isHidden)
+        app.skipSame.state = .off; app.skipOptionChanged()
+        expect(mixedAudio.skipNotice.isHidden && mixedAudio.conversionInfos.count == 1)
+        app.isEstimatingSize = true; app.setBusy(true)
+        app.handleEvents(Data("{\"event\":\"estimating\",\"sample\":2,\"total\":3}\n".utf8))
+        expect(app.status.stringValue.contains("scene 2 of 3"))
+        app.cancel.isEnabled = false; app.status.stringValue = "Cancelling…"
+        app.handleEvents(Data("{\"event\":\"estimating\",\"sample\":3,\"total\":3}\n".utf8))
+        expect(app.status.stringValue == "Cancelling…")
+        app.isEstimatingSize = false; app.setBusy(false)
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 300, height: 280), styleMask: [.titled], backing: .buffered, defer: false)
         let content = NSView(); window.contentView = content; pin(control, in: content, inset: 16)
         window.contentView!.layoutSubtreeIfNeeded()
         expect(control.slider.frame.width > 100)
         expect(control.slider.accessibilityLabel()?.contains("quality") == true)
         control.setEnabled(false); expect(!control.slider.isEnabled && !control.custom.isEnabled)
+
+        let preview = ConverterApp(preferences: isolated)
+        preview.buildInterface()
+        preview.infos = [["path": "/nonexistent/preview.mkv", "format": "mkv", "category": "video", "error": NSNull(), "targets": ["mp4"], "duration": 60.0]]
+        preview.buildSelectors()
+        let previewQuality = preview.qualityControls["video"]!
+        previewQuality.custom.state = .on; previewQuality.refresh()
+        previewQuality.sampleResult = (previewQuality.estimateKey!, "Estimated MP4 size ≈ 12 MB\nSource: 10 MB · about 20% larger.\nBased on 12 seconds of sample encoding. Actual size may vary by scene.")
+        previewQuality.refresh()
+        for appearance in [NSAppearance.Name.aqua, .darkAqua] {
+            preview.window.appearance = NSAppearance(named: appearance)
+            for size in [NSSize(width: 760, height: 570), NSSize(width: 880, height: 750)] {
+                preview.window.setContentSize(size)
+                previewQuality.revealEstimate()
+                let document = preview.formatsScroll.documentView!
+                let visible = preview.formatsScroll.documentVisibleRect
+                for view in [previewQuality.sampleButton, previewQuality.estimate] as [NSView] {
+                    // AppKit buttons include invisible bezel outsets beyond
+                    // their alignment rect; measure the visible control.
+                    let rect = view.convert(view.alignmentRect(forFrame: view.bounds), to: document)
+                    expect(rect.minY >= visible.minY - 1 && rect.maxY <= visible.maxY + 1)
+                    expect(rect.minX >= 0 && rect.maxX <= visible.width + 1)
+                }
+                let position = visible.minY
+                previewQuality.revealEstimate()
+                expect(abs(preview.formatsScroll.documentVisibleRect.minY - position) < 0.5)
+                expect(previewQuality.sampleButton.bounds.width >= previewQuality.sampleButton.intrinsicContentSize.width)
+            }
+        }
 
         // A real event loop is essential here: static layout tests skip the
         // production animation path and cannot catch a late animated scroll

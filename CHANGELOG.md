@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Exclude matching files from quality estimates when **Skip files already in target format** is enabled, and explain when custom quality will be skipped.
+- Compare estimated output size with the original size, including when a conversion may make the file larger. Audio batch estimates identify their total and exclude skipped inputs.
+- Show **Estimate Again…** when a sampled estimate needs refreshing, report the current sample scene, and bring the result and its button into view without a layout animation.
+- Reject invalid estimate durations, missing quality and changed source files before encoding; clean up temporary samples after cancellation or failure.
+
 ## 1.9.2 — 2026-11-11
 
 - Match the current Homebrew GDAL bindings with Python 3.15. Build and verify a replacement runtime before swapping a manual installation.

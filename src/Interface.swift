@@ -259,6 +259,7 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
         optionsBody.addArrangedSubview(uiLabel("These options apply to this conversion batch. Folder rules use their own settings.", size: 13, color: .secondaryLabelColor))
         skipSame.toolTip = "Matching files are recorded as skipped and remain in their original folder."
         skipSame.state = preferences.bool(forKey: "skipSame") ? .on : .off
+        skipSame.target = self; skipSame.action = #selector(skipOptionChanged)
         openAfter.state = preferences.bool(forKey: "openAfter") ? .on : .off
         jobs.addItems(withTitles: ["1 file at a time", "2 files at a time", "3 files at a time", "4 files at a time"])
         jobs.selectItem(at: max(0, min(3, preferences.integer(forKey: "jobs") == 0 ? 1 : preferences.integer(forKey: "jobs") - 1)))
@@ -497,6 +498,12 @@ extension ConverterApp: NSTableViewDataSource, NSTableViewDelegate {
             draftTargets[entry.key] = value
         }
         fileTable.reloadData()
+    }
+    @objc func skipOptionChanged() {
+        for control in qualityControls.values {
+            control.skipsMatchingFiles = skipSame.state == .on
+            control.refresh()
+        }
     }
 }
 
